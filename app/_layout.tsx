@@ -5,8 +5,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { EstimateProvider } from "@/contexts/EstimateContext";
 import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
-import SplashAnimation from "@/components/SplashAnimation";
-import IntroScreen from "@/components/IntroScreen";
+import SplashIntro from "@/components/SplashIntro";
 import ModeSelection from "@/components/ModeSelection";
 import type { UserMode } from "@/contexts/UserModeContext";
 
@@ -35,6 +34,11 @@ function AppContent() {
     setSplashDone(true);
   }, []);
 
+  const handleIntroStart = useCallback(() => {
+    console.log('[App] Intro screen dismissed');
+    setIntroDone(true);
+  }, []);
+
   useEffect(() => {
     if (!isLoading) {
       console.log('[App] Data loading complete, userMode:', userMode);
@@ -51,25 +55,23 @@ function AppContent() {
     prevUserModeRef.current = userMode;
   }, [userMode, dataDone]);
 
-  const handleIntroStart = useCallback(() => {
-    console.log('[App] Intro screen dismissed');
-    setIntroDone(true);
-  }, []);
-
   const handleModeSelect = useCallback(async (mode: UserMode) => {
     await selectMode(mode);
   }, [selectMode]);
 
-  const ready = splashDone && dataDone;
-  const showIntro = ready && !introDone;
-  const showModeSelection = ready && introDone && !userMode;
+  const showSplashIntro = !introDone;
+  const showModeSelection = splashDone && introDone && dataDone && !userMode;
 
   return (
     <>
       <RootLayoutNav />
       {showModeSelection && <ModeSelection onSelect={handleModeSelect} />}
-      {showIntro && <IntroScreen onStart={handleIntroStart} />}
-      {!splashDone && <SplashAnimation onFinish={handleSplashFinish} />}
+      {showSplashIntro && (
+        <SplashIntro
+          onSplashDone={handleSplashFinish}
+          onStart={handleIntroStart}
+        />
+      )}
     </>
   );
 }
