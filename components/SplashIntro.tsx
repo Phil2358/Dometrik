@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,16 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import Svg, { Line, Rect, Path } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 
-const LOGO_SIZE_SPLASH = 130;
-const LOGO_SIZE_INTRO = 64;
+const LOGO_SIZE_SPLASH = 140;
+const LOGO_SIZE_INTRO = 68;
+const FRAME_COLOR = '#6A6A6A';
+const MARKER_COLOR = '#6A6A6A';
+const D_COLOR = '#1F1F1F';
+const SPLASH_COLOR_WHITE = '#FFFFFF';
 
 const BULLETS = [
   'Realistic construction cost estimates',
@@ -29,15 +33,14 @@ interface SplashIntroProps {
 
 export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps) {
   const insets = useSafeAreaInsets();
+  const [phase, setPhase] = useState<'splash' | 'transition' | 'intro'>('splash');
 
-  const vertLineOpacity = useRef(new Animated.Value(0)).current;
-  const horizLineOpacity = useRef(new Animated.Value(0)).current;
-  const squareOpacity = useRef(new Animated.Value(0)).current;
+  const frameOpacity = useRef(new Animated.Value(0)).current;
+  const markerOpacity = useRef(new Animated.Value(0)).current;
   const dLetterOpacity = useRef(new Animated.Value(0)).current;
 
-  const bgProgress = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(1)).current;
-  const logoTranslateY = useRef(new Animated.Value(0)).current;
+  const splashFadeOut = useRef(new Animated.Value(1)).current;
+  const introFadeIn = useRef(new Animated.Value(0)).current;
 
   const brandOpacity = useRef(new Animated.Value(0)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
@@ -46,218 +49,234 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
   const buttonOpacity = useRef(new Animated.Value(0)).current;
   const buttonSlide = useRef(new Animated.Value(20)).current;
 
-  const scaleRatio = LOGO_SIZE_INTRO / LOGO_SIZE_SPLASH;
-
-  const startIntroTransition = useCallback(() => {
-    console.log('[SplashIntro] Starting intro transition');
-    Animated.parallel([
-      Animated.timing(bgProgress, {
+  const showIntroContent = useCallback(() => {
+    console.log('[SplashIntro] Showing intro content');
+    Animated.sequence([
+      Animated.timing(brandOpacity, {
         toValue: 1,
-        duration: 550,
-        useNativeDriver: false,
+        duration: 250,
+        useNativeDriver: true,
       }),
-      Animated.timing(logoScale, {
-        toValue: scaleRatio,
-        duration: 550,
-        useNativeDriver: false,
+      Animated.timing(subtitleOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
       }),
-      Animated.timing(logoTranslateY, {
-        toValue: -180,
-        duration: 550,
-        useNativeDriver: false,
+      Animated.timing(taglineOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
       }),
-    ]).start(() => {
-      console.log('[SplashIntro] Logo transition complete, showing content');
-      Animated.sequence([
-        Animated.timing(brandOpacity, {
+      Animated.stagger(
+        60,
+        bulletAnims.map((anim) =>
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: true,
+          })
+        )
+      ),
+      Animated.parallel([
+        Animated.timing(buttonOpacity, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
-        Animated.timing(subtitleOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: false,
+        Animated.timing(buttonSlide, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
         }),
-        Animated.timing(taglineOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: false,
-        }),
-        Animated.stagger(
-          60,
-          bulletAnims.map((anim) =>
-            Animated.timing(anim, {
-              toValue: 1,
-              duration: 180,
-              useNativeDriver: false,
-            })
-          )
-        ),
-        Animated.parallel([
-          Animated.timing(buttonOpacity, {
-            toValue: 1,
-            duration: 250,
-            useNativeDriver: false,
-          }),
-          Animated.timing(buttonSlide, {
-            toValue: 0,
-            duration: 250,
-            useNativeDriver: false,
-          }),
-        ]),
-      ]).start();
+      ]),
+    ]).start();
+  }, [brandOpacity, subtitleOpacity, taglineOpacity, bulletAnims, buttonOpacity, buttonSlide]);
+
+  const startTransition = useCallback(() => {
+    console.log('[SplashIntro] Starting transition to intro');
+    onSplashDone();
+
+    Animated.parallel([
+      Animated.timing(splashFadeOut, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(introFadeIn, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setPhase('intro');
+      showIntroContent();
     });
-  }, [bgProgress, logoScale, logoTranslateY, brandOpacity, subtitleOpacity, taglineOpacity, bulletAnims, buttonOpacity, buttonSlide, scaleRatio]);
+
+    setPhase('transition');
+  }, [onSplashDone, splashFadeOut, introFadeIn, showIntroContent]);
 
   useEffect(() => {
+    console.log('[SplashIntro] Starting splash draw animation');
     Animated.parallel([
       Animated.sequence([
         Animated.delay(100),
-        Animated.timing(vertLineOpacity, {
+        Animated.timing(frameOpacity, {
           toValue: 1,
-          duration: 700,
-          useNativeDriver: false,
+          duration: 900,
+          useNativeDriver: true,
         }),
       ]),
       Animated.sequence([
-        Animated.delay(450),
-        Animated.timing(horizLineOpacity, {
-          toValue: 1,
-          duration: 650,
-          useNativeDriver: false,
-        }),
-      ]),
-      Animated.sequence([
-        Animated.delay(550),
-        Animated.timing(squareOpacity, {
+        Animated.delay(600),
+        Animated.timing(markerOpacity, {
           toValue: 1,
           duration: 450,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]),
       Animated.sequence([
-        Animated.delay(1100),
+        Animated.delay(1200),
         Animated.timing(dLetterOpacity, {
           toValue: 1,
           duration: 900,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]),
     ]).start(() => {
-      console.log('[SplashIntro] Draw animation complete (2.5s)');
+      console.log('[SplashIntro] Draw animation complete');
       setTimeout(() => {
-        onSplashDone();
-        startIntroTransition();
-      }, 200);
+        startTransition();
+      }, 300);
     });
-  }, [vertLineOpacity, horizLineOpacity, squareOpacity, dLetterOpacity, onSplashDone, startIntroTransition]);
+  }, [frameOpacity, markerOpacity, dLetterOpacity, startTransition]);
 
-  const bgColor = bgProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [Colors.splash, Colors.background],
-  });
+  const SW = 9;
 
-  const SW = 3.2;
+  const renderSplashLogo = () => (
+    <View style={{ width: LOGO_SIZE_SPLASH, height: LOGO_SIZE_SPLASH }}>
+      <Animated.View style={[styles.svgLayer, { opacity: frameOpacity }]}>
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
+          <Path
+            d="M 28,92 L 9,92 L 9,20 Q 9,9 20,9 L 92,9"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={SW}
+            strokeLinecap="square"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </Animated.View>
+
+      <Animated.View style={[styles.svgLayer, { opacity: markerOpacity }]}>
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
+          <Rect
+            x="23" y="23"
+            width="8" height="8"
+            rx="1" ry="1"
+            fill={Colors.accent}
+          />
+        </Svg>
+      </Animated.View>
+
+      <Animated.View style={[styles.svgLayer, { opacity: dLetterOpacity }]}>
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
+          <Path
+            d="M 46,36 L 46,88"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={SW + 2}
+            strokeLinecap="round"
+          />
+          <Path
+            d="M 46,36 C 84,36 84,88 46,88"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={SW + 2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </Animated.View>
+    </View>
+  );
 
   return (
-    <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
-      <View style={styles.logoArea}>
-        <Animated.View
-          style={[
-            styles.logoWrap,
-            {
-              transform: [
-                { scale: logoScale },
-                { translateY: logoTranslateY },
-              ],
-            },
-          ]}
-        >
-          <View style={{ width: LOGO_SIZE_SPLASH, height: LOGO_SIZE_SPLASH }}>
-            <Animated.View style={[styles.svgLayer, { opacity: vertLineOpacity }]}>
-              <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
-                <Line
-                  x1="16" y1="10" x2="16" y2="86"
-                  stroke="#FFFFFF"
-                  strokeWidth={SW}
-                  strokeLinecap="round"
-                />
-              </Svg>
-            </Animated.View>
-
-            <Animated.View style={[styles.svgLayer, { opacity: horizLineOpacity }]}>
-              <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
-                <Line
-                  x1="16" y1="86" x2="92" y2="86"
-                  stroke="#FFFFFF"
-                  strokeWidth={SW}
-                  strokeLinecap="round"
-                />
-              </Svg>
-            </Animated.View>
-
-            <Animated.View style={[styles.svgLayer, { opacity: squareOpacity }]}>
-              <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
-                <Rect
-                  x="10" y="80"
-                  width="12" height="12"
-                  rx="2" ry="2"
-                  fill={Colors.accent}
-                />
-              </Svg>
-            </Animated.View>
-
-            <Animated.View style={[styles.svgLayer, { opacity: dLetterOpacity }]}>
-              <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
-                <Line
-                  x1="40" y1="24" x2="40" y2="72"
-                  stroke="#FFFFFF"
-                  strokeWidth={SW + 0.4}
-                  strokeLinecap="round"
-                />
-                <Path
-                  d="M 40,24 C 74,24 74,72 40,72"
-                  fill="none"
-                  stroke="#FFFFFF"
-                  strokeWidth={SW + 0.4}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </Animated.View>
-          </View>
-        </Animated.View>
-      </View>
+    <View style={styles.container}>
+      <Animated.View
+        style={[
+          styles.splashScreen,
+          { opacity: splashFadeOut },
+        ]}
+        pointerEvents={phase === 'splash' ? 'auto' : 'none'}
+      >
+        <View style={styles.splashCenter}>
+          {renderSplashLogo()}
+        </View>
+      </Animated.View>
 
       <Animated.View
         style={[
-          styles.introContent,
+          styles.introScreen,
           {
-            opacity: brandOpacity.interpolate({
-              inputRange: [0, 0.01, 1],
-              outputRange: [0, 1, 1],
-            }),
-            paddingTop: insets.top + 60,
+            opacity: introFadeIn,
+            paddingTop: insets.top + 48,
             paddingBottom: insets.bottom + 24,
           },
         ]}
-        pointerEvents="box-none"
+        pointerEvents={phase !== 'splash' ? 'auto' : 'none'}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View style={styles.logoSpacer} />
+          <View style={styles.introLogoWrap}>
+            <Svg width={LOGO_SIZE_INTRO} height={LOGO_SIZE_INTRO} viewBox="0 0 100 100">
+              <Path
+                d="M 28,92 L 9,92 L 9,20 Q 9,9 20,9 L 92,9"
+                fill="none"
+                stroke={FRAME_COLOR}
+                strokeWidth={SW}
+                strokeLinecap="square"
+                strokeLinejoin="round"
+              />
+              <Rect
+                x="23" y="23"
+                width="8" height="8"
+                rx="1" ry="1"
+                fill={MARKER_COLOR}
+              />
+              <Path
+                d="M 46,36 L 46,88"
+                fill="none"
+                stroke={D_COLOR}
+                strokeWidth={SW + 2}
+                strokeLinecap="round"
+              />
+              <Path
+                d="M 46,36 C 84,36 84,88 46,88"
+                fill="none"
+                stroke={D_COLOR}
+                strokeWidth={SW + 2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </View>
+
+          <View style={styles.spacer20} />
 
           <Animated.Text style={[styles.brandName, { opacity: brandOpacity }]}>
             Dometrik
           </Animated.Text>
 
+          <View style={styles.spacer8} />
+
           <Animated.Text style={[styles.subtitleText, { opacity: subtitleOpacity }]}>
             Construction Cost Estimator
           </Animated.Text>
+
+          <View style={styles.spacer18} />
 
           <Animated.View style={[styles.taglineWrap, { opacity: taglineOpacity }]}>
             <View style={styles.taglineLine} />
@@ -266,6 +285,8 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
             </Text>
             <View style={styles.taglineLine} />
           </Animated.View>
+
+          <View style={styles.spacer24} />
 
           <View style={styles.bulletsWrap}>
             {BULLETS.map((bullet, index) => (
@@ -278,6 +299,8 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
               </Animated.View>
             ))}
           </View>
+
+          <View style={styles.spacer32} />
 
           <Animated.View
             style={[
@@ -299,7 +322,7 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
           </Animated.View>
         </ScrollView>
       </Animated.View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -313,23 +336,24 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     elevation: 9999,
   },
-  logoArea: {
+  splashScreen: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    backgroundColor: Colors.splash,
     zIndex: 2,
   },
-  logoWrap: {
-    width: LOGO_SIZE_SPLASH,
-    height: LOGO_SIZE_SPLASH,
+  splashCenter: {
+    flex: 1,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   svgLayer: {
     position: 'absolute' as const,
     top: 0,
     left: 0,
   },
-  introContent: {
+  introScreen: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.background,
     zIndex: 1,
     paddingHorizontal: 24,
   },
@@ -339,17 +363,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
     paddingBottom: 20,
   },
-  logoSpacer: {
-    height: LOGO_SIZE_INTRO + 20,
-    marginBottom: 20,
+  introLogoWrap: {
+    width: LOGO_SIZE_INTRO,
+    height: LOGO_SIZE_INTRO,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
+  spacer8: { height: 8 },
+  spacer18: { height: 18 },
+  spacer20: { height: 20 },
+  spacer24: { height: 24 },
+  spacer32: { height: 32 },
   brandName: {
     fontSize: 34,
     fontWeight: '700' as const,
     color: Colors.text,
     textAlign: 'center' as const,
     letterSpacing: 0.6,
-    marginBottom: 8,
   },
   subtitleText: {
     fontSize: 15,
@@ -357,12 +387,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center' as const,
     letterSpacing: 0.2,
-    marginBottom: 20,
   },
   taglineWrap: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 24,
     gap: 10,
     paddingHorizontal: 8,
   },
@@ -384,7 +412,6 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch' as const,
     gap: 12,
     paddingHorizontal: 8,
-    marginBottom: 32,
   },
   bulletRow: {
     flexDirection: 'row' as const,

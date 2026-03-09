@@ -1,63 +1,56 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Svg, { Path, Line, Rect } from 'react-native-svg';
-import Colors from '@/constants/colors';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 interface DometrikLogoProps {
   size?: number;
-  lineColor?: string;
-  accentColor?: string;
+  frameColor?: string;
+  markerColor?: string;
   dColor?: string;
-  strokeWidth?: number;
 }
 
 export default function DometrikLogo({
   size = 80,
-  lineColor = Colors.primary,
-  accentColor = Colors.accent,
-  dColor = Colors.text,
-  strokeWidth = 3.2,
+  frameColor = '#6A6A6A',
+  markerColor = '#6A6A6A',
+  dColor = '#1F1F1F',
 }: DometrikLogoProps) {
+  const sw = 9;
+
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} viewBox="0 0 100 100">
-        <Line
-          x1="16" y1="10" x2="16" y2="86"
-          stroke={lineColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        <Line
-          x1="16" y1="86" x2="92" y2="86"
-          stroke={lineColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
+        <Path
+          d="M 28,92 L 9,92 L 9,20 Q 9,9 20,9 L 92,9"
+          fill="none"
+          stroke={frameColor}
+          strokeWidth={sw}
+          strokeLinecap="square"
+          strokeLinejoin="round"
         />
 
         <Rect
-          x="10" y="80"
-          width="12" height="12"
-          rx="2" ry="2"
-          fill={accentColor}
+          x="23"
+          y="23"
+          width="8"
+          height="8"
+          rx="1"
+          ry="1"
+          fill={markerColor}
         />
 
         <Path
-          d="M 40,24 L 40,72 C 40,72 40,24 40,24 Z"
+          d="M 46,36 L 46,88"
           fill="none"
           stroke={dColor}
-          strokeWidth={0}
-        />
-        <Line
-          x1="40" y1="24" x2="40" y2="72"
-          stroke={dColor}
-          strokeWidth={strokeWidth + 0.4}
+          strokeWidth={sw + 2}
           strokeLinecap="round"
         />
         <Path
-          d="M 40,24 C 74,24 74,72 40,72"
+          d="M 46,36 C 84,36 84,88 46,88"
           fill="none"
           stroke={dColor}
-          strokeWidth={strokeWidth + 0.4}
+          strokeWidth={sw + 2}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
