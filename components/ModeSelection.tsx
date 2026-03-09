@@ -166,6 +166,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     justifyContent: 'center',
     zIndex: 9998,
+    elevation: 9998,
   },
   header: {
     marginBottom: 36,

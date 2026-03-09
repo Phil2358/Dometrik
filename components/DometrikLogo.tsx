@@ -1,79 +1,65 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Svg, { Path, Polyline, Line } from 'react-native-svg';
+import Svg, { Path, Line, Rect } from 'react-native-svg';
 import Colors from '@/constants/colors';
 
 interface DometrikLogoProps {
   size?: number;
-  color?: string;
+  lineColor?: string;
   accentColor?: string;
+  dColor?: string;
   strokeWidth?: number;
 }
 
 export default function DometrikLogo({
   size = 80,
-  color = '#FFFFFF',
+  lineColor = Colors.primary,
   accentColor = Colors.accent,
-  strokeWidth = 2.8,
+  dColor = Colors.text,
+  strokeWidth = 3.2,
 }: DometrikLogoProps) {
-  const viewBox = '0 0 100 100';
-
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      <Svg width={size} height={size} viewBox={viewBox}>
-        <Polyline
-          points="10,48 50,14 90,48"
-          fill="none"
-          stroke={accentColor}
-          strokeWidth={strokeWidth + 0.5}
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <Line
+          x1="16" y1="10" x2="16" y2="86"
+          stroke={lineColor}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeLinejoin="round"
+        />
+        <Line
+          x1="16" y1="86" x2="92" y2="86"
+          stroke={lineColor}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
         />
 
-        <Line
-          x1="22"
-          y1="42"
-          x2="22"
-          y2="86"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        <Line
-          x1="78"
-          y1="42"
-          x2="78"
-          y2="86"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        <Line
-          x1="22"
-          y1="86"
-          x2="78"
-          y2="86"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
+        <Rect
+          x="10" y="80"
+          width="12" height="12"
+          rx="2" ry="2"
+          fill={accentColor}
         />
 
         <Path
-          d="M 40,56 L 40,72 Q 40,76 44,76 L 56,76 Q 60,76 60,72 L 60,56 Q 60,48 50,48 Q 40,48 40,56 Z"
+          d="M 40,24 L 40,72 C 40,72 40,24 40,24 Z"
           fill="none"
-          stroke={accentColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          stroke={dColor}
+          strokeWidth={0}
         />
         <Line
-          x1="40"
-          y1="52"
-          x2="40"
-          y2="76"
-          stroke={accentColor}
-          strokeWidth={strokeWidth}
+          x1="40" y1="24" x2="40" y2="72"
+          stroke={dColor}
+          strokeWidth={strokeWidth + 0.4}
           strokeLinecap="round"
+        />
+        <Path
+          d="M 40,24 C 74,24 74,72 40,72"
+          fill="none"
+          stroke={dColor}
+          strokeWidth={strokeWidth + 0.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </Svg>
     </View>
