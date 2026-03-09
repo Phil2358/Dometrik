@@ -29,7 +29,7 @@ const MODE_OPTIONS: ModeOption[] = [
       'Estimate the construction cost of your future home and explore different building scenarios.',
     icon: <Home size={28} color={Colors.primary} strokeWidth={1.8} />,
     accentColor: Colors.primary,
-    bgTint: 'rgba(139, 69, 19, 0.06)',
+    bgTint: 'rgba(176, 106, 78, 0.08)',
   },
   {
     id: 'professional',
@@ -38,7 +38,7 @@ const MODE_OPTIONS: ModeOption[] = [
       'Use the estimator as a professional planning tool and generate cost reports for clients.',
     icon: <Ruler size={28} color={Colors.terracotta} strokeWidth={1.8} />,
     accentColor: Colors.terracotta,
-    bgTint: 'rgba(192, 112, 74, 0.06)',
+    bgTint: 'rgba(176, 106, 78, 0.08)',
   },
   {
     id: 'guided',

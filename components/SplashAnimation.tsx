@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import Colors from '@/constants/colors';
 
 const { width, height } = Dimensions.get('window');
@@ -9,131 +9,129 @@ interface SplashAnimationProps {
 }
 
 export default function SplashAnimation({ onFinish }: SplashAnimationProps) {
-  const bgOpacity = useRef(new Animated.Value(0)).current;
-  const lineProgress1 = useRef(new Animated.Value(0)).current;
-  const lineProgress2 = useRef(new Animated.Value(0)).current;
-  const lineProgress3 = useRef(new Animated.Value(0)).current;
+  const bgColorProgress = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.85)).current;
+  const logoScale = useRef(new Animated.Value(1.08)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
-  const textTranslateY = useRef(new Animated.Value(10)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.sequence([
-      Animated.timing(bgOpacity, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.stagger(80, [
-        Animated.timing(lineProgress1, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(lineProgress2, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(lineProgress3, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]),
       Animated.parallel([
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
+          duration: 280,
+          useNativeDriver: false,
         }),
-        Animated.spring(logoScale, {
+        Animated.timing(logoScale, {
           toValue: 1,
-          friction: 10,
-          tension: 50,
-          useNativeDriver: true,
+          duration: 500,
+          useNativeDriver: false,
         }),
       ]),
       Animated.parallel([
+        Animated.timing(bgColorProgress, {
+          toValue: 1,
+          duration: 350,
+          useNativeDriver: false,
+        }),
         Animated.timing(textOpacity, {
           toValue: 1,
-          duration: 280,
-          useNativeDriver: true,
-        }),
-        Animated.timing(textTranslateY, {
-          toValue: 0,
-          duration: 280,
-          useNativeDriver: true,
+          duration: 300,
+          useNativeDriver: false,
         }),
       ]),
       Animated.timing(subtitleOpacity, {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
-      Animated.delay(300),
+      Animated.delay(150),
     ]).start(() => {
       onFinish();
     });
-  }, [bgOpacity, lineProgress1, lineProgress2, lineProgress3, logoOpacity, logoScale, textOpacity, textTranslateY, subtitleOpacity, onFinish]);
+  }, [bgColorProgress, logoOpacity, logoScale, textOpacity, subtitleOpacity, onFinish]);
 
-  const line1TranslateX = lineProgress1.interpolate({
+  const bgColor = bgColorProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [-60, 0],
+    outputRange: [Colors.splash, Colors.background],
   });
-  const line2TranslateY = lineProgress2.interpolate({
+
+  const logoColor = bgColorProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [-40, 0],
+    outputRange: ['#FFFFFF', Colors.splash],
   });
-  const line3TranslateX = lineProgress3.interpolate({
+
+  const roofColor = bgColorProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [60, 0],
+    outputRange: [Colors.terracotta, Colors.terracotta],
+  });
+
+  const textColor = bgColorProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#FFFFFF', Colors.text],
+  });
+
+  const subtitleColor = bgColorProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(255,255,255,0.35)', Colors.textSecondary],
   });
 
   return (
-    <Animated.View style={[styles.container, { opacity: bgOpacity }]}>
+    <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
       <View style={styles.centerContent}>
-        <View style={styles.logoArea}>
-          <Animated.View style={[styles.gridLine1, { opacity: lineProgress1, transform: [{ translateX: line1TranslateX }] }]} />
-          <Animated.View style={[styles.gridLine2, { opacity: lineProgress2, transform: [{ translateY: line2TranslateY }] }]} />
-          <Animated.View style={[styles.gridLine3, { opacity: lineProgress3, transform: [{ translateX: line3TranslateX }] }]} />
-
-          <Animated.View
-            style={[
-              styles.iconContainer,
-              {
-                opacity: logoOpacity,
-                transform: [{ scale: logoScale }],
-              },
-            ]}
-          >
-            <View style={styles.iconShape}>
-              <View style={styles.roofLine} />
-              <View style={styles.houseBody}>
-                <View style={styles.metricLines}>
-                  <View style={styles.metricLine} />
-                  <View style={styles.metricLineShort} />
-                  <View style={styles.metricLine} />
-                </View>
-              </View>
-            </View>
-          </Animated.View>
-        </View>
-
         <Animated.View
-          style={{
-            opacity: textOpacity,
-            transform: [{ translateY: textTranslateY }],
-          }}
+          style={[
+            styles.iconContainer,
+            {
+              opacity: logoOpacity,
+              transform: [{ scale: logoScale }],
+            },
+          ]}
         >
-          <Text style={styles.brandName}>Dometrik</Text>
+          <View style={styles.iconShape}>
+            <Animated.View
+              style={[
+                styles.roofLine,
+                { borderTopColor: roofColor },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.houseBody,
+                { borderColor: logoColor },
+              ]}
+            >
+              <Animated.Text style={[styles.euroSymbol, { color: roofColor }]}>
+                €
+              </Animated.Text>
+            </Animated.View>
+          </View>
         </Animated.View>
 
-        <Animated.View style={{ opacity: subtitleOpacity }}>
-          <Text style={styles.tagline}>Construction Cost Calculator</Text>
-        </Animated.View>
+        <Animated.Text
+          style={[
+            styles.brandName,
+            {
+              opacity: textOpacity,
+              color: textColor,
+            },
+          ]}
+        >
+          Dometrik
+        </Animated.Text>
+
+        <Animated.Text
+          style={[
+            styles.tagline,
+            {
+              opacity: subtitleOpacity,
+              color: subtitleColor,
+            },
+          ]}
+        >
+          Construction Cost Calculator
+        </Animated.Text>
       </View>
     </Animated.View>
   );
@@ -146,45 +144,13 @@ const styles = StyleSheet.create({
     left: 0,
     width,
     height,
-    backgroundColor: Colors.splash,
     zIndex: 9999,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   centerContent: {
     alignItems: 'center' as const,
-    gap: 20,
-  },
-  logoArea: {
-    width: 100,
-    height: 100,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    position: 'relative' as const,
-  },
-  gridLine1: {
-    position: 'absolute' as const,
-    top: 10,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(184, 134, 11, 0.2)',
-  },
-  gridLine2: {
-    position: 'absolute' as const,
-    top: 0,
-    bottom: 0,
-    left: 50,
-    width: 1,
-    backgroundColor: 'rgba(184, 134, 11, 0.2)',
-  },
-  gridLine3: {
-    position: 'absolute' as const,
-    bottom: 10,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(184, 134, 11, 0.2)',
+    gap: 18,
   },
   iconContainer: {
     width: 80,
@@ -197,40 +163,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
   },
   roofLine: {
-    width: 52,
+    width: 56,
     height: 0,
-    borderTopWidth: 2.5,
+    borderTopWidth: 3,
     borderTopColor: Colors.terracotta,
-    borderLeftWidth: 26,
+    borderLeftWidth: 28,
     borderLeftColor: 'transparent',
-    borderRightWidth: 26,
+    borderRightWidth: 28,
     borderRightColor: 'transparent',
     borderStyle: 'solid' as const,
     marginBottom: -1,
     transform: [{ scaleY: -1 }],
   },
   houseBody: {
-    width: 40,
-    height: 32,
-    borderWidth: 2,
+    width: 44,
+    height: 34,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
     borderTopWidth: 0,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
-  metricLines: {
-    gap: 5,
-    alignItems: 'center' as const,
-  },
-  metricLine: {
-    width: 20,
-    height: 1.5,
-    backgroundColor: Colors.copper,
-  },
-  metricLineShort: {
-    width: 12,
-    height: 1.5,
-    backgroundColor: 'rgba(184, 115, 51, 0.5)',
+  euroSymbol: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.terracotta,
+    marginTop: -2,
   },
   brandName: {
     fontSize: 34,

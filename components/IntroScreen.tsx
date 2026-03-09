@@ -17,8 +17,7 @@ interface IntroScreenProps {
 const BULLETS = [
   'Realistic construction cost estimates',
   'Professional cost structure (DIN 276)',
-  'Compare multiple building scenarios instantly',
-  'Evaluate project feasibility before construction',
+  'Compare building scenarios instantly',
 ];
 
 export default function IntroScreen({ onStart }: IntroScreenProps) {
@@ -75,11 +74,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
           <View style={styles.iconContainer}>
             <View style={styles.roofLine} />
             <View style={styles.houseBody}>
-              <View style={styles.metricLines}>
-                <View style={styles.metricLine} />
-                <View style={styles.metricLineShort} />
-                <View style={styles.metricLine} />
-              </View>
+              <Text style={styles.euroSymbol}>€</Text>
             </View>
           </View>
         </Animated.View>
@@ -91,14 +86,8 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
 
         <Animated.View style={[styles.taglineWrap, { opacity: bodyFade, transform: [{ translateY: bodySlide }] }]}>
           <View style={styles.taglineLine} />
-          <Text style={styles.tagline}>Understand the real cost before you build.</Text>
+          <Text style={styles.tagline}>Understand the real cost before you build</Text>
           <View style={styles.taglineLine} />
-        </Animated.View>
-
-        <Animated.View style={[styles.descriptionWrap, { opacity: bodyFade, transform: [{ translateY: bodySlide }] }]}>
-          <Text style={styles.description}>
-            Plan your project with a realistic construction cost estimate based on location, size, quality, and site conditions.
-          </Text>
         </Animated.View>
 
         <View style={styles.bulletsWrap}>
@@ -127,7 +116,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
           onPress={onStart}
           testID="intro-start-button"
         >
-          <Text style={styles.startButtonText}>Start Calculator</Text>
+          <Text style={styles.startButtonText}>Start Estimate</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -180,7 +169,7 @@ const styles = StyleSheet.create({
   roofLine: {
     width: 36,
     height: 0,
-    borderTopWidth: 2,
+    borderTopWidth: 2.5,
     borderTopColor: Colors.terracotta,
     borderLeftWidth: 18,
     borderLeftColor: 'transparent',
@@ -199,19 +188,11 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
-  metricLines: {
-    gap: 3,
-    alignItems: 'center' as const,
-  },
-  metricLine: {
-    width: 14,
-    height: 1,
-    backgroundColor: Colors.copper,
-  },
-  metricLineShort: {
-    width: 8,
-    height: 1,
-    backgroundColor: 'rgba(184, 115, 51, 0.5)',
+  euroSymbol: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: Colors.terracotta,
+    marginTop: -1,
   },
   appName: {
     fontSize: 34,
@@ -232,7 +213,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     marginTop: 28,
-    marginBottom: 20,
+    marginBottom: 28,
     gap: 12,
   },
   taglineLine: {
@@ -246,17 +227,6 @@ const styles = StyleSheet.create({
     color: Colors.terracotta,
     fontStyle: 'italic' as const,
     letterSpacing: 0.2,
-  },
-  descriptionWrap: {
-    marginBottom: 28,
-    paddingHorizontal: 4,
-  },
-  description: {
-    fontSize: 15,
-    fontWeight: '400' as const,
-    color: Colors.textSecondary,
-    textAlign: 'center' as const,
-    lineHeight: 22,
   },
   bulletsWrap: {
     alignSelf: 'stretch' as const,
@@ -286,20 +256,20 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   startButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.accent,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center' as const,
     ...Platform.select({
       ios: {
-        shadowColor: Colors.primary,
+        shadowColor: Colors.accent,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.25,
         shadowRadius: 12,
       },
       android: { elevation: 6 },
       web: {
-        shadowColor: Colors.primary,
+        shadowColor: Colors.accent,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.25,
         shadowRadius: 12,
