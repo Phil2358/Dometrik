@@ -1,0 +1,1249 @@
+import React, { useCallback, useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+  Platform,
+  ActivityIndicator,
+  LayoutAnimation,
+  UIManager,
+} from 'react-native';
+import ScenarioBar from '@/components/ScenarioBar';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import {
+  Hammer,
+  Building,
+  Layers,
+  Home,
+  LayoutGrid,
+  Paintbrush,
+  Thermometer,
+  Zap,
+  Droplets,
+  Shield,
+  Wrench,
+  Waves,
+  Info,
+  Flower2,
+  ExternalLink,
+  PenTool,
+  Plug,
+  ShieldAlert,
+  FileDown,
+  ChevronDown,
+  ChevronRight,
+  Shovel,
+  Cable,
+  Fence,
+  Bath,
+  Sofa,
+  FileText,
+  ClipboardCheck,
+  HardHat,
+  LandPlot,
+  Wind,
+} from 'lucide-react-native';
+import Colors from '@/constants/colors';
+import { useEstimate } from '@/contexts/EstimateContext';
+import { useUserMode } from '@/contexts/UserModeContext';
+import type { UserMode } from '@/contexts/UserModeContext';
+
+import {
+  DISCLAIMER_TEXT,
+  CONSTRUCTION_SUBTOTAL_DISCLAIMER,
+  PERMIT_DESIGN_CONTACT_URL,
+  PERMIT_DESIGN_CONTACT_LABEL,
+  getSizeCorrectionLabel,
+  formatEuro,
+} from '@/constants/construction';
+import { generateClientReportHtml } from '@/utils/generateClientReportHtml';
+import type { ClientReportData } from '@/utils/generateClientReportHtml';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+interface SubgroupItem {
+  code: string;
+  name: string;
+  cost: number;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
+  sublabel?: string;
+  visible: boolean;
+}
+
+interface DinGroup {
+  code: string;
+  name: string;
+  subtotal: number;
+  percentOfTotal: number;
+  subgroups: SubgroupItem[];
+  accentColor: string;
+}
+
+function CollapsibleGroup({ group }: { group: DinGroup }) {
+  const [expanded, setExpanded] = useState<boolean>(true);
+
+  const toggle = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((prev) => !prev);
+  }, []);
+
+  const visibleSubgroups = group.subgroups.filter((s) => s.visible);
+
+  return (
+    <View style={styles.groupContainer}>
+      <TouchableOpacity
+        style={styles.groupHeader}
+        onPress={toggle}
+        activeOpacity={0.7}
+        testID={`group-header-${group.code}`}
+      >
+        <View style={[styles.groupAccentBar, { backgroundColor: group.accentColor }]} />
+        <View style={styles.groupHeaderContent}>
+          <View style={styles.groupHeaderLeft}>
+            <Text style={styles.groupCode}>{group.code}</Text>
+            <Text style={styles.groupName}>{group.name}</Text>
+          </View>
+          <View style={styles.groupHeaderRight}>
+            <View style={styles.groupCostColumn}>
+              <Text style={styles.groupSubtotal}>{formatEuro(group.subtotal)}</Text>
+              <Text style={styles.groupPercent}>{group.percentOfTotal.toFixed(1)}%</Text>
+            </View>
+            {expanded ? (
+              <ChevronDown size={18} color={Colors.textTertiary} />
+            ) : (
+              <ChevronRight size={18} color={Colors.textTertiary} />
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {expanded && visibleSubgroups.length > 0 && (
+        <View style={styles.subgroupList}>
+          {visibleSubgroups.map((item) => (
+            <View key={item.code} style={styles.subgroupRow}>
+              <View style={styles.subgroupIconWrap}>
+                <item.icon size={15} color={group.accentColor} />
+              </View>
+              <View style={styles.subgroupInfo}>
+                <View style={styles.subgroupNameRow}>
+                  <Text style={styles.subgroupCode}>{item.code}</Text>
+                  <Text style={styles.subgroupName}>{item.name}</Text>
+                </View>
+                {item.sublabel ? (
+                  <Text style={styles.subgroupSublabel}>{item.sublabel}</Text>
+                ) : null}
+              </View>
+              <Text style={styles.subgroupCost}>{formatEuro(item.cost)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function getReportTitle(mode: UserMode | null): string {
+  switch (mode) {
+    case 'private':
+      return 'Project Cost Overview';
+    case 'professional':
+      return 'Client Cost Report';
+    case 'guided':
+      return 'Guided Project Cost Report';
+    default:
+      return 'Project Cost Estimate';
+  }
+}
+
+function GenerateReportButton() {
+  const [generating, setGenerating] = useState<boolean>(false);
+  const { userMode } = useUserMode();
+  const {
+    location,
+    quality,
+    effectiveArea,
+    mainArea,
+    balconyArea,
+    basementArea,
+    basementType,
+    includePool,
+    poolArea,
+    poolDepth,
+    poolQualityOption,
+    poolTypeOption,
+    siteCondition,
+    groundwaterCondition,
+    siteAccessibility,
+    hvacCosts,
+    kg200Total,
+    kg300Total,
+    kg400Total,
+    kg500Total,
+    kg600Cost,
+    permitDesignFee,
+    contingencyCost,
+    contractorCost,
+    totalCost,
+    constructionSubtotal,
+    contingencyPercent,
+    sizeCorrectionFactor,
+    basementExcavationCost,
+    basementStructureCost,
+  } = useEstimate();
+
+  const handleGenerate = useCallback(async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const enabledHvacNames = hvacCosts
+        .filter((h) => h.enabled)
+        .map((h) => h.option.name);
+
+      const reportData: ClientReportData = {
+        location: location.name,
+        effectiveArea,
+        mainArea,
+        qualityName: quality.name,
+        balconyArea,
+        basementArea,
+        basementTypeName: basementType.name,
+        includePool,
+        poolArea,
+        poolDepth,
+        poolQualityName: poolQualityOption.name,
+        poolTypeName: poolTypeOption.name,
+        siteConditionName: siteCondition.name,
+        groundwaterConditionName: groundwaterCondition.name,
+        siteAccessibilityName: siteAccessibility.name,
+        hvacOptions: enabledHvacNames,
+        kg200Total,
+        kg300Cost: kg300Total,
+        kg400Total,
+        kg500Total,
+        kg600Cost,
+        permitDesignFee,
+        contingencyCost,
+        contractorCost,
+        totalCost,
+        constructionSubtotal,
+        contingencyPercent,
+        sizeCorrectionFactor,
+        basementExcavationCost,
+        basementStructureCost,
+      };
+
+      const reportTitle = getReportTitle(userMode);
+      const html = generateClientReportHtml(reportData, reportTitle);
+      const sanitizedLocation = location.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `Project_Cost_Estimate_${sanitizedLocation}`;
+
+      if (Platform.OS === 'web') {
+        await Print.printAsync({ html });
+      } else {
+        const { uri } = await Print.printToFileAsync({
+          html,
+          base64: false,
+        });
+        console.log('PDF generated at:', uri);
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: fileName,
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          await Print.printAsync({ html });
+        }
+      }
+    } catch (error) {
+      console.log('PDF generation error:', error);
+    } finally {
+      setGenerating(false);
+    }
+  }, [
+    generating, location, quality, effectiveArea, mainArea, balconyArea, basementArea, basementType,
+    includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption,
+    siteCondition, groundwaterCondition, siteAccessibility, hvacCosts, kg200Total, kg300Total, kg400Total, kg500Total,
+    kg600Cost, permitDesignFee, contingencyCost, contractorCost, totalCost,
+    constructionSubtotal, contingencyPercent, sizeCorrectionFactor, basementExcavationCost, basementStructureCost,
+    userMode,
+  ]);
+
+  return (
+    <TouchableOpacity
+      style={styles.generateButton}
+      onPress={handleGenerate}
+      activeOpacity={0.8}
+      disabled={generating}
+      testID="generate-report-button"
+    >
+      <LinearGradient
+        colors={['#D4782F', '#C06828']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.generateButtonGradient}
+      >
+        {generating ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <FileDown size={18} color="#fff" />
+        )}
+        <Text style={styles.generateButtonText}>
+          {generating ? 'Generating...' : 'Generate Client Report'}
+        </Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+export default function BreakdownScreen() {
+  const {
+    location,
+    quality,
+    siteCondition,
+    groundwaterCondition,
+    siteAccessibility,
+    siteAccessibilityCost,
+    landscapingArea,
+    landscapingCost,
+    balconyArea,
+    basementArea,
+    basementType,
+    bathrooms,
+    wcs,
+    hvacCosts,
+    mainArea,
+    effectiveArea,
+    correctedCostPerSqm,
+    categoryCosts,
+    contractorCost,
+    contractorPercent,
+    poolCost,
+    includePool,
+    poolArea,
+    poolDepth,
+    poolQualityOption,
+    poolTypeOption,
+    permitDesignFee,
+    totalCost,
+    utilityConnectionCost,
+    kg200Total,
+    kg300Total,
+    kg400Total,
+    kg500Total,
+    kg600Cost,
+    constructionSubtotal,
+    contingencyPercent,
+    contingencyCost,
+    basementExcavationCost,
+    basementStructureCost,
+    siteExcavationCost,
+    sizeCorrectionFactor,
+  } = useEstimate();
+
+  const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
+  const enabledHvac = hvacCosts.filter((h) => h.enabled);
+
+  const getCategoryCost = useCallback((id: string): number => {
+    return categoryCosts.find((c) => c.category.id === id)?.cost ?? 0;
+  }, [categoryCosts]);
+
+  const dinGroups = useMemo<DinGroup[]>(() => {
+    const groups: DinGroup[] = [
+      {
+        code: '200',
+        name: 'Site Preparation & Utilities',
+        subtotal: kg200Total,
+        percentOfTotal: totalCost > 0 ? (kg200Total / totalCost) * 100 : 0,
+        accentColor: '#8B6914',
+        subgroups: [
+          {
+            code: '210',
+            name: 'Site preparation / earthworks',
+            cost: siteExcavationCost + basementExcavationCost,
+            icon: Shovel,
+            sublabel: basementArea > 0
+              ? `Building footprint + basement excavation · ${siteCondition.name}`
+              : `Building footprint · ${siteCondition.name}`,
+            visible: true,
+          },
+          {
+            code: '220',
+            name: 'Public utilities',
+            cost: utilityConnectionCost,
+            icon: Plug,
+            sublabel: 'Electricity, water, sewage, telecom',
+            visible: true,
+          },
+          {
+            code: '230',
+            name: 'Private utilities',
+            cost: 0,
+            icon: Cable,
+            sublabel: 'On-site pipes and cables',
+            visible: false,
+          },
+          {
+            code: '250',
+            name: 'Temporary construction measures',
+            cost: siteAccessibilityCost,
+            icon: HardHat,
+            sublabel: siteAccessibilityCost > 0
+              ? `Site logistics · ${siteAccessibility.name}`
+              : 'Site logistics, temporary facilities',
+            visible: siteAccessibilityCost > 0,
+          },
+        ],
+      },
+      {
+        code: '300',
+        name: 'Building Construction',
+        subtotal: kg300Total,
+        percentOfTotal: totalCost > 0 ? (kg300Total / totalCost) * 100 : 0,
+        accentColor: '#1B3A4B',
+        subgroups: [
+          {
+            code: '320',
+            name: 'Foundations',
+            cost: getCategoryCost('concrete') + basementStructureCost,
+            icon: Building,
+            sublabel: basementArea > 0
+              ? `Reinforced concrete structure + basement (${basementArea} m² · ${basementType.name})`
+              : 'Reinforced concrete, beams, columns, floor slabs',
+            visible: true,
+          },
+          {
+            code: '330',
+            name: 'External walls',
+            cost: getCategoryCost('masonry'),
+            icon: Layers,
+            sublabel: 'Masonry, exterior walls, lintels',
+            visible: true,
+          },
+          {
+            code: '340',
+            name: 'Internal walls',
+            cost: 0,
+            icon: LayoutGrid,
+            sublabel: 'Internal partitions',
+            visible: false,
+          },
+          {
+            code: '350',
+            name: 'Structural floor slabs',
+            cost: getCategoryCost('interior'),
+            icon: Paintbrush,
+            sublabel: 'Floor finishes, wall finishes, ceilings, painting',
+            visible: true,
+          },
+          {
+            code: '360',
+            name: 'Roof structures',
+            cost: getCategoryCost('roofing'),
+            icon: Home,
+            sublabel: 'Roof structure, tiles/membrane, waterproofing, gutters',
+            visible: true,
+          },
+          {
+            code: '370',
+            name: 'Structural elements',
+            cost: getCategoryCost('insulation') + getCategoryCost('windows'),
+            icon: Shield,
+            sublabel: 'Insulation (ETICS), windows, doors, facades',
+            visible: true,
+          },
+        ],
+      },
+      {
+        code: '400',
+        name: 'Technical Systems',
+        subtotal: kg400Total,
+        percentOfTotal: totalCost > 0 ? (kg400Total / totalCost) * 100 : 0,
+        accentColor: '#2D8B55',
+        subgroups: [
+          {
+            code: '410',
+            name: 'Sanitary installations',
+            cost: getCategoryCost('plumbing'),
+            icon: Droplets,
+            sublabel: 'Water supply, drainage, bathroom fittings',
+            visible: true,
+          },
+          {
+            code: '420',
+            name: 'Heating systems',
+            cost: getCategoryCost('hvac') + enabledHvac.filter(h =>
+              h.option.id === 'underfloor_heating' || h.option.id === 'solar_thermal'
+            ).reduce((s, h) => s + h.cost, 0),
+            icon: Thermometer,
+            sublabel: enabledHvac.some(h => h.option.id === 'underfloor_heating')
+              ? 'Heat pump, underfloor heating, solar thermal'
+              : 'Heat pump + fan-coils or VRV',
+            visible: true,
+          },
+          {
+            code: '430',
+            name: 'Ventilation / air conditioning',
+            cost: enabledHvac.filter(h => h.option.id === 'photovoltaic').reduce((s, h) => s + h.cost, 0),
+            icon: Wind,
+            sublabel: 'Ventilation, PV systems',
+            visible: enabledHvac.some(h => h.option.id === 'photovoltaic'),
+          },
+          {
+            code: '440',
+            name: 'Electrical installations',
+            cost: getCategoryCost('electrical'),
+            icon: Zap,
+            sublabel: 'Wiring, panels, sockets, lighting, smart home',
+            visible: true,
+          },
+        ],
+      },
+      {
+        code: '500',
+        name: 'External Works',
+        subtotal: kg500Total,
+        percentOfTotal: totalCost > 0 ? (kg500Total / totalCost) * 100 : 0,
+        accentColor: '#6B8E23',
+        subgroups: [
+          {
+            code: '510',
+            name: 'Terrain works',
+            cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.3) : 0,
+            icon: LandPlot,
+            sublabel: `Grading, retaining walls · ${siteCondition.name}`,
+            visible: landscapingCost > 0,
+          },
+          {
+            code: '520',
+            name: 'Paved surfaces',
+            cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.25) : 0,
+            icon: Hammer,
+            sublabel: 'Driveways, pathways, patios',
+            visible: landscapingCost > 0,
+          },
+          {
+            code: '530',
+            name: 'Planting',
+            cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.25) : 0,
+            icon: Flower2,
+            sublabel: `${landscapingArea} m² landscape area`,
+            visible: landscapingCost > 0,
+          },
+          {
+            code: '560',
+            name: 'Outdoor equipment',
+            cost: poolCost + (landscapingCost > 0 ? landscapingCost - Math.round(landscapingCost * 0.3) - Math.round(landscapingCost * 0.25) - Math.round(landscapingCost * 0.25) : 0),
+            icon: Waves,
+            sublabel: includePool
+              ? `Pool ${poolArea} m² · ${poolQualityOption.name} · ${poolTypeOption.name}`
+              : 'Irrigation, outdoor lighting',
+            visible: includePool || landscapingCost > 0,
+          },
+          {
+            code: '570',
+            name: 'Enclosures',
+            cost: 0,
+            icon: Fence,
+            sublabel: 'Fences, gates, boundary walls',
+            visible: false,
+          },
+        ],
+      },
+      {
+        code: '600',
+        name: 'Built-in Equipment',
+        subtotal: kg600Cost,
+        percentOfTotal: totalCost > 0 ? (kg600Cost / totalCost) * 100 : 0,
+        accentColor: '#8B5CF6',
+        subgroups: [
+          {
+            code: '610',
+            name: 'Built-in furniture',
+            cost: Math.round(kg600Cost * 0.6),
+            icon: Sofa,
+            sublabel: 'Kitchen, wardrobes, built-in storage',
+            visible: true,
+          },
+          {
+            code: '630',
+            name: 'Sanitary fixtures',
+            cost: kg600Cost - Math.round(kg600Cost * 0.6),
+            icon: Bath,
+            sublabel: 'Bathroom vanities, sanitary fittings',
+            visible: true,
+          },
+        ],
+      },
+      {
+        code: '700',
+        name: 'Planning & Professional Fees',
+        subtotal: permitDesignFee,
+        percentOfTotal: totalCost > 0 ? (permitDesignFee / totalCost) * 100 : 0,
+        accentColor: '#D4782F',
+        subgroups: [
+          {
+            code: '710',
+            name: 'Architectural services',
+            cost: Math.round(permitDesignFee * 0.50),
+            icon: PenTool,
+            sublabel: 'Design, documentation, site supervision',
+            visible: true,
+          },
+          {
+            code: '720',
+            name: 'Engineering services',
+            cost: Math.round(permitDesignFee * 0.30),
+            icon: FileText,
+            sublabel: 'Structural, MEP engineering',
+            visible: true,
+          },
+          {
+            code: '750',
+            name: 'Permits and approvals',
+            cost: permitDesignFee - Math.round(permitDesignFee * 0.50) - Math.round(permitDesignFee * 0.30),
+            icon: ClipboardCheck,
+            sublabel: 'Building permit, surveys, compliance',
+            visible: true,
+          },
+        ],
+      },
+    ];
+
+    return groups;
+  }, [
+    kg200Total, kg300Total, kg400Total, kg500Total, kg600Cost, permitDesignFee, totalCost,
+    siteExcavationCost, basementExcavationCost, utilityConnectionCost, basementStructureCost,
+    basementArea, basementType, siteCondition, landscapingCost, landscapingArea, poolCost,
+    includePool, poolArea, poolQualityOption, poolTypeOption, enabledHvac, getCategoryCost,
+    siteAccessibilityCost, siteAccessibility,
+  ]);
+
+  return (
+    <View style={styles.outerContainer}>
+      <ScenarioBar />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+      <View style={styles.assumptionsCard}>
+        <Text style={styles.assumptionsTitle}>Assumptions</Text>
+        <View style={styles.assumptionsGrid}>
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>Quality</Text>
+            <Text style={styles.assumptionValue}>{quality.name}</Text>
+          </View>
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>Location</Text>
+            <Text style={styles.assumptionValue}>{location.name} (×{location.multiplier.toFixed(2)})</Text>
+          </View>
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>Site Conditions</Text>
+            <Text style={styles.assumptionValue}>{siteCondition.name}</Text>
+          </View>
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>Groundwater</Text>
+            <Text style={styles.assumptionValue}>{groundwaterCondition.name}</Text>
+          </View>
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>Site Access</Text>
+            <Text style={styles.assumptionValue}>{siteAccessibility.name}</Text>
+          </View>
+          {basementArea > 0 && (
+            <View style={styles.assumptionItem}>
+              <Text style={styles.assumptionLabel}>Basement</Text>
+              <Text style={styles.assumptionValue}>{basementArea} m² · {basementType.name}</Text>
+            </View>
+          )}
+          {balconyArea > 0 && (
+            <View style={styles.assumptionItem}>
+              <Text style={styles.assumptionLabel}>Balconies</Text>
+              <Text style={styles.assumptionValue}>{balconyArea} m² (30%)</Text>
+            </View>
+          )}
+          {landscapingArea > 0 && (
+            <View style={styles.assumptionItem}>
+              <Text style={styles.assumptionLabel}>Landscaping Area</Text>
+              <Text style={styles.assumptionValue}>{landscapingArea} m²</Text>
+            </View>
+          )}
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>Bathrooms</Text>
+            <Text style={styles.assumptionValue}>{bathrooms}</Text>
+          </View>
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>WCs</Text>
+            <Text style={styles.assumptionValue}>{wcs}</Text>
+          </View>
+          {enabledHvac.map((h) => (
+            <View key={h.option.id} style={styles.assumptionItem}>
+              <Text style={styles.assumptionLabel}>{h.option.name}</Text>
+              <Text style={styles.assumptionValue}>{formatEuro(h.cost)}</Text>
+            </View>
+          ))}
+          {includePool && (
+            <View style={styles.assumptionItem}>
+              <Text style={styles.assumptionLabel}>Swimming Pool</Text>
+              <Text style={styles.assumptionValue}>{poolArea} m² · {poolDepth.toFixed(2)} m · {poolQualityOption.name} · {poolTypeOption.name}</Text>
+            </View>
+          )}
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>Effective Area</Text>
+            <Text style={styles.assumptionValue}>{effectiveArea.toFixed(0)} m²</Text>
+          </View>
+          <View style={styles.assumptionItem}>
+            <Text style={styles.assumptionLabel}>Corrected €/m²</Text>
+            <Text style={styles.assumptionValue}>{formatEuro(correctedCostPerSqm)}/m²</Text>
+          </View>
+          {sizeCorrectionFactor !== 1.0 && (
+            <View style={styles.assumptionItem}>
+              <Text style={styles.assumptionLabel}>Size Adjustment</Text>
+              <Text style={styles.assumptionValue}>{sizeCorrectionLabel}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.dinSectionTitle}>
+        <Text style={styles.dinSectionTitleText}>DIN 276 Cost Breakdown</Text>
+        <Text style={styles.dinBadge}>DIN 276</Text>
+      </View>
+
+      {dinGroups.map((group) => (
+        <CollapsibleGroup key={group.code} group={group} />
+      ))}
+
+      <View style={styles.constructionSubtotalCard}>
+        <Text style={styles.constructionSubtotalLabel}>Construction Subtotal (KG 300–600)</Text>
+        <Text style={styles.constructionSubtotalValue}>{formatEuro(constructionSubtotal)}</Text>
+      </View>
+      <View style={styles.disclaimerInline}>
+        <Info size={12} color={Colors.textTertiary} />
+        <Text style={styles.disclaimerInlineText}>{CONSTRUCTION_SUBTOTAL_DISCLAIMER}</Text>
+      </View>
+
+      <View style={styles.overheadSection}>
+        <Text style={styles.overheadTitle}>Risk & Overhead</Text>
+        <View style={styles.overheadCard}>
+          <View style={styles.overheadRow}>
+            <View style={styles.overheadIconWrap}>
+              <ShieldAlert size={15} color={Colors.warning} />
+            </View>
+            <View style={styles.overheadInfo}>
+              <Text style={styles.overheadLabel}>Construction Contingency</Text>
+              <Text style={styles.overheadSub}>
+                {Math.round(contingencyPercent * 100)}% risk reserve · {quality.name} quality
+              </Text>
+            </View>
+            <Text style={styles.overheadValue}>{formatEuro(contingencyCost)}</Text>
+          </View>
+          <View style={styles.overheadDivider} />
+          <View style={styles.overheadRow}>
+            <View style={styles.overheadIconWrap}>
+              <Wrench size={15} color={Colors.primaryLight} />
+            </View>
+            <View style={styles.overheadInfo}>
+              <Text style={styles.overheadLabel}>Contractor Overhead & Profit</Text>
+              <Text style={styles.overheadSub}>{contractorPercent}% of construction subtotal</Text>
+            </View>
+            <Text style={styles.overheadValue}>{formatEuro(contractorCost)}</Text>
+          </View>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.permitDesignLink}
+        onPress={() => Linking.openURL(PERMIT_DESIGN_CONTACT_URL)}
+        activeOpacity={0.7}
+        testID="breakdown-permit-design-link"
+      >
+        <Text style={styles.permitDesignLinkText}>{PERMIT_DESIGN_CONTACT_LABEL}</Text>
+        <ExternalLink size={13} color={Colors.accent} />
+      </TouchableOpacity>
+
+      <View style={styles.grandTotalCard}>
+        <View style={styles.grandTotalRow}>
+          <Text style={styles.grandTotalLabel}>Total Project Cost</Text>
+          <Text style={styles.grandTotalValue}>{formatEuro(totalCost)}</Text>
+        </View>
+        <View style={styles.grandTotalBreakdown}>
+          <Text style={styles.grandTotalBreakdownText}>
+            KG 200 {formatEuro(kg200Total)} + KG 300–600 {formatEuro(constructionSubtotal)} + KG 500 {formatEuro(kg500Total)} + KG 700 {formatEuro(permitDesignFee)} + Contingency {formatEuro(contingencyCost)} + Overhead {formatEuro(contractorCost)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.vatCard}>
+        <View style={styles.vatRow}>
+          <Text style={styles.vatLabel}>+ VAT (24%)</Text>
+          <Text style={styles.vatValue}>{formatEuro(Math.round(totalCost * 0.24))}</Text>
+        </View>
+        <View style={styles.vatDivider} />
+        <View style={styles.vatRow}>
+          <Text style={styles.vatTotalLabel}>Total incl. VAT</Text>
+          <Text style={styles.vatTotalValue}>{formatEuro(Math.round(totalCost * 1.24))}</Text>
+        </View>
+        <Text style={styles.vatNote}>VAT calculated using the current Greek construction VAT rate (24%).</Text>
+      </View>
+
+      <View style={styles.disclaimer}>
+        <Info size={14} color={Colors.textTertiary} style={styles.disclaimerIcon} />
+        <Text style={styles.disclaimerText}>{DISCLAIMER_TEXT}</Text>
+      </View>
+
+      <GenerateReportButton />
+
+      <View style={styles.bottomSpacer} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    paddingBottom: 40,
+  },
+  assumptionsCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  assumptionsTitle: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: Colors.textTertiary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+    marginBottom: 10,
+  },
+  assumptionsGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 8,
+  },
+  assumptionItem: {
+    backgroundColor: Colors.inputBg,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  assumptionLabel: {
+    fontSize: 10,
+    color: Colors.textTertiary,
+    fontWeight: '600' as const,
+  },
+  assumptionValue: {
+    fontSize: 12,
+    color: Colors.primary,
+    fontWeight: '700' as const,
+    marginTop: 1,
+  },
+  dinSectionTitle: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  dinSectionTitleText: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: Colors.text,
+    letterSpacing: 0.3,
+  },
+  dinBadge: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: Colors.accent,
+    backgroundColor: Colors.accentBg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: 'hidden' as const,
+  },
+  groupContainer: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+    overflow: 'hidden' as const,
+  },
+  groupHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'stretch' as const,
+  },
+  groupAccentBar: {
+    width: 4,
+  },
+  groupHeaderContent: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  groupHeaderLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  groupCode: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: Colors.textTertiary,
+    letterSpacing: 0.5,
+  },
+  groupName: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    marginTop: 2,
+  },
+  groupHeaderRight: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  groupCostColumn: {
+    alignItems: 'flex-end' as const,
+  },
+  groupSubtotal: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  groupPercent: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: Colors.textTertiary,
+    marginTop: 1,
+  },
+  subgroupList: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    paddingTop: 4,
+  },
+  subgroupRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 9,
+  },
+  subgroupIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: Colors.inputBg,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: 10,
+  },
+  subgroupInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  subgroupNameRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  subgroupCode: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: Colors.textTertiary,
+    backgroundColor: Colors.inputBg,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
+    overflow: 'hidden' as const,
+  },
+  subgroupName: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    flexShrink: 1,
+  },
+  subgroupSublabel: {
+    fontSize: 11,
+    color: Colors.textTertiary,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  subgroupCost: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  constructionSubtotalCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    gap: 4,
+  },
+  constructionSubtotalLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: 'rgba(255,255,255,0.8)',
+    flexShrink: 1,
+  },
+  constructionSubtotalValue: {
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: Colors.heroText,
+  },
+  disclaimerInline: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    paddingHorizontal: 20,
+    marginTop: 8,
+    gap: 6,
+  },
+  disclaimerInlineText: {
+    flex: 1,
+    fontSize: 11,
+    color: Colors.textTertiary,
+    lineHeight: 16,
+  },
+  overheadSection: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+  },
+  overheadTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    letterSpacing: 0.3,
+    marginBottom: 8,
+  },
+  overheadCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  overheadRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+  },
+  overheadIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: Colors.inputBg,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  overheadInfo: {
+    flex: 1,
+    minWidth: 100,
+  },
+  overheadLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  overheadSub: {
+    fontSize: 11,
+    color: Colors.textTertiary,
+    marginTop: 1,
+  },
+  overheadValue: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  overheadDivider: {
+    height: 1,
+    backgroundColor: Colors.borderLight,
+    marginVertical: 10,
+  },
+  permitDesignLink: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    alignSelf: 'flex-start' as const,
+    marginTop: 12,
+    marginLeft: 16,
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: Colors.accentBg,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  permitDesignLinkText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: Colors.accent,
+  },
+  grandTotalCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  grandTotalRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    gap: 4,
+  },
+  grandTotalLabel: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: Colors.primary,
+    flexShrink: 1,
+  },
+  grandTotalValue: {
+    fontSize: 22,
+    fontWeight: '800' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  grandTotalBreakdown: {
+    marginTop: 8,
+  },
+  grandTotalBreakdownText: {
+    fontSize: 11,
+    color: Colors.textTertiary,
+    lineHeight: 16,
+  },
+  disclaimer: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    paddingHorizontal: 20,
+    marginTop: 20,
+    gap: 8,
+  },
+  disclaimerIcon: {
+    marginTop: 2,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: 11,
+    color: Colors.textTertiary,
+    lineHeight: 16,
+  },
+  bottomSpacer: {
+    height: 20,
+  },
+  generateButton: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderRadius: 14,
+    overflow: 'hidden' as const,
+  },
+  generateButtonGradient: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 10,
+  },
+  generateButtonText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  vatCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  vatRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    gap: 4,
+  },
+  vatLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+  },
+  vatValue: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: Colors.textSecondary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  vatDivider: {
+    height: 1,
+    backgroundColor: Colors.borderLight,
+    marginVertical: 10,
+  },
+  vatTotalLabel: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: Colors.primary,
+  },
+  vatTotalValue: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  vatNote: {
+    fontSize: 11,
+    color: Colors.textTertiary,
+    marginTop: 8,
+    lineHeight: 15,
+  },
+});

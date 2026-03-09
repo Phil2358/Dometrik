@@ -1,0 +1,26 @@
+const Colors = {
+  background: '#F5F0EB',
+  card: '#FFFFFF',
+  primary: '#1B3A4B',
+  primaryLight: '#2C5F6E',
+  accent: '#D4782F',
+  accentLight: '#F0DFD1',
+  accentBg: '#FFF8F2',
+  text: '#1C1C1E',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
+  border: '#E5DDD4',
+  borderLight: '#F0EBE5',
+  success: '#2D8B55',
+  danger: '#DC3545',
+  inputBg: '#F9F6F2',
+  hero: '#1B3A4B',
+  heroLight: '#2C5F6E',
+  heroText: '#FFFFFF',
+  white: '#FFFFFF',
+  poolBlue: '#3B82C4',
+  warning: '#D97706',
+  warningBg: '#FFF7ED',
+};
+
+export default Colors;
