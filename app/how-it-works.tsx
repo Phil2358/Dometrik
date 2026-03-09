@@ -39,7 +39,7 @@ export default function HowItWorksScreen() {
           <BookOpen size={28} color={Colors.accent} />
           <Text style={styles.heroTitle}>How the Estimate Works</Text>
           <Text style={styles.heroSubtext}>
-            This page explains the calculation logic behind SnapCost to ensure full transparency.
+            This page explains the calculation logic behind Dometrik to ensure full transparency.
           </Text>
         </View>
 
@@ -173,7 +173,7 @@ export default function HowItWorksScreen() {
           <View style={styles.disclaimerContent}>
             <Text style={styles.disclaimerTitle}>Purpose of the Estimate</Text>
             <Text style={styles.disclaimerText}>
-              SnapCost provides a preliminary feasibility estimate for early-stage project planning. It is not a final construction quote. Actual costs depend on detailed design development, site-specific conditions, contractor pricing, and current market conditions.
+              Dometrik provides a preliminary feasibility estimate for early-stage project planning. It is not a final construction quote. Actual costs depend on detailed design development, site-specific conditions, contractor pricing, and current market conditions.
             </Text>
           </View>
         </View>

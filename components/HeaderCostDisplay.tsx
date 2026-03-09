@@ -78,7 +78,7 @@ export default function HeaderCostDisplay({
 
   return (
     <View style={headerStyles.container}>
-      <Text style={headerStyles.label}>SNAPCOST</Text>
+      <Text style={headerStyles.label}>DOMETRIK</Text>
       <Animated.Text
         style={[
           headerStyles.cost,

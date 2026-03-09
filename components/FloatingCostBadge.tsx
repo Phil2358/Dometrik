@@ -164,7 +164,7 @@ const badgeStyles = StyleSheet.create({
     zIndex: 100,
   },
   badge: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.hero,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 8,

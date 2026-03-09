@@ -29,25 +29,25 @@ const MODE_OPTIONS: ModeOption[] = [
       'Estimate the construction cost of your future home and explore different building scenarios.',
     icon: <Home size={28} color={Colors.primary} strokeWidth={1.8} />,
     accentColor: Colors.primary,
-    bgTint: 'rgba(27, 58, 75, 0.06)',
+    bgTint: 'rgba(139, 69, 19, 0.06)',
   },
   {
     id: 'professional',
     title: 'Architect / Professional',
     description:
       'Use the estimator as a professional planning tool and generate cost reports for clients.',
-    icon: <Ruler size={28} color={Colors.accent} strokeWidth={1.8} />,
-    accentColor: Colors.accent,
-    bgTint: 'rgba(212, 120, 47, 0.06)',
+    icon: <Ruler size={28} color={Colors.terracotta} strokeWidth={1.8} />,
+    accentColor: Colors.terracotta,
+    bgTint: 'rgba(192, 112, 74, 0.06)',
   },
   {
     id: 'guided',
     title: 'Guided Estimate',
     description:
       'Follow a guided process to evaluate your project and receive a clearer cost estimate.',
-    icon: <MessageCircle size={28} color="#2D8B55" strokeWidth={1.8} />,
-    accentColor: '#2D8B55',
-    bgTint: 'rgba(45, 139, 85, 0.06)',
+    icon: <MessageCircle size={28} color={Colors.olive} strokeWidth={1.8} />,
+    accentColor: Colors.olive,
+    bgTint: 'rgba(107, 122, 74, 0.06)',
   },
 ];
 

@@ -21,11 +21,11 @@ const MODE_LABELS: Record<UserMode, { title: string; icon: React.ReactNode }> = 
   },
   professional: {
     title: 'Architect / Professional',
-    icon: <Ruler size={20} color={Colors.accent} strokeWidth={1.8} />,
+    icon: <Ruler size={20} color={Colors.terracotta} strokeWidth={1.8} />,
   },
   guided: {
     title: 'Guided Estimate',
-    icon: <MessageCircle size={20} color="#2D8B55" strokeWidth={1.8} />,
+    icon: <MessageCircle size={20} color={Colors.olive} strokeWidth={1.8} />,
   },
 };
 
@@ -196,13 +196,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
   },
   radioOuterActive: {
-    borderColor: Colors.accent,
+    borderColor: Colors.terracotta,
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.terracotta,
   },
   dangerRow: {
     flexDirection: 'row' as const,

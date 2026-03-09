@@ -243,7 +243,7 @@ const s = StyleSheet.create({
   },
   tabActive: {
     backgroundColor: Colors.accentBg,
-    borderColor: Colors.accent,
+    borderColor: Colors.terracotta,
   },
   tabTouchable: {
     flexShrink: 1,
