@@ -28,6 +28,7 @@ function AppContent() {
   const [introDone, setIntroDone] = useState(false);
   const [dataDone, setDataDone] = useState(false);
   const { userMode, isLoading, selectMode } = useUserMode();
+  const prevUserModeRef = React.useRef<string | null | undefined>(undefined);
 
   const handleSplashFinish = useCallback(() => {
     console.log('[App] Splash animation finished');
@@ -40,6 +41,15 @@ function AppContent() {
       setDataDone(true);
     }
   }, [isLoading, userMode]);
+
+  useEffect(() => {
+    if (prevUserModeRef.current !== undefined && prevUserModeRef.current !== null && userMode === null && dataDone) {
+      console.log('[App] Reset detected, restarting onboarding flow');
+      setSplashDone(false);
+      setIntroDone(false);
+    }
+    prevUserModeRef.current = userMode;
+  }, [userMode, dataDone]);
 
   const handleIntroStart = useCallback(() => {
     console.log('[App] Intro screen dismissed');

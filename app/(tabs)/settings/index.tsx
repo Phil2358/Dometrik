@@ -13,6 +13,7 @@ import Colors from '@/constants/colors';
 import { useUserMode, UserMode } from '@/contexts/UserModeContext';
 import { useEstimate } from '@/contexts/EstimateContext';
 
+
 const MODE_LABELS: Record<UserMode, { title: string; icon: React.ReactNode }> = {
   private: {
     title: 'Private User',
@@ -31,7 +32,7 @@ const MODE_LABELS: Record<UserMode, { title: string; icon: React.ReactNode }> = 
 const ALL_MODES: UserMode[] = ['private', 'professional', 'guided'];
 
 export default function SettingsScreen() {
-  const { userMode, selectMode } = useUserMode();
+  const { userMode, selectMode, clearMode } = useUserMode();
   const { resetAllData } = useEstimate();
 
   const handleModeChange = useCallback((mode: UserMode) => {
@@ -40,20 +41,22 @@ export default function SettingsScreen() {
 
   const handleResetProject = useCallback(() => {
     Alert.alert(
-      'Reset Project',
-      'This will delete all scenarios and restore default settings. This action cannot be undone.',
+      'Reset App?',
+      'This will delete all inputs, scenarios, and settings.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Reset',
           style: 'destructive',
-          onPress: () => {
-            void resetAllData();
+          onPress: async () => {
+            await resetAllData();
+            await clearMode();
+            console.log('[Settings] Full app reset completed');
           },
         },
       ]
     );
-  }, [resetAllData]);
+  }, [resetAllData, clearMode]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -109,7 +112,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
         <Text style={styles.hint}>
-          Deletes all scenarios and restores default configuration.
+          Deletes all inputs, scenarios, and settings. The app will restart from the beginning.
         </Text>
       </View>
     </ScrollView>
