@@ -18,6 +18,7 @@ export interface ProjectInput {
 
   poolArea?: number
   poolDepth?: number
+  landscapingArea?: number
 }
 
 export interface ProjectCostBreakdown {
