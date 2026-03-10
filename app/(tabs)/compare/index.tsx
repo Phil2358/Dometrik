@@ -41,20 +41,58 @@ interface ParameterRow {
 
 function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
   const params: { label: string; getter: (s: ComputedScenarioCosts) => string }[] = [
-    { label: 'Location', getter: (s) => s.locationName },
-    { label: 'Quality level', getter: (s) => s.qualityName },
-    { label: 'Interior area', getter: (s) => `${s.mainArea} m²` },
-    { label: 'Covered terrace', getter: (s) => `${s.terraceArea} m²` },
-    { label: 'Balcony', getter: (s) => `${s.balconyArea} m²` },
-    { label: 'Basement', getter: (s) => s.basementArea > 0 ? `${s.basementArea} m² · ${s.basementTypeName}` : 'None' },
-    { label: 'Effective area', getter: (s) => `${s.effectiveArea.toFixed(0)} m²` },
-    { label: 'Pool', getter: (s) => s.includePool ? `${s.poolSizeName} (${s.poolArea} m²)` : 'None' },
-    { label: 'Site conditions', getter: (s) => s.siteConditionName },
-    { label: 'Groundwater', getter: (s) => s.groundwaterConditionName },
-    { label: 'Site access', getter: (s) => s.siteAccessibilityName },
-    { label: 'Landscaping', getter: (s) => s.landscapingArea > 0 ? `${s.landscapingArea} m²` : 'None' },
-    { label: 'HVAC add-ons', getter: (s) => s.hvacNames.length > 0 ? s.hvacNames.join(', ') : 'Base only' },
-    { label: 'Contractor overhead', getter: (s) => `${s.contractorPercent}%` },
+    { label: 'Location', getter: (s) => s.locationName ?? '' },
+    { label: 'Quality level', getter: (s) => s.qualityName ?? '' },
+
+    { label: 'Interior area', getter: (s) => `${(s.mainArea ?? 0)} m²` },
+    { label: 'Covered terrace', getter: (s) => `${(s.terraceArea ?? 0)} m²` },
+    { label: 'Balcony', getter: (s) => `${(s.balconyArea ?? 0)} m²` },
+
+    {
+      label: 'Basement',
+      getter: (s) =>
+        (s.basementArea ?? 0) > 0
+          ? `${s.basementArea ?? 0} m²`
+          : 'None',
+    },
+
+    {
+      label: 'Effective area',
+      getter: (s) => `${((s as any).effectiveArea ?? 0).toFixed(0)} m²`,
+    },
+
+    {
+      label: 'Pool',
+      getter: (s) =>
+        (s as any).includePool
+          ? `${(s as any).poolSizeName ?? ''} (${(s as any).poolArea ?? 0} m²)`
+          : 'None',
+    },
+
+    { label: 'Site conditions', getter: (s) => (s as any).siteConditionName ?? '' },
+    { label: 'Groundwater', getter: (s) => (s as any).groundwaterConditionName ?? '' },
+    { label: 'Site access', getter: (s) => (s as any).siteAccessibilityName ?? '' },
+
+    {
+      label: 'Landscaping',
+      getter: (s) =>
+        ((s as any).landscapingArea ?? 0) > 0
+          ? `${(s as any).landscapingArea ?? 0} m²`
+          : 'None',
+    },
+
+    {
+      label: 'HVAC add-ons',
+      getter: (s) =>
+        ((s as any).hvacNames?.length ?? 0) > 0
+          ? (s as any).hvacNames.join(', ')
+          : 'Base only',
+    },
+
+    {
+      label: 'Contractor overhead',
+      getter: (s) => `${((s as any).contractorPercent ?? 0)}%`,
+    },
   ];
 
   return params.map((p) => {
@@ -75,49 +113,74 @@ interface CostGroupRow {
 function getGroupedCostRows(scenarios: ComputedScenarioCosts[]): CostGroupRow[] {
   const rows: CostGroupRow[] = [];
 
-  const makeRow = (label: string, getter: (s: ComputedScenarioCosts) => number, opts?: { isGroupHeader?: boolean; isBold?: boolean }): CostGroupRow => {
-    const values = scenarios.map(getter);
+  const makeRow = (
+    label: string,
+    getter: (s: ComputedScenarioCosts) => number,
+    opts?: { isGroupHeader?: boolean; isBold?: boolean }
+  ): CostGroupRow => {
+    const values = scenarios.map((s) => getter(s) ?? 0);
     const isDifferent = new Set(values).size > 1;
     return { label, values, isDifferent, ...opts };
   };
 
-  rows.push(makeRow('Construction', (s) => s.constructionSubtotal, { isGroupHeader: true }));
-  rows.push(makeRow('Building construction (KG 300)', (s) => s.kg300Cost));
-  rows.push(makeRow('Technical systems (KG 400)', (s) => s.kg400Total));
-  rows.push(makeRow('Built-in equipment (KG 600)', (s) => s.kg600Cost));
+  rows.push(makeRow('Construction', (s) => (s as any).constructionSubtotal ?? 0, { isGroupHeader: true }));
+  rows.push(makeRow('Building construction (KG 300)', (s) => (s as any).kg300Cost ?? 0));
+  rows.push(makeRow('Technical systems (KG 400)', (s) => (s as any).kg400Total ?? 0));
+  rows.push(makeRow('Built-in equipment (KG 600)', (s) => (s as any).kg600Cost ?? 0));
 
-  rows.push(makeRow('Site & External', (s) => s.kg200Total + s.kg500Total, { isGroupHeader: true }));
-  rows.push(makeRow('Site preparation (KG 200)', (s) => s.kg200Total));
-  rows.push(makeRow('External works (KG 500)', (s) => s.kg500Total));
+  rows.push(
+    makeRow(
+      'Site & External',
+      (s) => ((s as any).kg200Total ?? 0) + ((s as any).kg500Total ?? 0),
+      { isGroupHeader: true }
+    )
+  );
 
-  rows.push(makeRow('Project costs', (s) => s.permitDesignFee + s.contractorCost + s.contingencyCost, { isGroupHeader: true }));
-  rows.push(makeRow('Planning & fees (KG 700)', (s) => s.permitDesignFee));
-  rows.push(makeRow('Contractor overhead', (s) => s.contractorCost));
-  rows.push(makeRow('Construction contingency', (s) => s.contingencyCost));
+  rows.push(makeRow('Site preparation (KG 200)', (s) => (s as any).kg200Total ?? 0));
+  rows.push(makeRow('External works (KG 500)', (s) => (s as any).kg500Total ?? 0));
+
+  rows.push(
+    makeRow(
+      'Project costs',
+      (s) =>
+        ((s as any).permitDesignFee ?? 0) +
+        ((s as any).contractorCost ?? 0) +
+        ((s as any).contingencyCost ?? 0),
+      { isGroupHeader: true }
+    )
+  );
+
+  rows.push(makeRow('Planning & fees (KG 700)', (s) => (s as any).permitDesignFee ?? 0));
+  rows.push(makeRow('Contractor overhead', (s) => (s as any).contractorCost ?? 0));
+  rows.push(makeRow('Construction contingency', (s) => (s as any).contingencyCost ?? 0));
 
   return rows;
 }
 
-function getLargestCostDriver(scenarios: ComputedScenarioCosts[]): { label: string; diff: number } | null {
+function getLargestCostDriver(
+  scenarios: ComputedScenarioCosts[]
+): { label: string; diff: number } | null {
+
   if (scenarios.length < 2) return null;
 
   const categories: { label: string; getter: (s: ComputedScenarioCosts) => number }[] = [
-    { label: 'Building construction', getter: (s) => s.kg300Cost },
-    { label: 'Technical systems', getter: (s) => s.kg400Total },
-    { label: 'Built-in equipment', getter: (s) => s.kg600Cost },
-    { label: 'Site preparation', getter: (s) => s.kg200Total },
-    { label: 'External works', getter: (s) => s.kg500Total },
-    { label: 'Planning & fees', getter: (s) => s.permitDesignFee },
-    { label: 'Contractor overhead', getter: (s) => s.contractorCost },
-    { label: 'Construction contingency', getter: (s) => s.contingencyCost },
+    { label: 'Building construction', getter: (s) => (s as any).kg300Cost ?? 0 },
+    { label: 'Technical systems', getter: (s) => (s as any).kg400Total ?? 0 },
+    { label: 'Built-in equipment', getter: (s) => (s as any).kg600Cost ?? 0 },
+    { label: 'Site preparation', getter: (s) => (s as any).kg200Total ?? 0 },
+    { label: 'External works', getter: (s) => (s as any).kg500Total ?? 0 },
+    { label: 'Planning & fees', getter: (s) => (s as any).permitDesignFee ?? 0 },
+    { label: 'Contractor overhead', getter: (s) => (s as any).contractorCost ?? 0 },
+    { label: 'Construction contingency', getter: (s) => (s as any).contingencyCost ?? 0 },
   ];
 
   let maxDiff = 0;
   let maxLabel = '';
 
   for (const cat of categories) {
-    const vals = scenarios.map(cat.getter);
+    const vals = scenarios.map((s) => cat.getter(s) ?? 0);
     const diff = Math.max(...vals) - Math.min(...vals);
+
     if (diff > maxDiff) {
       maxDiff = diff;
       maxLabel = cat.label;
