@@ -6,6 +6,7 @@ import { calculateBasementCosts } from "./modules/basementCosts"
 import { calculateHvacExtras } from "./modules/hvacExtras"
 import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
+import { calculatePermitCosts } from "./modules/permitCosts"
 
 interface ProjectCalculationInput {
 
@@ -40,6 +41,10 @@ interface ProjectCalculationInput {
 
 export function calculateProjectCost(input: ProjectCalculationInput) {
 
+  // -----------------------------------------
+  // Effective area
+  // -----------------------------------------
+
   const effectiveArea =
     calculateEffectiveArea({
       mainArea: input.mainArea,
@@ -48,6 +53,11 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       basementArea: input.basementArea,
       basementTypeId: input.basementTypeId
     })
+
+
+  // -----------------------------------------
+  // Raw building cost
+  // -----------------------------------------
 
   const buildingCost =
     calculateRawBuildingCost({
@@ -58,10 +68,31 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       customCostPerSqm: input.customCostPerSqm
     })
 
-  const categories =
+
+  // -----------------------------------------
+  // Category costs (DIN276 groups)
+  // -----------------------------------------
+
+  const categoryCosts =
     calculateCategoryCosts({
       rawBuildingCost: buildingCost.rawBuildingCost
     })
+
+
+  // -----------------------------------------
+  // Permit costs
+  // -----------------------------------------
+
+  const permitCosts =
+    calculatePermitCosts({
+      effectiveArea,
+      qualityId: input.qualityId
+    })
+
+
+  // -----------------------------------------
+  // Site costs
+  // -----------------------------------------
 
   const siteCosts =
     calculateSiteCosts({
@@ -74,21 +105,36 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       customUtilityCost: input.customUtilityCost
     })
 
+
+  // -----------------------------------------
+  // Basement structural costs
+  // -----------------------------------------
+
   const basementCosts =
     calculateBasementCosts({
       basementArea: input.basementArea,
       basementTypeId: input.basementTypeId,
       groundwaterConditionId: input.groundwaterConditionId,
-      siteConditionIsRocky: input.siteConditionId.includes("rocky")
+      siteConditionIsRocky: input.siteConditionId === "rock"
     })
 
-  const hvacExtras =
+
+  // -----------------------------------------
+  // HVAC extras
+  // -----------------------------------------
+
+  const hvacCosts =
     calculateHvacExtras({
       effectiveArea,
       hvacSelections: input.hvacSelections
     })
 
-  const pool =
+
+  // -----------------------------------------
+  // Pool
+  // -----------------------------------------
+
+  const poolCosts =
     calculatePoolCosts({
       includePool: input.includePool,
       poolSizeId: input.poolSizeId,
@@ -99,29 +145,47 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       siteConditionId: input.siteConditionId
     })
 
-  const landscaping =
+
+  // -----------------------------------------
+  // Landscaping
+  // -----------------------------------------
+
+  const landscapingCosts =
     calculateLandscapingCosts({
       landscapingArea: input.landscapingArea,
       siteConditionId: input.siteConditionId
     })
 
+
+  // -----------------------------------------
+  // Total project cost
+  // -----------------------------------------
+
   const totalCost =
-    buildingCost.rawBuildingCost +
-    siteCosts.kg200Total +
-    basementCosts.basementStructureCost +
-    hvacExtras.hvacExtrasCost +
-    pool.poolCost +
-    landscaping.landscapingCost
+      buildingCost.rawBuildingCost
+    + siteCosts.kg200Total
+    + basementCosts.basementStructureCost
+    + hvacCosts.hvacExtrasCost
+    + poolCosts.poolCost
+    + landscapingCosts.landscapingCost
+    + permitCosts.permitFee
+
+
+  // -----------------------------------------
+  // Return result
+  // -----------------------------------------
 
   return {
-    effectiveArea,
-    buildingCost,
-    categories,
-    siteCosts,
-    basementCosts,
-    hvacExtras,
-    pool,
-    landscaping,
-    totalCost
+
+    totalCost,
+
+    rawBuildingCost: buildingCost.rawBuildingCost,
+    permitFee: permitCosts.permitFee,
+    landscapingCost: landscapingCosts.landscapingCost,
+    poolCost: poolCosts.poolCost,
+    hvacExtrasCost: hvacCosts.hvacExtrasCost,
+    siteCost: siteCosts.kg200Total
+
   }
+
 }
