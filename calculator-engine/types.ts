@@ -3,7 +3,15 @@ export type BasementType =
   | "parking"
   | "habitable"
 
+  export type QualityLevel =
+  | "standard"
+  | "premium"
+  | "luxury"
+
 export interface ProjectInput {
+
+qualityLevel: QualityLevel
+
   locationFactor: number
   baseCostPerM2: number
 

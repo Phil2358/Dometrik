@@ -3,6 +3,7 @@ import { calculateStructureCost } from "./modules/structureCost"
 import { calculatePermitFees } from "./modules/permitFees"
 import { calculateSystemsCost } from "./modules/systemsCost"
 import { calculateExternalWorksCost } from "./modules/externalWorksCost"
+import { calculateContingencyCost } from "./modules/contingencyCost"
 
 export function calculateProjectCost(input: ProjectInput): ProjectCostBreakdown {
 
@@ -11,11 +12,21 @@ export function calculateProjectCost(input: ProjectInput): ProjectCostBreakdown 
   const externalWorksCost = calculateExternalWorksCost(input)
   const permitFees = calculatePermitFees(input)
 
-  const totalCost =
+  const constructionSubtotal =
     structureCost +
     systemsCost +
-    externalWorksCost +
-    permitFees
+    externalWorksCost
+
+  const contingencyCost =
+    calculateContingencyCost(
+      constructionSubtotal,
+      input.qualityLevel
+    )
+
+  const totalCost =
+    constructionSubtotal +
+    permitFees +
+    contingencyCost
 
   return {
     KG300: structureCost,
