@@ -1,39 +1,18 @@
+import { calculateProjectCost as engineCalculateProjectCost } from "./calculateProjectCost"
 import { ProjectInput, ProjectCostBreakdown } from "./types"
-import { calculateStructureCost } from "./modules/structureCost"
-import { calculatePermitFees } from "./modules/permitFees"
-import { calculateSystemsCost } from "./modules/systemsCost"
-import { calculateExternalWorksCost } from "./modules/externalWorksCost"
-import { calculateContingencyCost } from "./modules/contingencyCost"
 
 export function calculateProjectCost(input: ProjectInput): ProjectCostBreakdown {
 
-  const structureCost = calculateStructureCost(input)
-  const systemsCost = calculateSystemsCost(input)
-  const externalWorksCost = calculateExternalWorksCost(input)
-  const permitFees = calculatePermitFees(input)
-
-  const constructionSubtotal =
-    structureCost +
-    systemsCost +
-    externalWorksCost
-
-  const contingencyCost =
-    calculateContingencyCost(
-      constructionSubtotal,
-      input.qualityLevel
-    )
-
-  const totalCost =
-    constructionSubtotal +
-    permitFees +
-    contingencyCost
+  const result = engineCalculateProjectCost(input)
 
   return {
-    KG300: structureCost,
-    KG400: systemsCost,
-    KG500: externalWorksCost,
-    KG700: permitFees,
-    totalCost
+    KG200: result.siteCosts.kg200Total,
+    KG300: result.categories.kg300Total,
+    KG400: result.categories.kg400Total + result.hvacExtras.hvacExtrasCost,
+    KG500: result.pool.poolCost + result.landscaping.landscapingCost,
+    KG600: result.categories.kg600Total,
+    KG700: 0,
+    totalCost: result.totalCost
   }
 
 }
