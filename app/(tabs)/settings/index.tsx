@@ -1,3 +1,5 @@
+import { runEngineStressTest } from "@/utils/engineStressTest"
+
 import React, { useCallback } from 'react';
 import {
   View,
@@ -115,6 +117,24 @@ export default function SettingsScreen() {
           Deletes all inputs, scenarios, and settings. The app will restart from the beginning.
         </Text>
       </View>
+      <View style={styles.section}>
+  <Text style={styles.sectionTitle}>ENGINE TEST</Text>
+  <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.modeRow}
+      activeOpacity={0.6}
+      onPress={() => runEngineStressTest(200)}
+    >
+      <View style={styles.modeRowLeft}>
+        <Text style={styles.modeRowTitle}>Run Engine Stress Test</Text>
+      </View>
+      <ChevronRight size={18} color={Colors.textTertiary} />
+    </TouchableOpacity>
+  </View>
+  <Text style={styles.hint}>
+    Runs 200 randomized building scenarios to validate cost calculations.
+  </Text>
+</View>
     </ScrollView>
   );
 }

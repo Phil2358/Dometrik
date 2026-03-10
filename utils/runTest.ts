@@ -1,3 +1,3 @@
-import { runEngineStressTest } from "./engineStressTest.ts"
+import { runEngineStressTest } from "./engineStressTest"
 
 runEngineStressTest(200)
