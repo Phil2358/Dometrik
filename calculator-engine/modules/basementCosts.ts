@@ -3,7 +3,7 @@ import {
   GROUNDWATER_CONDITIONS,
   getBasementStructureCost,
   getBasementRockyAdjustment
-} from "@/constants/construction"
+} from "../../constants/construction"
 
 interface BasementCostsInput {
   basementArea: number
@@ -14,13 +14,20 @@ interface BasementCostsInput {
 
 export function calculateBasementCosts(input: BasementCostsInput) {
 
+  if (input.basementArea <= 0) {
+    return {
+      basementStructureCost: 0
+    }
+  }
+
+  const basementTypes: any[] = [...BASEMENT_TYPES]
+  const groundwaterConditions: any[] = [...GROUNDWATER_CONDITIONS]
+
   const basementType =
-    BASEMENT_TYPES.find(b => b.id === input.basementTypeId)
-    ?? BASEMENT_TYPES[0]
+    basementTypes.find(b => b.id === input.basementTypeId) || basementTypes[0]
 
   const groundwater =
-    GROUNDWATER_CONDITIONS.find(g => g.id === input.groundwaterConditionId)
-    ?? GROUNDWATER_CONDITIONS[0]
+    groundwaterConditions.find(g => g.id === input.groundwaterConditionId) || groundwaterConditions[0]
 
   let basementStructureCost =
     getBasementStructureCost(
@@ -29,15 +36,18 @@ export function calculateBasementCosts(input: BasementCostsInput) {
       groundwater
     )
 
-  // rocky soil adjustment
   if (input.siteConditionIsRocky) {
+
     const rockyAdjustment =
       getBasementRockyAdjustment(input.basementArea)
 
-    basementStructureCost *= (1 + rockyAdjustment)
+    basementStructureCost =
+      basementStructureCost * (1 + rockyAdjustment)
+
   }
 
   return {
-    basementStructureCost
+    basementStructureCost: Math.round(basementStructureCost)
   }
+
 }

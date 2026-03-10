@@ -1,4 +1,4 @@
-import { HVAC_OPTIONS } from "@/constants/construction"
+import { HVAC_OPTIONS } from "../../constants/construction"
 
 interface HvacExtrasInput {
   effectiveArea: number
@@ -17,10 +17,13 @@ export function calculateHvacExtras(input: HvacExtrasInput) {
         input.effectiveArea * option.costPerSqm
 
       totalHvacCost += optionCost
+
     }
+
   }
 
   return {
-    hvacExtrasCost: totalHvacCost
+    hvacExtrasCost: Math.round(totalHvacCost)
   }
+
 }

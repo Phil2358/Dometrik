@@ -5,7 +5,7 @@ import {
   UTILITY_CONNECTION_OPTIONS,
   BASE_EXCAVATION_COST_PER_SQM,
   getBasementExcavationCost
-} from "@/constants/construction"
+} from "../../constants/construction"
 
 interface SiteCostsInput {
   mainArea: number
@@ -21,27 +21,33 @@ interface SiteCostsInput {
 
 export function calculateSiteCosts(input: SiteCostsInput) {
 
+  const siteConditions = [...SITE_CONDITIONS]
+  const groundwaterConditions = [...GROUNDWATER_CONDITIONS]
+  const accessibilityOptions = [...SITE_ACCESSIBILITY_OPTIONS]
+  const utilityOptions = [...UTILITY_CONNECTION_OPTIONS]
+
   const siteCondition =
-    SITE_CONDITIONS.find(s => s.id === input.siteConditionId)
-    ?? SITE_CONDITIONS[0]
+    siteConditions.find((s: any) => s.id === input.siteConditionId)
+    ?? siteConditions[0]
 
   const groundwater =
-    GROUNDWATER_CONDITIONS.find(g => g.id === input.groundwaterConditionId)
-    ?? GROUNDWATER_CONDITIONS[0]
+    groundwaterConditions.find((g: any) => g.id === input.groundwaterConditionId)
+    ?? groundwaterConditions[0]
 
   const accessibility =
-    SITE_ACCESSIBILITY_OPTIONS.find(a => a.id === input.accessibilityId)
-    ?? SITE_ACCESSIBILITY_OPTIONS[0]
+    accessibilityOptions.find((a: any) => a.id === input.accessibilityId)
+    ?? accessibilityOptions[0]
 
   const utility =
-    UTILITY_CONNECTION_OPTIONS.find(u => u.id === input.utilityConnectionId)
-    ?? UTILITY_CONNECTION_OPTIONS[0]
+    utilityOptions.find((u: any) => u.id === input.utilityConnectionId)
+    ?? utilityOptions[0]
 
   // main building excavation
   let siteExcavationCost =
     input.mainArea * 15 * BASE_EXCAVATION_COST_PER_SQM
 
-  siteExcavationCost *= siteCondition.terrainMultiplier
+  siteExcavationCost =
+    siteExcavationCost * siteCondition.terrainMultiplier
 
   // basement excavation
   const basementExcavationCost =
@@ -57,7 +63,7 @@ export function calculateSiteCosts(input: SiteCostsInput) {
       ? (input.customUtilityCost ?? 0)
       : utility.cost
 
-  // logistics
+  // logistics / access
   const accessibilityCost =
     accessibility.fixedCost
 
@@ -68,10 +74,11 @@ export function calculateSiteCosts(input: SiteCostsInput) {
     accessibilityCost
 
   return {
-    siteExcavationCost,
-    basementExcavationCost,
+    siteExcavationCost: Math.round(siteExcavationCost),
+    basementExcavationCost: Math.round(basementExcavationCost),
     utilityConnectionCost,
     accessibilityCost,
-    kg200Total
+    kg200Total: Math.round(kg200Total)
   }
+
 }

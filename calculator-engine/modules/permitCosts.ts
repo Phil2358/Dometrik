@@ -2,7 +2,7 @@ import {
   PERMIT_DESIGN_BASELINE_FEE,
   PERMIT_DESIGN_BASELINE_AREA_MAX,
   PERMIT_DESIGN_QUALITY_MULTIPLIERS
-} from "@/constants/construction"
+} from "../../constants/construction"
 
 interface PermitCostsInput {
   effectiveArea: number
@@ -19,14 +19,17 @@ export function calculatePermitCosts(input: PermitCostsInput) {
       input.effectiveArea - PERMIT_DESIGN_BASELINE_AREA_MAX
 
     permitFee += extraArea * 20
+
   }
 
   const qualityMultiplier =
     PERMIT_DESIGN_QUALITY_MULTIPLIERS[input.qualityId] ?? 1
 
-  permitFee *= qualityMultiplier
+  permitFee =
+    permitFee * qualityMultiplier
 
   return {
-    permitFee
+    permitFee: Math.round(permitFee)
   }
+
 }

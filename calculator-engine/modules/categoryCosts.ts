@@ -3,7 +3,7 @@ import {
   KG300_CATEGORY_IDS,
   KG400_CATEGORY_IDS,
   KG600_CATEGORY_IDS
-} from "@/constants/construction"
+} from "../../constants/construction"
 
 interface CategoryCostsInput {
   rawBuildingCost: number
@@ -12,6 +12,7 @@ interface CategoryCostsInput {
 export function calculateCategoryCosts(input: CategoryCostsInput) {
 
   const categoryCosts = COST_CATEGORIES.map(category => {
+
     const cost =
       (category.percentage / 100) * input.rawBuildingCost
 
@@ -22,6 +23,7 @@ export function calculateCategoryCosts(input: CategoryCostsInput) {
       percentage: category.percentage,
       cost
     }
+
   })
 
   const kg300Total = categoryCosts
@@ -42,4 +44,5 @@ export function calculateCategoryCosts(input: CategoryCostsInput) {
     kg400Total,
     kg600Total
   }
+
 }

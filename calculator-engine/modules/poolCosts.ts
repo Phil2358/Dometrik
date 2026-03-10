@@ -6,7 +6,7 @@ import {
   DEFAULT_POOL_DEPTH,
   getPoolDepthFactor,
   POOL_MINIMUM_COST
-} from "@/constants/construction"
+} from "../../constants/construction"
 
 interface PoolCostsInput {
   includePool: boolean
@@ -31,9 +31,13 @@ export function calculatePoolCosts(input: PoolCostsInput) {
     }
   }
 
+  const poolSizes = [...POOL_SIZE_OPTIONS]
+  const poolQualities = [...POOL_QUALITY_OPTIONS]
+  const poolTypes = [...POOL_TYPE_OPTIONS]
+
   const sizeOption =
-    POOL_SIZE_OPTIONS.find(s => s.id === input.poolSizeId)
-    ?? POOL_SIZE_OPTIONS[0]
+    poolSizes.find((s: any) => s.id === input.poolSizeId) ??
+    poolSizes[0]
 
   const poolArea =
     input.poolSizeId === "custom"
@@ -44,12 +48,12 @@ export function calculatePoolCosts(input: PoolCostsInput) {
     input.poolDepth ?? DEFAULT_POOL_DEPTH
 
   const quality =
-    POOL_QUALITY_OPTIONS.find(q => q.id === input.poolQualityId)
-    ?? POOL_QUALITY_OPTIONS[0]
+    poolQualities.find((q: any) => q.id === input.poolQualityId) ??
+    poolQualities[0]
 
   const type =
-    POOL_TYPE_OPTIONS.find(t => t.id === input.poolTypeId)
-    ?? POOL_TYPE_OPTIONS[0]
+    poolTypes.find((t: any) => t.id === input.poolTypeId) ??
+    poolTypes[0]
 
   const terrainMultiplier =
     POOL_TERRAIN_MULTIPLIERS[input.siteConditionId] ?? 1
@@ -70,6 +74,7 @@ export function calculatePoolCosts(input: PoolCostsInput) {
 
   return {
     poolArea,
-    poolCost
+    poolCost: Math.round(poolCost)
   }
+
 }

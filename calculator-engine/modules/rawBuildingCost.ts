@@ -2,7 +2,7 @@ import {
   QUALITY_LEVELS,
   LOCATIONS,
   getSizeCorrectionFactor
-} from "@/constants/construction"
+} from "../../constants/construction"
 
 interface RawBuildingCostInput {
   livingArea: number
@@ -14,13 +14,16 @@ interface RawBuildingCostInput {
 
 export function calculateRawBuildingCost(input: RawBuildingCostInput) {
 
+  const locations = [...LOCATIONS]
+  const qualities = [...QUALITY_LEVELS]
+
   const location =
-    LOCATIONS.find(l => l.id === input.locationId)
-    ?? LOCATIONS[0]
+    locations.find((l: any) => l.id === input.locationId) ??
+    locations[0]
 
   const quality =
-    QUALITY_LEVELS.find(q => q.id === input.qualityId)
-    ?? QUALITY_LEVELS[0]
+    qualities.find((q: any) => q.id === input.qualityId) ??
+    qualities[0]
 
   const baseCostPerSqm =
     input.customCostPerSqm ?? quality.baseCostPerSqm
@@ -35,7 +38,7 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
     Math.round(costPerSqm * sizeCorrectionFactor)
 
   const rawBuildingCost =
-    input.effectiveArea * correctedCostPerSqm
+    Math.round(input.effectiveArea * correctedCostPerSqm)
 
   return {
     baseCostPerSqm,
@@ -44,4 +47,5 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
     correctedCostPerSqm,
     rawBuildingCost
   }
+
 }

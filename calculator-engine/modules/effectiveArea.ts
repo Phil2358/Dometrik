@@ -1,4 +1,4 @@
-import { BASEMENT_TYPES } from "@/constants/construction"
+import { BASEMENT_TYPES } from "../../constants/construction"
 
 interface EffectiveAreaInput {
   mainArea: number
@@ -10,9 +10,10 @@ interface EffectiveAreaInput {
 
 export function calculateEffectiveArea(input: EffectiveAreaInput): number {
 
+  const basementTypes: any[] = [...BASEMENT_TYPES]
+
   const basementType =
-    BASEMENT_TYPES.find(b => b.id === input.basementTypeId)
-    ?? BASEMENT_TYPES[0]
+    basementTypes.find(b => b.id === input.basementTypeId) || basementTypes[0]
 
   const effectiveArea =
     input.mainArea +
