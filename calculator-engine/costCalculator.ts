@@ -1,21 +1,4 @@
-export interface ProjectInput {
-
-  locationFactor: number
-  baseCostPerM2: number
-
-  livingArea: number
-  terraceArea: number
-  basementArea: number
-
-  basementType: "storage" | "parking" | "habitable"
-
-  bathrooms: number
-  wc: number
-
-  poolArea?: number
-  poolDepth?: number
-
-}
+import { ProjectInput } from "./types"
 
 export function calculateProjectCost(input: ProjectInput) {
 
