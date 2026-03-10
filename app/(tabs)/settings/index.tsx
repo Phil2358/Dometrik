@@ -123,7 +123,10 @@ export default function SettingsScreen() {
     <TouchableOpacity
       style={styles.modeRow}
       activeOpacity={0.6}
-      onPress={() => runEngineStressTest(200)}
+      onPress={() => {
+  console.log("BUTTON PRESSED");
+  runEngineStressTest(5);
+}}
     >
       <View style={styles.modeRowLeft}>
         <Text style={styles.modeRowTitle}>Run Engine Stress Test</Text>
