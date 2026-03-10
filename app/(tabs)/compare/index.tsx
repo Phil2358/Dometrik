@@ -29,7 +29,14 @@ import { formatEuro } from '@/constants/construction';
 
 const VAT_RATE = 0.24;
 
-const COMPARE_COLORS = ['#2C5F6E', '#D4782F', '#2D8B55'];
+const COMPARE_COLORS = [
+  '#2C5F6E',
+  '#D4782F',
+  '#2D8B55',
+  '#8A5CF6',
+  '#E5533D',
+  '#3BA7B8'
+];
 
 const MUTED_ICON = '#9CA3AF';
 
@@ -123,36 +130,19 @@ function getGroupedCostRows(scenarios: ComputedScenarioCosts[]): CostGroupRow[] 
     return { label, values, isDifferent, ...opts };
   };
 
-  rows.push(makeRow('Construction', (s) => (s as any).constructionSubtotal ?? 0, { isGroupHeader: true }));
-  rows.push(makeRow('Building construction (KG 300)', (s) => (s as any).kg300Cost ?? 0));
-  rows.push(makeRow('Technical systems (KG 400)', (s) => (s as any).kg400Total ?? 0));
-  rows.push(makeRow('Built-in equipment (KG 600)', (s) => (s as any).kg600Cost ?? 0));
+  rows.push(makeRow('Construction', (s) => s.rawBuildingCost, { isGroupHeader: true }));
+  rows.push(makeRow('Building construction', (s) => s.rawBuildingCost));
+rows.push(makeRow('Technical systems', (s) => s.hvacExtrasCost ?? 0));
+  rows.push(makeRow('Built-in equipment', () => 0));
 
-  rows.push(
-    makeRow(
-      'Site & External',
-      (s) => ((s as any).kg200Total ?? 0) + ((s as any).kg500Total ?? 0),
-      { isGroupHeader: true }
-    )
-  );
+  rows.push(makeRow('Site & External', (s) => s.siteCost + s.landscapingCost, { isGroupHeader: true }));
+  rows.push(makeRow('Site preparation', (s) => s.siteCost));
+  rows.push(makeRow('External works', (s) => s.landscapingCost));
 
-  rows.push(makeRow('Site preparation (KG 200)', (s) => (s as any).kg200Total ?? 0));
-  rows.push(makeRow('External works (KG 500)', (s) => (s as any).kg500Total ?? 0));
-
-  rows.push(
-    makeRow(
-      'Project costs',
-      (s) =>
-        ((s as any).permitDesignFee ?? 0) +
-        ((s as any).contractorCost ?? 0) +
-        ((s as any).contingencyCost ?? 0),
-      { isGroupHeader: true }
-    )
-  );
-
-  rows.push(makeRow('Planning & fees (KG 700)', (s) => (s as any).permitDesignFee ?? 0));
-  rows.push(makeRow('Contractor overhead', (s) => (s as any).contractorCost ?? 0));
-  rows.push(makeRow('Construction contingency', (s) => (s as any).contingencyCost ?? 0));
+  rows.push(makeRow('Project costs', (s) => s.permitFee, { isGroupHeader: true }));
+  rows.push(makeRow('Planning & fees', (s) => s.permitFee));
+  rows.push(makeRow('Contractor overhead', () => 0));
+  rows.push(makeRow('Construction contingency', () => 0));
 
   return rows;
 }
@@ -261,7 +251,7 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
 }
 
 function CostBarChart({ scenarios }: { scenarios: ComputedScenarioCosts[] }) {
-  const maxCost = Math.max(...scenarios.map((s) => s.totalCost * (1 + VAT_RATE)), 1);
+const maxCost = Math.max(...scenarios.map(s => (s.totalCost ?? 0) * (1 + VAT_RATE)));
   const scaleSteps = useMemo(() => {
     const step = Math.ceil(maxCost / 4 / 50000) * 50000;
     const steps: number[] = [];
