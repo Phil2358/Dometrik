@@ -19,3 +19,14 @@ export interface ProjectInput {
   poolArea?: number
   poolDepth?: number
 }
+
+export interface ProjectCostBreakdown {
+  KG200?: number
+  KG300: number
+  KG400?: number
+  KG500?: number
+  KG600?: number
+  KG700?: number
+
+  totalCost: number
+}
