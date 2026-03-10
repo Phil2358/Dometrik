@@ -1,19 +1,15 @@
 import { ProjectInput } from "./types"
+import { calculateStructureCost } from "./modules/structureCost"
 
 export function calculateProjectCost(input: ProjectInput) {
 
-  const effectiveArea =
-    input.livingArea +
-    input.terraceArea * 0.5 +
-    input.basementArea * 0.5
+  const structureCost = calculateStructureCost(input)
 
-  const totalCost =
-    effectiveArea *
-    input.baseCostPerM2 *
-    input.locationFactor
+  const totalCost = structureCost
 
   return {
-    effectiveArea,
+    structureCost,
     totalCost
   }
+
 }
