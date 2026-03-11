@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
@@ -40,14 +39,17 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
   const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<'splash' | 'transition' | 'intro'>('splash');
 
-  const frameProgress = useRef(new Animated.Value(220)).current;
-  const dProgress = useRef(new Animated.Value(120)).current;
-
+  const frameOpacity = useRef(new Animated.Value(0)).current;
   const markerOpacity = useRef(new Animated.Value(0)).current;
+  const dOpacity = useRef(new Animated.Value(1)).current;
 
-  const splashFade = useRef(new Animated.Value(1)).current;
-  const splashScale = useRef(new Animated.Value(1)).current;
+  const frameScale = useRef(new Animated.Value(1.45)).current;
+  const markerScale = useRef(new Animated.Value(1.45)).current;
+  const dScale = useRef(new Animated.Value(1.45)).current;
 
+  const dStroke = useRef(new Animated.Value(120)).current;
+
+  const splashFadeOut = useRef(new Animated.Value(1)).current;
   const introFadeIn = useRef(new Animated.Value(0)).current;
 
   const brandOpacity = useRef(new Animated.Value(0)).current;
@@ -58,7 +60,7 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
   const buttonSlide = useRef(new Animated.Value(20)).current;
 
   const SW = 8;
-  const D_SW = 8;
+  const D_SW = SW + 2;
 
   const showIntroContent = useCallback(() => {
 
@@ -85,19 +87,14 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
     onSplashDone();
 
     Animated.parallel([
-      Animated.timing(splashFade,{
+      Animated.timing(splashFadeOut,{
         toValue:0,
-        duration:400,
-        useNativeDriver:true
-      }),
-      Animated.timing(splashScale,{
-        toValue:0.82,
         duration:400,
         useNativeDriver:true
       }),
       Animated.timing(introFadeIn,{
         toValue:1,
-        duration:450,
+        duration:500,
         useNativeDriver:true
       })
     ]).start(()=>{
@@ -111,31 +108,61 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
 
   useEffect(()=>{
 
-    Animated.sequence([
+    Animated.parallel([
 
-      Animated.timing(frameProgress,{
-        toValue:0,
-        duration:700,
-        useNativeDriver:true
-      }),
+      Animated.sequence([
+        Animated.delay(80),
+        Animated.parallel([
+          Animated.timing(frameOpacity,{toValue:1,duration:260,useNativeDriver:true}),
+          Animated.spring(frameScale,{toValue:1,friction:7,tension:120,useNativeDriver:true})
+        ])
+      ]),
 
-      Animated.timing(markerOpacity,{
-        toValue:1,
-        duration:200,
-        useNativeDriver:true
-      }),
+      Animated.sequence([
+        Animated.delay(320),
+        Animated.parallel([
+          Animated.timing(markerOpacity,{toValue:1,duration:180,useNativeDriver:true}),
+          Animated.spring(markerScale,{toValue:1,friction:6,tension:120,useNativeDriver:true})
+        ])
+      ]),
 
-      Animated.timing(dProgress,{
-        toValue:0,
-        duration:500,
-        useNativeDriver:true
-      })
+      Animated.sequence([
+        Animated.delay(520),
+        Animated.timing(dStroke,{
+          toValue:0,
+          duration:420,
+          useNativeDriver:true
+        }),
+        Animated.spring(dScale,{
+          toValue:1,
+          friction:6,
+          tension:120,
+          useNativeDriver:true
+        })
+      ])
 
     ]).start(()=>{
 
-      setTimeout(()=>{
-        startTransition();
-      },200);
+      Animated.sequence([
+        Animated.spring(frameScale,{
+          toValue:1.04,
+          friction:6,
+          tension:150,
+          useNativeDriver:true
+        }),
+        Animated.spring(frameScale,{
+          toValue:1,
+          friction:7,
+          tension:150,
+          useNativeDriver:true
+        })
+      ]).start(()=>{
+
+        setTimeout(()=>{
+          startTransition();
+        },200);
+
+      });
 
     });
 
@@ -143,82 +170,97 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
 
   const renderSplashLogo = () => (
 
-    <Animated.View
-      style={{
-        width:LOGO_SIZE_SPLASH,
-        height:LOGO_SIZE_SPLASH,
-        transform:[{scale:splashScale}],
-        opacity:splashFade
-      }}
-    >
+    <View style={{width:LOGO_SIZE_SPLASH,height:LOGO_SIZE_SPLASH}}>
 
-      <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
+      <Animated.View
+        style={[styles.svgLayer,{
+          opacity:frameOpacity,
+          transform:[{scale:frameScale}]
+        }]}
+      >
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
 
-        <AnimatedPath
-          d="M 31,87 L 14,87 L 14,23 Q 14,14 23,14 L 87,14"
-          fill="none"
-          stroke={SPLASH_COLOR_WHITE}
-          strokeWidth={SW}
-          strokeLinecap="square"
-          strokeLinejoin="miter"
-          strokeDasharray="220"
-          strokeDashoffset={frameProgress}
-        />
+          <Path
+            d="M 30,88 L 13,88 L 13,22 Q 13,13 22,13 L 88,13"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={SW}
+            strokeLinecap="square"
+            strokeLinejoin="miter"
+          />
 
-        <Animated.View
-  style={{
-    position: "absolute",
-    opacity: markerOpacity
-  }}
->
-  <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
-    <Rect
-      x="25.5"
-      y="25.5"
-      width="9"
-      height="9"
-      rx="1.2"
-      fill={Colors.accent}
-    />
-  </Svg>
-</Animated.View>
+        </Svg>
+      </Animated.View>
 
-        <AnimatedPath
-          d="M 54,34 L 54,86"
-          fill="none"
-          stroke={SPLASH_COLOR_WHITE}
-          strokeWidth={D_SW}
-          strokeLinecap="square"
-          strokeDasharray="120"
-          strokeDashoffset={dProgress}
-        />
+      <Animated.View
+        style={[styles.svgLayer,{
+          opacity:markerOpacity,
+          transform:[{scale:markerScale}]
+        }]}
+      >
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
 
-        <AnimatedPath
-          d="M 54,34 C 74,34 74,86 54,86"
-          fill="none"
-          stroke={SPLASH_COLOR_WHITE}
-          strokeWidth={D_SW}
-          strokeLinecap="square"
-          strokeLinejoin="miter"
-          strokeDasharray="120"
-          strokeDashoffset={dProgress}
-        />
+          <Rect
+            x="25.5"
+            y="25.5"
+            width="9"
+            height="9"
+            rx="1.5"
+            fill={Colors.accent}
+          />
 
-      </Svg>
+        </Svg>
+      </Animated.View>
 
-    </Animated.View>
+      <Animated.View
+        style={[styles.svgLayer,{
+          opacity:dOpacity,
+          transform:[{scale:dScale}]
+        }]}
+      >
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
 
+          <AnimatedPath
+            d="M 52,34 L 52,86"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={D_SW}
+            strokeLinecap="round"
+            strokeDasharray="120"
+            strokeDashoffset={dStroke}
+          />
+
+          <AnimatedPath
+            d="M 52,34 C 74,34 74,86 52,86"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={D_SW}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="120"
+            strokeDashoffset={dStroke}
+          />
+
+        </Svg>
+      </Animated.View>
+
+    </View>
   );
 
   return (
 
     <View style={styles.container}>
 
-      <View style={styles.splashScreen}>
+      <Animated.View
+        style={[styles.splashScreen,{opacity:splashFadeOut}]}
+        pointerEvents={phase === 'splash' ? 'auto' : 'none'}
+      >
+
         <View style={styles.splashCenter}>
           {renderSplashLogo()}
         </View>
-      </View>
+
+      </Animated.View>
 
       <Animated.View
         style={[
@@ -243,7 +285,7 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
             <Svg width={LOGO_SIZE_INTRO} height={LOGO_SIZE_INTRO} viewBox="0 0 100 100">
 
               <Path
-                d="M 31,87 L 14,87 L 14,23 Q 14,14 23,14 L 87,14"
+                d="M 30,88 L 13,88 L 13,22 Q 13,13 22,13 L 88,13"
                 fill="none"
                 stroke={FRAME_COLOR}
                 strokeWidth={SW}
@@ -256,25 +298,25 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
                 y="25.5"
                 width="9"
                 height="9"
-                rx="1.2"
+                rx="1.5"
                 fill={MARKER_COLOR}
               />
 
               <Path
-                d="M 54,34 L 54,86"
+                d="M 52,34 L 52,86"
                 fill="none"
                 stroke={D_COLOR}
                 strokeWidth={D_SW}
-                strokeLinecap="square"
+                strokeLinecap="round"
               />
 
               <Path
-                d="M 54,34 C 74,34 74,86 54,86"
+                d="M 52,34 C 74,34 74,86 52,86"
                 fill="none"
                 stroke={D_COLOR}
                 strokeWidth={D_SW}
-                strokeLinecap="square"
-                strokeLinejoin="miter"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
 
             </Svg>
@@ -350,7 +392,6 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
     </View>
 
   );
-
 }
 
 const styles = StyleSheet.create({
@@ -375,6 +416,12 @@ const styles = StyleSheet.create({
     flex:1,
     alignItems:'center',
     justifyContent:'center'
+  },
+
+  svgLayer:{
+    position:'absolute',
+    top:0,
+    left:0
   },
 
   introScreen:{
@@ -505,4 +552,3 @@ const styles = StyleSheet.create({
   }
 
 });
-
