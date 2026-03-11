@@ -15,11 +15,14 @@ export default function DometrikLogo({
   markerColor = '#6A6A6A',
   dColor = '#1F1F1F',
 }: DometrikLogoProps) {
-  const sw = 9;
+
+  const sw = 6;
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} viewBox="0 0 100 100">
+
+        {/* Frame */}
         <Path
           d="M 28,92 L 9,92 L 9,20 Q 9,9 20,9 L 92,9"
           fill="none"
@@ -29,6 +32,7 @@ export default function DometrikLogo({
           strokeLinejoin="round"
         />
 
+        {/* Marker */}
         <Rect
           x="23"
           y="23"
@@ -39,21 +43,24 @@ export default function DometrikLogo({
           fill={markerColor}
         />
 
+        {/* D */}
         <Path
-          d="M 46,36 L 46,88"
+          d="M 48,36 L 48,88"
           fill="none"
           stroke={dColor}
           strokeWidth={sw + 2}
           strokeLinecap="round"
         />
+
         <Path
-          d="M 46,36 C 84,36 84,88 46,88"
+          d="M 48,36 C 74,36 74,88 48,88"
           fill="none"
           stroke={dColor}
           strokeWidth={sw + 2}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+
       </Svg>
     </View>
   );
