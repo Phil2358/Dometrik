@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -9,23 +9,29 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, type PathProps } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from '@/constants/colors';
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+const SvgPathWithoutCollapsable = forwardRef<Path, PathProps & { collapsable?: boolean }>(
+  ({ collapsable: _collapsable, ...props }, ref) => <Path ref={ref} {...props} />
+);
+
+SvgPathWithoutCollapsable.displayName = 'SvgPathWithoutCollapsable';
+
+const AnimatedPath = Animated.createAnimatedComponent(SvgPathWithoutCollapsable);
 
 const LOGO_SIZE = 140;
 const INTRO_LOGO_SCALE = 0.56;
 
 const FRAME_PATH = 'M 34 86 H 18 V 24 C 18 18 22 14 28 14 H 86';
-const STEM_PATH = 'M 52 14 V 86';
-const BOWL_PATH = 'M 52 14 H 68 C 80 14 86 20 86 32 V 68 C 86 80 80 86 68 86 H 52';
+const STEM_PATH = 'M 52 18 V 86';
+const BOWL_PATH = 'M 52 18 H 67 C 79 18 84 23 84 35 V 69 C 84 81 79 86 67 86 H 52';
 
 const FRAME_LENGTH = 160;
-const STEM_LENGTH = 72;
-const BOWL_LENGTH = 156;
+const STEM_LENGTH = 68;
+const BOWL_LENGTH = 146;
 
 const FRAME_STROKE = 6;
 const LETTER_STROKE = 6.2;
@@ -35,7 +41,7 @@ const MARKER_LEFT = LOGO_SIZE * 0.24;
 const MARKER_TOP = LOGO_SIZE * 0.24;
 
 const FRAME_COLOR = '#6A6A6A';
-const LETTER_COLOR = '#232323';
+const LETTER_COLOR = FRAME_COLOR;
 const SPLASH_STROKE_COLOR = '#FFFFFF';
 
 const BULLETS = [
@@ -428,7 +434,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     gap: 10,
-    paddingTop: 124,
+    paddingTop: 138,
   },
   logoStage: {
     ...StyleSheet.absoluteFillObject,
@@ -545,3 +551,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 });
+

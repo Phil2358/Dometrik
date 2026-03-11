@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw } from 'lucide-react-native';
+import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen } from 'lucide-react-native';
 import SliderInput from '@/components/SliderInput';
 import ScenarioBar from '@/components/ScenarioBar';
 import { useRouter } from 'expo-router';
@@ -273,7 +273,6 @@ export default function EstimateScreen() {
     basementExcavationCost,
     basementStructureCost,
     basementTotalCost,
-    resetAllData,
   } = useEstimate();
 
   const isLargeProject = permitDesignEffectiveArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
@@ -1210,30 +1209,6 @@ export default function EstimateScreen() {
         <Text style={styles.disclaimerText}>{DISCLAIMER_TEXT}</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.resetBtn}
-        activeOpacity={0.7}
-        testID="reset-project-btn"
-        onPress={() => {
-          Alert.alert(
-            'Reset Project',
-            'This will delete all scenarios and restore the default configuration. This action cannot be undone.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Reset',
-                style: 'destructive',
-                onPress: () => {
-                  void resetAllData();
-                },
-              },
-            ],
-          );
-        }}
-      >
-        <RotateCcw size={14} color={Colors.danger ?? '#DC2626'} />
-        <Text style={styles.resetBtnText}>Reset Project</Text>
-      </TouchableOpacity>
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -1703,24 +1678,7 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: Colors.accent,
   },
-  resetBtn: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    marginHorizontal: 16,
-    marginTop: 16,
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
-  },
-  resetBtnText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#DC2626',
-  },
+
   bottomSpacer: {
     height: 20,
   },
@@ -1978,3 +1936,5 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
 });
+
+
