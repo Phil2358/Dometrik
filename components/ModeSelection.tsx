@@ -38,7 +38,7 @@ const MODE_OPTIONS: ModeOption[] = [
       'Use the estimator as a professional planning tool and generate cost reports for clients.',
     icon: <Ruler size={28} color={Colors.terracotta} strokeWidth={1.8} />,
     accentColor: Colors.terracotta,
-    bgTint: 'rgba(242, 161, 50, 0.12)',
+    bgTint: 'rgba(198, 122, 66, 0.12)',
   },
   {
     id: 'guided',
@@ -141,7 +141,7 @@ export default function ModeSelection({ onSelect }: ModeSelectionProps) {
                 <Text style={styles.cardDescription}>{option.description}</Text>
               </View>
               <View style={[styles.arrow, { backgroundColor: option.bgTint }]}>
-                <Text style={[styles.arrowText, { color: option.accentColor }]}>›</Text>
+                <Text style={[styles.arrowText, { color: option.accentColor }]}>â€º</Text>
               </View>
             </TouchableOpacity>
           </Animated.View>
