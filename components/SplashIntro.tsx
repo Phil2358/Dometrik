@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -10,16 +9,40 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Svg, { Path, type PathProps } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import Colors from '@/constants/colors';
 
-const AnimatedImage = Animated.createAnimatedComponent(Image);
+const SvgPathWithoutCollapsable = forwardRef<Path, PathProps & { collapsable?: boolean }>(
+  ({ collapsable: _collapsable, ...props }, ref) => <Path ref={ref} {...props} />
+);
 
-const SPLASH_LOGO_WIDTH = 220;
-const INTRO_LOGO_WIDTH = 150;
-const INTRO_LOGO_SCALE = INTRO_LOGO_WIDTH / SPLASH_LOGO_WIDTH;
+SvgPathWithoutCollapsable.displayName = 'SvgPathWithoutCollapsable';
+
+const AnimatedPath = Animated.createAnimatedComponent(SvgPathWithoutCollapsable);
+
+const LOGO_SIZE = 140;
+const INTRO_LOGO_SCALE = 0.56;
+
+const FRAME_PATH = 'M 34 86 H 18 V 24 C 18 18 22 14 28 14 H 86';
+const STEM_PATH = 'M 52 18 V 86';
+const BOWL_PATH = 'M 52 18 H 67 C 79 18 84 23 84 35 V 69 C 84 81 79 86 67 86 H 52';
+
+const FRAME_LENGTH = 160;
+const STEM_LENGTH = 68;
+const BOWL_LENGTH = 146;
+
+const FRAME_STROKE = 6;
+const LETTER_STROKE = 6.2;
+const MARKER_SIZE = 14;
+const MARKER_RADIUS = 2;
+const MARKER_LEFT = LOGO_SIZE * 0.24;
+const MARKER_TOP = LOGO_SIZE * 0.24;
+
+const FRAME_COLOR = '#6A6A6A';
+const LETTER_COLOR = FRAME_COLOR;
+const SPLASH_STROKE_COLOR = '#FFFFFF';
 
 const BULLETS = [
   'Realistic construction cost estimates',
@@ -28,7 +51,75 @@ const BULLETS = [
   'Evaluate project feasibility before construction',
 ];
 
-const LOGO_SOURCE = require('../assets/images/dometrik-logo-exact.png');
+interface DometrikLogoProps {
+  frameColor: string;
+  markerColor: string;
+  letterColor: string;
+  frameDashOffset?: Animated.Value;
+  stemDashOffset?: Animated.Value;
+  bowlDashOffset?: Animated.Value;
+  markerOpacity?: Animated.Value;
+  markerScale?: Animated.Value;
+}
+
+function DometrikLogo({
+  frameColor,
+  markerColor,
+  letterColor,
+  frameDashOffset,
+  stemDashOffset,
+  bowlDashOffset,
+  markerOpacity,
+  markerScale,
+}: DometrikLogoProps) {
+  return (
+    <View style={styles.logoCanvas}>
+      <Svg width={LOGO_SIZE} height={LOGO_SIZE} viewBox="0 0 100 100">
+        <AnimatedPath
+          d={FRAME_PATH}
+          fill="none"
+          stroke={frameColor}
+          strokeWidth={FRAME_STROKE}
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+          strokeDasharray={`${FRAME_LENGTH} ${FRAME_LENGTH}`}
+          strokeDashoffset={frameDashOffset ?? 0}
+        />
+        <AnimatedPath
+          d={STEM_PATH}
+          fill="none"
+          stroke={letterColor}
+          strokeWidth={LETTER_STROKE}
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+          strokeDasharray={`${STEM_LENGTH} ${STEM_LENGTH}`}
+          strokeDashoffset={stemDashOffset ?? 0}
+        />
+        <AnimatedPath
+          d={BOWL_PATH}
+          fill="none"
+          stroke={letterColor}
+          strokeWidth={LETTER_STROKE}
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+          strokeDasharray={`${BOWL_LENGTH} ${BOWL_LENGTH}`}
+          strokeDashoffset={bowlDashOffset ?? 0}
+        />
+      </Svg>
+
+      <Animated.View
+        style={[
+          styles.marker,
+          {
+            backgroundColor: markerColor,
+            opacity: markerOpacity ?? 1,
+            transform: [{ scale: markerScale ?? 1 }],
+          },
+        ]}
+      />
+    </View>
+  );
+}
 
 interface SplashIntroProps {
   onSplashDone: () => void;
@@ -38,6 +129,12 @@ interface SplashIntroProps {
 export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps) {
   const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<'splash' | 'transition' | 'intro'>('splash');
+
+  const frameDashOffset = useRef(new Animated.Value(FRAME_LENGTH)).current;
+  const stemDashOffset = useRef(new Animated.Value(STEM_LENGTH)).current;
+  const bowlDashOffset = useRef(new Animated.Value(BOWL_LENGTH)).current;
+  const markerOpacity = useRef(new Animated.Value(0)).current;
+  const markerScale = useRef(new Animated.Value(0.7)).current;
 
   const splashFadeOut = useRef(new Animated.Value(1)).current;
   const introFadeIn = useRef(new Animated.Value(0)).current;
@@ -57,17 +154,17 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
     Animated.sequence([
       Animated.timing(brandOpacity, {
         toValue: 1,
-        duration: 200,
+        duration: 220,
         useNativeDriver: true,
       }),
       Animated.timing(subtitleOpacity, {
         toValue: 1,
-        duration: 160,
+        duration: 180,
         useNativeDriver: true,
       }),
       Animated.timing(taglineOpacity, {
         toValue: 1,
-        duration: 160,
+        duration: 180,
         useNativeDriver: true,
       }),
       Animated.stagger(
@@ -83,12 +180,12 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
       Animated.parallel([
         Animated.timing(buttonOpacity, {
           toValue: 1,
-          duration: 220,
+          duration: 240,
           useNativeDriver: true,
         }),
         Animated.timing(buttonSlide, {
           toValue: 0,
-          duration: 220,
+          duration: 240,
           useNativeDriver: true,
         }),
       ]),
@@ -102,37 +199,37 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
     Animated.parallel([
       Animated.timing(splashFadeOut, {
         toValue: 0,
-        duration: 420,
+        duration: 500,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(introFadeIn, {
         toValue: 1,
-        duration: 460,
+        duration: 540,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(splashLogoOpacity, {
         toValue: 0,
-        duration: 220,
+        duration: 320,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       Animated.timing(introLogoOpacity, {
         toValue: 1,
-        duration: 300,
+        duration: 420,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       Animated.timing(logoLift, {
-        toValue: -120,
-        duration: 520,
+        toValue: -54,
+        duration: 560,
         easing: Easing.inOut(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(logoScale, {
         toValue: INTRO_LOGO_SCALE,
-        duration: 520,
+        duration: 560,
         easing: Easing.inOut(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -153,15 +250,53 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
 
   useEffect(() => {
     Animated.sequence([
-      Animated.delay(180),
-      Animated.timing(logoScale, {
-        toValue: 1,
-        duration: 1,
-        useNativeDriver: true,
+      Animated.delay(100),
+      Animated.timing(frameDashOffset, {
+        toValue: 0,
+        duration: 920,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
       }),
-      Animated.delay(900),
+      Animated.parallel([
+        Animated.timing(markerOpacity, {
+          toValue: 1,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+        Animated.spring(markerScale, {
+          toValue: 1,
+          tension: 110,
+          friction: 10,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(stemDashOffset, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.sequence([
+          Animated.delay(70),
+          Animated.timing(bowlDashOffset, {
+            toValue: 0,
+            duration: 380,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: false,
+          }),
+        ]),
+      ]),
+      Animated.delay(240),
     ]).start(startTransition);
-  }, [logoScale, startTransition]);
+  }, [
+    bowlDashOffset,
+    frameDashOffset,
+    markerOpacity,
+    markerScale,
+    startTransition,
+    stemDashOffset,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -223,14 +358,7 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
                 onPress={onStart}
                 testID="intro-start-button"
               >
-                <LinearGradient
-                  colors={[Colors.accentGradientStart, Colors.accentGradientEnd]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.startButtonGradient}
-                >
-                  <Text style={styles.startButtonText}>Start Estimate</Text>
-                </LinearGradient>
+                <Text style={styles.startButtonText}>Start Estimate</Text>
               </TouchableOpacity>
             </Animated.View>
           </View>
@@ -247,7 +375,16 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
             },
           ]}
         >
-          <AnimatedImage source={LOGO_SOURCE} style={styles.splashLogo} resizeMode="contain" />
+          <DometrikLogo
+            frameColor={SPLASH_STROKE_COLOR}
+            markerColor={Colors.accent}
+            letterColor={SPLASH_STROKE_COLOR}
+            frameDashOffset={frameDashOffset}
+            stemDashOffset={stemDashOffset}
+            bowlDashOffset={bowlDashOffset}
+            markerOpacity={markerOpacity}
+            markerScale={markerScale}
+          />
         </Animated.View>
 
         <Animated.View
@@ -259,7 +396,7 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
             },
           ]}
         >
-          <Image source={LOGO_SOURCE} style={styles.splashLogo} resizeMode="contain" />
+          <DometrikLogo frameColor={FRAME_COLOR} markerColor={Colors.accent} letterColor={LETTER_COLOR} />
         </Animated.View>
       </View>
     </View>
@@ -278,7 +415,7 @@ const styles = StyleSheet.create({
   },
   splashScreen: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.splash,
     zIndex: 1,
   },
   introScreen: {
@@ -297,7 +434,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     gap: 10,
-    paddingTop: 208,
+    paddingTop: 138,
   },
   logoStage: {
     ...StyleSheet.absoluteFillObject,
@@ -307,12 +444,20 @@ const styles = StyleSheet.create({
   },
   logoLayer: {
     position: 'absolute',
-    width: SPLASH_LOGO_WIDTH,
-    alignItems: 'center',
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
   },
-  splashLogo: {
-    width: SPLASH_LOGO_WIDTH,
-    height: 220,
+  logoCanvas: {
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
+  },
+  marker: {
+    position: 'absolute',
+    top: MARKER_TOP,
+    left: MARKER_LEFT,
+    width: MARKER_SIZE,
+    height: MARKER_SIZE,
+    borderRadius: MARKER_RADIUS,
   },
   brandName: {
     fontSize: 34,
@@ -379,28 +524,25 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   startButton: {
+    backgroundColor: Colors.accent,
     borderRadius: 14,
-    overflow: 'hidden',
+    paddingVertical: 16,
+    alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: Colors.accentStrong,
+        shadowColor: Colors.accent,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.25,
         shadowRadius: 12,
       },
       android: { elevation: 6 },
       web: {
-        shadowColor: Colors.accentStrong,
+        shadowColor: Colors.accent,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.25,
         shadowRadius: 12,
       },
     }),
-  },
-  startButtonGradient: {
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
   },
   startButtonText: {
     fontSize: 17,
@@ -409,6 +551,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 });
-
-
 

@@ -1515,7 +1515,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
   },
   siteCondIconWrapSelected: {
-    backgroundColor: 'rgba(242, 161, 50, 0.16)',
+    backgroundColor: 'rgba(212, 120, 47, 0.12)',
   },
   siteCondName: {
     fontSize: 13,
@@ -1936,6 +1936,5 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
 });
-
 
 

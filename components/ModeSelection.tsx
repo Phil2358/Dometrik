@@ -38,7 +38,7 @@ const MODE_OPTIONS: ModeOption[] = [
       'Use the estimator as a professional planning tool and generate cost reports for clients.',
     icon: <Ruler size={28} color={Colors.terracotta} strokeWidth={1.8} />,
     accentColor: Colors.terracotta,
-    bgTint: 'rgba(242, 161, 50, 0.12)',
+    bgTint: 'rgba(198, 122, 66, 0.08)',
   },
   {
     id: 'guided',
@@ -259,4 +259,3 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
   },
 });
-
