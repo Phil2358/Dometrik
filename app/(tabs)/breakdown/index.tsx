@@ -286,7 +286,7 @@ function GenerateReportButton() {
       testID="generate-report-button"
     >
       <LinearGradient
-        colors={[Colors.accentGradientStart, Colors.accentGradientEnd]}
+        colors={['#D4782F', '#C06828']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.generateButtonGradient}
@@ -371,8 +371,8 @@ export default function BreakdownScreen() {
             cost: siteExcavationCost + basementExcavationCost,
             icon: Shovel,
             sublabel: basementArea > 0
-              ? `Building footprint + basement excavation Â· ${siteCondition.name}`
-              : `Building footprint Â· ${siteCondition.name}`,
+              ? `Building footprint + basement excavation · ${siteCondition.name}`
+              : `Building footprint · ${siteCondition.name}`,
             visible: true,
           },
           {
@@ -397,7 +397,7 @@ export default function BreakdownScreen() {
             cost: siteAccessibilityCost,
             icon: HardHat,
             sublabel: siteAccessibilityCost > 0
-              ? `Site logistics Â· ${siteAccessibility.name}`
+              ? `Site logistics · ${siteAccessibility.name}`
               : 'Site logistics, temporary facilities',
             visible: siteAccessibilityCost > 0,
           },
@@ -416,7 +416,7 @@ export default function BreakdownScreen() {
             cost: getCategoryCost('concrete') + basementStructureCost,
             icon: Building,
             sublabel: basementArea > 0
-              ? `Reinforced concrete structure + basement (${basementArea} mÂ² Â· ${basementType.name})`
+              ? `Reinforced concrete structure + basement (${basementArea} m² · ${basementType.name})`
               : 'Reinforced concrete, beams, columns, floor slabs',
             visible: true,
           },
@@ -519,7 +519,7 @@ export default function BreakdownScreen() {
             name: 'Terrain works',
             cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.3) : 0,
             icon: LandPlot,
-            sublabel: `Grading, retaining walls Â· ${siteCondition.name}`,
+            sublabel: `Grading, retaining walls · ${siteCondition.name}`,
             visible: landscapingCost > 0,
           },
           {
@@ -535,7 +535,7 @@ export default function BreakdownScreen() {
             name: 'Planting',
             cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.25) : 0,
             icon: Flower2,
-            sublabel: `${landscapingArea} mÂ² landscape area`,
+            sublabel: `${landscapingArea} m² landscape area`,
             visible: landscapingCost > 0,
           },
           {
@@ -544,7 +544,7 @@ export default function BreakdownScreen() {
             cost: poolCost + (landscapingCost > 0 ? landscapingCost - Math.round(landscapingCost * 0.3) - Math.round(landscapingCost * 0.25) - Math.round(landscapingCost * 0.25) : 0),
             icon: Waves,
             sublabel: includePool
-              ? `Pool ${poolArea} mÂ² Â· ${poolQualityOption.name} Â· ${poolTypeOption.name}`
+              ? `Pool ${poolArea} m² · ${poolQualityOption.name} · ${poolTypeOption.name}`
               : 'Irrigation, outdoor lighting',
             visible: includePool || landscapingCost > 0,
           },
@@ -588,7 +588,7 @@ export default function BreakdownScreen() {
         name: 'Planning & Professional Fees',
         subtotal: permitDesignFee,
         percentOfTotal: totalCost > 0 ? (permitDesignFee / totalCost) * 100 : 0,
-        accentColor: Colors.accent,
+        accentColor: '#D4782F',
         subgroups: [
           {
             code: '710',
@@ -644,7 +644,7 @@ export default function BreakdownScreen() {
           </View>
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Location</Text>
-            <Text style={styles.assumptionValue}>{location.name} (Ã—{location.multiplier.toFixed(2)})</Text>
+            <Text style={styles.assumptionValue}>{location.name} (×{location.multiplier.toFixed(2)})</Text>
           </View>
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Site Conditions</Text>
@@ -661,19 +661,19 @@ export default function BreakdownScreen() {
           {basementArea > 0 && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Basement</Text>
-              <Text style={styles.assumptionValue}>{basementArea} mÂ² Â· {basementType.name}</Text>
+              <Text style={styles.assumptionValue}>{basementArea} m² · {basementType.name}</Text>
             </View>
           )}
           {balconyArea > 0 && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Balconies</Text>
-              <Text style={styles.assumptionValue}>{balconyArea} mÂ² (30%)</Text>
+              <Text style={styles.assumptionValue}>{balconyArea} m² (30%)</Text>
             </View>
           )}
           {landscapingArea > 0 && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Landscaping Area</Text>
-              <Text style={styles.assumptionValue}>{landscapingArea} mÂ²</Text>
+              <Text style={styles.assumptionValue}>{landscapingArea} m²</Text>
             </View>
           )}
           <View style={styles.assumptionItem}>
@@ -693,16 +693,16 @@ export default function BreakdownScreen() {
           {includePool && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Swimming Pool</Text>
-              <Text style={styles.assumptionValue}>{poolArea} mÂ² Â· {poolDepth.toFixed(2)} m Â· {poolQualityOption.name} Â· {poolTypeOption.name}</Text>
+              <Text style={styles.assumptionValue}>{poolArea} m² · {poolDepth.toFixed(2)} m · {poolQualityOption.name} · {poolTypeOption.name}</Text>
             </View>
           )}
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Effective Area</Text>
-            <Text style={styles.assumptionValue}>{effectiveArea.toFixed(0)} mÂ²</Text>
+            <Text style={styles.assumptionValue}>{effectiveArea.toFixed(0)} m²</Text>
           </View>
           <View style={styles.assumptionItem}>
-            <Text style={styles.assumptionLabel}>Corrected â‚¬/mÂ²</Text>
-            <Text style={styles.assumptionValue}>{formatEuro(correctedCostPerSqm)}/mÂ²</Text>
+            <Text style={styles.assumptionLabel}>Corrected €/m²</Text>
+            <Text style={styles.assumptionValue}>{formatEuro(correctedCostPerSqm)}/m²</Text>
           </View>
           {sizeCorrectionFactor !== 1.0 && (
             <View style={styles.assumptionItem}>
@@ -723,7 +723,7 @@ export default function BreakdownScreen() {
       ))}
 
       <View style={styles.constructionSubtotalCard}>
-        <Text style={styles.constructionSubtotalLabel}>Construction Subtotal (KG 300â€“600)</Text>
+        <Text style={styles.constructionSubtotalLabel}>Construction Subtotal (KG 300–600)</Text>
         <Text style={styles.constructionSubtotalValue}>{formatEuro(constructionSubtotal)}</Text>
       </View>
       <View style={styles.disclaimerInline}>
@@ -741,7 +741,7 @@ export default function BreakdownScreen() {
             <View style={styles.overheadInfo}>
               <Text style={styles.overheadLabel}>Construction Contingency</Text>
               <Text style={styles.overheadSub}>
-                {Math.round(contingencyPercent * 100)}% risk reserve Â· {quality.name} quality
+                {Math.round(contingencyPercent * 100)}% risk reserve · {quality.name} quality
               </Text>
             </View>
             <Text style={styles.overheadValue}>{formatEuro(contingencyCost)}</Text>
@@ -777,7 +777,7 @@ export default function BreakdownScreen() {
         </View>
         <View style={styles.grandTotalBreakdown}>
           <Text style={styles.grandTotalBreakdownText}>
-            KG 200 {formatEuro(kg200Total)} + KG 300â€“600 {formatEuro(constructionSubtotal)} + KG 500 {formatEuro(kg500Total)} + KG 700 {formatEuro(permitDesignFee)} + Contingency {formatEuro(contingencyCost)} + Overhead {formatEuro(contractorCost)}
+            KG 200 {formatEuro(kg200Total)} + KG 300–600 {formatEuro(constructionSubtotal)} + KG 500 {formatEuro(kg500Total)} + KG 700 {formatEuro(permitDesignFee)} + Contingency {formatEuro(contingencyCost)} + Overhead {formatEuro(contractorCost)}
           </Text>
         </View>
       </View>

@@ -40,7 +40,7 @@ interface ChartSegment {
   percent: number;
 }
 
-const ACCENT = '#C67A42';
+const ACCENT = '#D4782F';
 const PRIMARY = '#1B3A4B';
 const PRIMARY_LIGHT = '#2C5F6E';
 const TEXT_BODY = '#4B5563';
@@ -54,7 +54,7 @@ const CHART_COLORS = [
   '#1B3A4B',
   '#2C5F6E',
   '#5B8C5A',
-  '#C67A42',
+  '#D4782F',
   '#3B82C4',
   '#8B6E5A',
 ];
@@ -62,8 +62,8 @@ const CHART_COLORS = [
 function getSizeCorrectionText(factor: number): string {
   if (factor > 1.05) return '+10%';
   if (factor > 1.0) return '+5%';
-  if (factor < 0.95) return 'âˆ’10%';
-  if (factor < 1.0) return 'âˆ’5%';
+  if (factor < 0.95) return '−10%';
+  if (factor < 1.0) return '−5%';
   return 'none';
 }
 
@@ -78,10 +78,10 @@ function buildAssumptions(data: ClientReportData): string[] {
   assumptions.push('Standard HVAC system (heat pump + fan-coil/VRV)');
   const corrText = getSizeCorrectionText(data.sizeCorrectionFactor);
   if (corrText !== 'none') {
-    assumptions.push(`Size correction: ${corrText} (living area ${data.mainArea} mÂ²)`);
+    assumptions.push(`Size correction: ${corrText} (living area ${data.mainArea} m²)`);
   }
   if (data.basementArea > 0) {
-    assumptions.push(`${data.basementTypeName} basement (${data.basementArea} mÂ²)`);
+    assumptions.push(`${data.basementTypeName} basement (${data.basementArea} m²)`);
     if (data.basementExcavationCost > 0) {
       assumptions.push(`Basement excavation: ${formatEuro(data.basementExcavationCost)}`);
     }
@@ -90,19 +90,19 @@ function buildAssumptions(data: ClientReportData): string[] {
     }
   }
   if (data.includePool) {
-    assumptions.push(`${data.poolQualityName} Â· ${data.poolTypeName}`);
+    assumptions.push(`${data.poolQualityName} · ${data.poolTypeName}`);
   }
   if (data.hvacOptions.length > 0) {
     data.hvacOptions.forEach((opt) => assumptions.push(opt));
   }
   if (data.siteConditionName.toLowerCase().includes('inclined') && data.siteConditionName.toLowerCase().includes('unstable')) {
-    assumptions.push('âš  Inclined or unstable soil conditions may significantly increase costs');
+    assumptions.push('⚠ Inclined or unstable soil conditions may significantly increase costs');
   }
   if (data.groundwaterConditionName.toLowerCase().includes('high')) {
-    assumptions.push('âš  High groundwater may increase basement waterproofing costs');
+    assumptions.push('⚠ High groundwater may increase basement waterproofing costs');
   }
   if (data.siteAccessibilityName.toLowerCase().includes('difficult')) {
-    assumptions.push('âš  Difficult site access may increase transport and logistics costs');
+    assumptions.push('⚠ Difficult site access may increase transport and logistics costs');
   }
   return assumptions;
 }
@@ -197,8 +197,8 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
 
   const overviewItems: { label: string; value: string }[] = [
     { label: 'Location', value: data.location },
-    { label: 'Living area', value: `${data.mainArea} mÂ²` },
-    { label: 'Effective area', value: `${data.effectiveArea.toFixed(0)} mÂ²` },
+    { label: 'Living area', value: `${data.mainArea} m²` },
+    { label: 'Effective area', value: `${data.effectiveArea.toFixed(0)} m²` },
     { label: 'Quality level', value: data.qualityName },
     { label: 'Site conditions', value: data.siteConditionName },
     { label: 'Groundwater', value: data.groundwaterConditionName },
@@ -209,13 +209,13 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     overviewItems.push({ label: 'Size correction', value: corrText });
   }
   if (data.balconyArea > 0) {
-    overviewItems.push({ label: 'Balconies', value: `${data.balconyArea} mÂ² (30% weighting)` });
+    overviewItems.push({ label: 'Balconies', value: `${data.balconyArea} m² (30% weighting)` });
   }
   if (data.basementArea > 0) {
-    overviewItems.push({ label: 'Basement', value: `${data.basementArea} mÂ² Â· ${data.basementTypeName}` });
+    overviewItems.push({ label: 'Basement', value: `${data.basementArea} m² · ${data.basementTypeName}` });
   }
   if (data.includePool) {
-    overviewItems.push({ label: 'Swimming pool', value: `${data.poolArea} mÂ² Â· ${data.poolDepth.toFixed(2)} m Â· ${data.poolTypeName}` });
+    overviewItems.push({ label: 'Swimming pool', value: `${data.poolArea} m² · ${data.poolDepth.toFixed(2)} m · ${data.poolTypeName}` });
   }
   if (data.hvacOptions.length > 0) {
     overviewItems.push({ label: 'Energy options', value: data.hvacOptions.join(', ') });
@@ -244,7 +244,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
   const assumptionsHtml = assumptions
     .map(
       (a) => `<div style="font-size:10px;color:${TEXT_BODY};padding:3px 0 3px 14px;position:relative;line-height:1.6;">
-        <span style="position:absolute;left:0;color:${ACCENT};font-weight:700;">â€¢</span>${a}
+        <span style="position:absolute;left:0;color:${ACCENT};font-weight:700;">•</span>${a}
       </div>`
     )
     .join('');
@@ -382,8 +382,8 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     <div class="section-heading" style="margin-top:0;">Estimated Cost Range</div>
     <div style="background:${BG_WARM};border:1px solid ${BORDER};border-radius:8px;padding:18px 22px;text-align:center;">
       <div style="font-size:8.5px;text-transform:uppercase;letter-spacing:1px;color:${TEXT_MUTED};margin-bottom:5px;font-weight:600;">Likely project cost</div>
-      <div style="font-size:22px;font-weight:800;color:${PRIMARY};letter-spacing:-0.5px;">${formatEuro(rangeLow)}  â€“  ${formatEuro(rangeHigh)}</div>
-      <div style="font-size:9px;color:${TEXT_FAINT};margin-top:5px;">Based on Â±12% estimation uncertainty</div>
+      <div style="font-size:22px;font-weight:800;color:${PRIMARY};letter-spacing:-0.5px;">${formatEuro(rangeLow)}  –  ${formatEuro(rangeHigh)}</div>
+      <div style="font-size:9px;color:${TEXT_FAINT};margin-top:5px;">Based on ±12% estimation uncertainty</div>
     </div>
   </div>
 
@@ -402,7 +402,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     <div style="font-size:8px;text-transform:uppercase;letter-spacing:1.5px;color:${TEXT_FAINT};margin-bottom:7px;font-weight:600;">Prepared by</div>
     <div style="font-size:15px;font-weight:800;color:${PRIMARY};letter-spacing:-0.3px;">Philipp Doukakis</div>
     <div style="font-size:10.5px;color:${TEXT_MUTED};margin-bottom:7px;">Architect</div>
-    <a href="https://philippdoukakis.com" style="font-size:10.5px;color:${ACCENT};text-decoration:none;font-weight:600;border-bottom:1px solid #F0DFD0;">philippdoukakis.com</a>
+    <a href="https://philippdoukakis.com" style="font-size:10.5px;color:${ACCENT};text-decoration:none;font-weight:600;border-bottom:1px solid #F0DFD1;">philippdoukakis.com</a>
   </div>
 
 </div>

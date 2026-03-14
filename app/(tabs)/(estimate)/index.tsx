@@ -182,7 +182,7 @@ function IntegerInputRow({
           activeOpacity={0.7}
           testID={`decrement-${label.toLowerCase()}`}
         >
-          <Text style={[styles.integerBtnText, value <= min && styles.integerBtnTextDisabled]}>âˆ’</Text>
+          <Text style={[styles.integerBtnText, value <= min && styles.integerBtnTextDisabled]}>−</Text>
         </TouchableOpacity>
         <Text style={styles.integerValue}>{value}</Text>
         <TouchableOpacity
@@ -361,7 +361,7 @@ export default function EstimateScreen() {
                 {loc.name}
               </Text>
               <Text style={[styles.chipMult, isSelected && styles.chipMultSelected]}>
-                Ã—{loc.multiplier.toFixed(2)}
+                ×{loc.multiplier.toFixed(2)}
               </Text>
             </TouchableOpacity>
           );
@@ -403,10 +403,10 @@ export default function EstimateScreen() {
                 {q.name}
               </Text>
               <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
-                â‚¬{formatNumber(q.baseCostPerSqm)}
+                €{formatNumber(q.baseCostPerSqm)}
               </Text>
               <Text style={[styles.qualityUnit, isSelected && styles.qualityUnitSelected]}>
-                /mÂ²
+                /m²
               </Text>
             </TouchableOpacity>
           );
@@ -422,7 +422,7 @@ export default function EstimateScreen() {
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Base Cost per mÂ²</Text>
+          <Text style={styles.cardTitle}>Base Cost per m²</Text>
           {customCostPerSqm !== null && (
             <TouchableOpacity onPress={() => setCustomCostPerSqm(null)}>
               <Text style={styles.resetLink}>Reset</Text>
@@ -430,7 +430,7 @@ export default function EstimateScreen() {
           )}
         </View>
         <View style={styles.costInputRow}>
-          <Text style={styles.euroSign}>â‚¬</Text>
+          <Text style={styles.euroSign}>€</Text>
           <TextInput
             style={styles.costInput}
             value={String(baseCostPerSqm)}
@@ -446,7 +446,7 @@ export default function EstimateScreen() {
             keyboardType="numeric"
             testID="cost-per-sqm-input"
           />
-          <Text style={styles.costInputUnit}>/mÂ² (base)</Text>
+          <Text style={styles.costInputUnit}>/m² (base)</Text>
         </View>
         {sizeCorrectionFactor !== 1.0 && (
           <View style={styles.sizeCorrectionRow}>
@@ -455,14 +455,14 @@ export default function EstimateScreen() {
               styles.sizeCorrectionValue,
               sizeCorrectionFactor > 1 ? styles.sizeCorrectionUp : styles.sizeCorrectionDown,
             ]}>
-              {sizeCorrectionLabel} â†’ â‚¬{formatNumber(correctedCostPerSqm)}/mÂ²
+              {sizeCorrectionLabel} → €{formatNumber(correctedCostPerSqm)}/m²
             </Text>
           </View>
         )}
         <View style={styles.costHintRow}>
           <Info size={13} color={Colors.textTertiary} />
           <Text style={styles.costHint}>
-            Adjust freely. Quality presets: Standard â‚¬1,200 Â· Premium â‚¬1,500 Â· Luxury â‚¬2,000. Size correction applies automatically.
+            Adjust freely. Quality presets: Standard €1,200 · Premium €1,500 · Luxury €2,000. Size correction applies automatically.
           </Text>
         </View>
       </View>
@@ -509,10 +509,10 @@ export default function EstimateScreen() {
         <View style={styles.divider} />
         <View style={styles.effectiveRow}>
           <Text style={styles.effectiveLabel}>Effective Area</Text>
-          <Text style={styles.effectiveValue}>{effectiveArea.toFixed(0)} mÂ²</Text>
+          <Text style={styles.effectiveValue}>{effectiveArea.toFixed(0)} m²</Text>
         </View>
         <Text style={styles.effectiveFormula}>
-          {mainArea} + ({terraceArea} Ã— 0.5){balconyArea > 0 ? ` + (${balconyArea} Ã— 0.30)` : ''}{basementArea > 0 ? ` + (${basementArea} Ã— ${basementType.costFactor})` : ''} = {effectiveArea.toFixed(0)} mÂ²
+          {mainArea} + ({terraceArea} × 0.5){balconyArea > 0 ? ` + (${balconyArea} × 0.30)` : ''}{basementArea > 0 ? ` + (${basementArea} × ${basementType.costFactor})` : ''} = {effectiveArea.toFixed(0)} m²
         </Text>
       </View>
 
@@ -749,7 +749,7 @@ export default function EstimateScreen() {
               <Text style={styles.effectiveLabel}>Access Logistics Cost</Text>
               <Text style={styles.effectiveValue}>{formatEuro(siteAccessibility.fixedCost)}</Text>
             </View>
-            <Text style={styles.effectiveFormula}>Fixed cost added to KG 250 â€“ Temporary construction measures</Text>
+            <Text style={styles.effectiveFormula}>Fixed cost added to KG 250 – Temporary construction measures</Text>
           </>
         )}
       </View>
@@ -787,7 +787,7 @@ export default function EstimateScreen() {
               <Text style={styles.effectiveValue}>{formatEuro(landscapingCost)}</Text>
             </View>
             <Text style={styles.effectiveFormula}>
-              Based on â‚¬40/mÂ² Â· {siteCondition.name}
+              Based on €40/m² · {siteCondition.name}
             </Text>
           </>
         )}
@@ -822,7 +822,7 @@ export default function EstimateScreen() {
                   <Text style={styles.optionLabel}>{opt.name}</Text>
                   <Text style={styles.optionSubtext}>
                     {isEnabled && hvacItem
-                      ? `${formatEuro(hvacItem.cost)} Â· ${opt.description}`
+                      ? `${formatEuro(hvacItem.cost)} · ${opt.description}`
                       : opt.description}
                   </Text>
                 </View>
@@ -897,7 +897,7 @@ export default function EstimateScreen() {
             <Text style={styles.optionLabel}>Include Swimming Pool</Text>
             <Text style={styles.optionSubtext}>
               {includePool
-                ? `${formatEuro(poolCost)} Â· ${poolQualityOption.name}`
+                ? `${formatEuro(poolCost)} · ${poolQualityOption.name}`
                 : 'Not included in estimate'}
             </Text>
           </View>
@@ -939,7 +939,7 @@ export default function EstimateScreen() {
                     </Text>
                     {opt.area > 0 && (
                       <Text style={[styles.poolSizeArea, isSelected && styles.poolSizeAreaSelected]}>
-                        {opt.area} mÂ²
+                        {opt.area} m²
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -963,7 +963,7 @@ export default function EstimateScreen() {
                       placeholderTextColor={Colors.textTertiary}
                       testID="pool-custom-area"
                     />
-                    <Text style={styles.poolCustomUnit}>mÂ²</Text>
+                    <Text style={styles.poolCustomUnit}>m²</Text>
                   </View>
                 </View>
                 <View style={styles.poolCustomField}>
@@ -1049,7 +1049,7 @@ export default function EstimateScreen() {
               <Text style={styles.effectiveValue}>{formatEuro(poolCost)}</Text>
             </View>
             <Text style={styles.effectiveFormula}>
-              {poolArea} mÂ² Â· {poolDepth.toFixed(2)} m depth Â· {poolQualityOption.name} Â· {poolTypeOption.name}
+              {poolArea} m² · {poolDepth.toFixed(2)} m depth · {poolQualityOption.name} · {poolTypeOption.name}
             </Text>
           </>
         )}
@@ -1091,7 +1091,7 @@ export default function EstimateScreen() {
                 <View style={styles.optionInfo}>
                   <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>{opt.name}</Text>
                   <Text style={styles.optionSubtext}>
-                    {opt.id !== 'custom' ? `${formatEuro(opt.cost)} Â· ${opt.description}` : opt.description}
+                    {opt.id !== 'custom' ? `${formatEuro(opt.cost)} · ${opt.description}` : opt.description}
                   </Text>
                 </View>
                 <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
@@ -1105,7 +1105,7 @@ export default function EstimateScreen() {
           <>
             <View style={styles.divider} />
             <View style={styles.costInputRow}>
-              <Text style={styles.euroSign}>â‚¬</Text>
+              <Text style={styles.euroSign}>€</Text>
               <TextInput
                 style={styles.costInput}
                 value={customUtilityCost > 0 ? String(customUtilityCost) : ''}
@@ -1150,7 +1150,7 @@ export default function EstimateScreen() {
           <Text style={styles.effectiveValue}>{formatEuro(permitDesignFee)}</Text>
         </View>
         <Text style={styles.effectiveFormula}>
-          Based on {quality.name} quality Â· {permitDesignEffectiveArea.toFixed(0)} mÂ² effective project area
+          Based on {quality.name} quality · {permitDesignEffectiveArea.toFixed(0)} m² effective project area
         </Text>
         {isLargeProject && (
           <View style={styles.permitDesignAdvisory}>
@@ -1189,7 +1189,7 @@ export default function EstimateScreen() {
         <View style={styles.costHintRow}>
           <ShieldAlert size={13} color={Colors.accent} />
           <Text style={styles.costHint}>
-            Construction contingency ({Math.round(contingencyPercent * 100)}%) is applied to KG 300â€“600 based on {quality.name} quality level.
+            Construction contingency ({Math.round(contingencyPercent * 100)}%) is applied to KG 300–600 based on {quality.name} quality level.
           </Text>
         </View>
       </View>
@@ -1515,7 +1515,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
   },
   siteCondIconWrapSelected: {
-    backgroundColor: 'rgba(198, 122, 66, 0.16)',
+    backgroundColor: 'rgba(242, 161, 50, 0.16)',
   },
   siteCondName: {
     fontSize: 13,

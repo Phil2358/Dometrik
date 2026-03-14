@@ -31,7 +31,7 @@ const VAT_RATE = 0.24;
 
 const COMPARE_COLORS = [
   '#2C5F6E',
-  Colors.accent,
+  '#D4782F',
   '#2D8B55',
   '#8A5CF6',
   '#E5533D',
@@ -51,28 +51,28 @@ function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
     { label: 'Location', getter: (s) => s.locationName ?? '' },
     { label: 'Quality level', getter: (s) => s.qualityName ?? '' },
 
-    { label: 'Interior area', getter: (s) => `${(s.mainArea ?? 0)} mÂ²` },
-    { label: 'Covered terrace', getter: (s) => `${(s.terraceArea ?? 0)} mÂ²` },
-    { label: 'Balcony', getter: (s) => `${(s.balconyArea ?? 0)} mÂ²` },
+    { label: 'Interior area', getter: (s) => `${(s.mainArea ?? 0)} m²` },
+    { label: 'Covered terrace', getter: (s) => `${(s.terraceArea ?? 0)} m²` },
+    { label: 'Balcony', getter: (s) => `${(s.balconyArea ?? 0)} m²` },
 
     {
       label: 'Basement',
       getter: (s) =>
         (s.basementArea ?? 0) > 0
-          ? `${s.basementArea ?? 0} mÂ²`
+          ? `${s.basementArea ?? 0} m²`
           : 'None',
     },
 
     {
       label: 'Effective area',
-      getter: (s) => `${((s as any).effectiveArea ?? 0).toFixed(0)} mÂ²`,
+      getter: (s) => `${((s as any).effectiveArea ?? 0).toFixed(0)} m²`,
     },
 
     {
       label: 'Pool',
       getter: (s) =>
         (s as any).includePool
-          ? `${(s as any).poolSizeName ?? ''} (${(s as any).poolArea ?? 0} mÂ²)`
+          ? `${(s as any).poolSizeName ?? ''} (${(s as any).poolArea ?? 0} m²)`
           : 'None',
     },
 
@@ -84,7 +84,7 @@ function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
       label: 'Landscaping',
       getter: (s) =>
         ((s as any).landscapingArea ?? 0) > 0
-          ? `${(s as any).landscapingArea ?? 0} mÂ²`
+          ? `${(s as any).landscapingArea ?? 0} m²`
           : 'None',
     },
 
@@ -366,7 +366,7 @@ export default function CompareScreen() {
       <View style={styles.headerCard}>
         <Text style={styles.headerTitle}>Scenario Comparison</Text>
         <Text style={styles.headerSubtext}>
-          Comparing {computed.length} scenarios Â· VAT 24% included
+          Comparing {computed.length} scenarios · VAT 24% included
         </Text>
       </View>
 
@@ -398,8 +398,8 @@ export default function CompareScreen() {
           <View style={styles.diffDivider} />
           <View style={styles.diffMainRow}>
             <View style={styles.diffExplanation}>
-              <Text style={styles.diffFromTo}>Cheapest â†’ Most expensive</Text>
-              <Text style={styles.diffNames}>{cheapestName} â†’ {highestName}</Text>
+              <Text style={styles.diffFromTo}>Cheapest → Most expensive</Text>
+              <Text style={styles.diffNames}>{cheapestName} → {highestName}</Text>
             </View>
             <Text style={styles.diffMainValue}>+{formatEuro(totalDiffWithVat)}</Text>
           </View>
@@ -408,7 +408,7 @@ export default function CompareScreen() {
               <View style={styles.diffDivider} />
               {incrementalDiffs.map((d, i) => (
                 <View key={i} style={styles.diffIncrementalRow}>
-                  <Text style={styles.diffIncrementalLabel}>{d.from} â†’ {d.to}</Text>
+                  <Text style={styles.diffIncrementalLabel}>{d.from} → {d.to}</Text>
                   <Text style={styles.diffIncrementalValue}>+{formatEuro(d.diff)}</Text>
                 </View>
               ))}

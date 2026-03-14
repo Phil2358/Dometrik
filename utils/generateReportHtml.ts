@@ -46,22 +46,22 @@ function buildAssumptions(data: ReportData): string[] {
   assumptions.push('ETICS insulation system');
   assumptions.push('Standard HVAC system (heat pump + fan-coil/VRV)');
   if (data.basementArea > 0) {
-    assumptions.push(`${data.basementTypeName} basement (${data.basementArea} mÂ²)`);
+    assumptions.push(`${data.basementTypeName} basement (${data.basementArea} m²)`);
   }
   if (data.includePool) {
-    assumptions.push(`${data.poolQualityName} Â· ${data.poolTypeName}`);
+    assumptions.push(`${data.poolQualityName} · ${data.poolTypeName}`);
   }
   if (data.hvacOptions.length > 0) {
     data.hvacOptions.forEach((opt) => assumptions.push(opt));
   }
   if (data.siteConditionName.toLowerCase().includes('inclined') && data.siteConditionName.toLowerCase().includes('unstable')) {
-    assumptions.push('âš  Inclined or unstable soil conditions may significantly increase costs');
+    assumptions.push('⚠ Inclined or unstable soil conditions may significantly increase costs');
   }
   if (data.groundwaterConditionName.toLowerCase().includes('high')) {
-    assumptions.push('âš  High groundwater may increase basement waterproofing costs');
+    assumptions.push('⚠ High groundwater may increase basement waterproofing costs');
   }
   if (data.siteAccessibilityName.toLowerCase().includes('difficult')) {
-    assumptions.push('âš  Difficult site access may increase transport and logistics costs');
+    assumptions.push('⚠ Difficult site access may increase transport and logistics costs');
   }
   return assumptions;
 }
@@ -70,7 +70,7 @@ const CHART_COLORS = [
   '#1B3A4B',
   '#2C5F6E',
   '#5B8C5A',
-  '#C67A42',
+  '#D4782F',
   '#3B82C4',
   '#8B6E5A',
 ];
@@ -165,20 +165,20 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
 
   const overviewItems: { label: string; value: string }[] = [
     { label: 'Location', value: data.location },
-    { label: 'House size', value: `${data.effectiveArea.toFixed(0)} mÂ²` },
+    { label: 'House size', value: `${data.effectiveArea.toFixed(0)} m²` },
     { label: 'Quality level', value: data.qualityName },
     { label: 'Site conditions', value: data.siteConditionName },
     { label: 'Groundwater', value: data.groundwaterConditionName },
     { label: 'Site access', value: data.siteAccessibilityName },
   ];
   if (data.balconyArea > 0) {
-    overviewItems.push({ label: 'Balconies', value: `${data.balconyArea} mÂ² (30% weighting)` });
+    overviewItems.push({ label: 'Balconies', value: `${data.balconyArea} m² (30% weighting)` });
   }
   if (data.basementArea > 0) {
-    overviewItems.push({ label: 'Basement', value: `${data.basementArea} mÂ² Â· ${data.basementTypeName}` });
+    overviewItems.push({ label: 'Basement', value: `${data.basementArea} m² · ${data.basementTypeName}` });
   }
   if (data.includePool) {
-    overviewItems.push({ label: 'Swimming pool', value: `${data.poolArea} mÂ² Â· ${data.poolDepth.toFixed(2)} m Â· ${data.poolTypeName}` });
+    overviewItems.push({ label: 'Swimming pool', value: `${data.poolArea} m² · ${data.poolDepth.toFixed(2)} m · ${data.poolTypeName}` });
   }
   if (data.hvacOptions.length > 0) {
     overviewItems.push({ label: 'Energy options', value: data.hvacOptions.join(', ') });
@@ -207,12 +207,12 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
   const assumptionsHtml = assumptions
     .map(
       (a) => `<div style="font-size:10px;color:#4B5563;padding:3px 0 3px 16px;position:relative;">
-        <span style="position:absolute;left:0;color:#C67A42;font-weight:700;">â€¢</span>${a}
+        <span style="position:absolute;left:0;color:#D4782F;font-weight:700;">•</span>${a}
       </div>`
     )
     .join('');
 
-  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300â€“600). Contractor margin, planning costs, external works, and VAT are calculated separately.`;
+  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300–600). Contractor margin, planning costs, external works, and VAT are calculated separately.`;
 
   return `<!DOCTYPE html>
 <html>
@@ -250,7 +250,7 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
 
 <!-- HEADER -->
 <div style="margin-bottom:6px;">
-  <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#C67A42;font-weight:600;margin-bottom:4px;">Feasibility Estimate</div>
+  <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#D4782F;font-weight:600;margin-bottom:4px;">Feasibility Estimate</div>
   <div style="font-size:24px;font-weight:800;color:#1B3A4B;letter-spacing:-0.5px;line-height:1.2;">${title}</div>
   <div style="font-size:11px;color:#6B7280;margin-top:4px;">Preliminary cost assessment for early-stage project planning</div>
 </div>
@@ -306,7 +306,7 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
   <div style="padding:0 4px;">
     ${assumptionsHtml}
   </div>
-  <div style="margin-top:10px;padding:10px 14px;background:#FFFBF5;border-left:3px solid #C67A42;border-radius:0 4px 4px 0;font-size:9px;color:#6B7280;line-height:1.6;">
+  <div style="margin-top:10px;padding:10px 14px;background:#FFFBF5;border-left:3px solid #D4782F;border-radius:0 4px 4px 0;font-size:9px;color:#6B7280;line-height:1.6;">
     ${costBasisNote}
   </div>
 </div>
@@ -319,8 +319,8 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
   <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#1B3A4B;margin-bottom:12px;">Estimated Cost Range</div>
   <div style="background:#F9F6F2;border:1px solid #E5DDD4;border-radius:8px;padding:20px 24px;text-align:center;">
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#6B7280;margin-bottom:6px;">Likely project cost</div>
-    <div style="font-size:22px;font-weight:800;color:#1B3A4B;letter-spacing:-0.5px;">${formatEuro(rangeLow)}  â€“  ${formatEuro(rangeHigh)}</div>
-    <div style="font-size:9px;color:#9CA3AF;margin-top:6px;">Based on Â±12% estimation uncertainty</div>
+    <div style="font-size:22px;font-weight:800;color:#1B3A4B;letter-spacing:-0.5px;">${formatEuro(rangeLow)}  –  ${formatEuro(rangeHigh)}</div>
+    <div style="font-size:9px;color:#9CA3AF;margin-top:6px;">Based on ±12% estimation uncertainty</div>
   </div>
 </div>
 
@@ -329,7 +329,7 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
 <!-- DISCLAIMER -->
 <div style="margin-bottom:22px;">
   <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#1B3A4B;margin-bottom:10px;">Disclaimer</div>
-  <div style="background:#FFFBF5;border-left:3px solid #C67A42;border-radius:0 6px 6px 0;padding:14px 18px;font-size:10px;color:#6B7280;line-height:1.7;">
+  <div style="background:#FFFBF5;border-left:3px solid #D4782F;border-radius:0 6px 6px 0;padding:14px 18px;font-size:10px;color:#6B7280;line-height:1.7;">
     Preliminary estimate based on typical construction assumptions. Final costs depend on design development, site conditions, and contractor pricing.
   </div>
 </div>
@@ -341,7 +341,7 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
   <div style="font-size:8px;text-transform:uppercase;letter-spacing:1.5px;color:#9CA3AF;margin-bottom:8px;">Prepared by</div>
   <div style="font-size:16px;font-weight:800;color:#1B3A4B;letter-spacing:-0.3px;">Philipp Doukakis</div>
   <div style="font-size:11px;color:#6B7280;margin-bottom:8px;">Architect</div>
-  <a href="https://philippdoukakis.com" style="font-size:11px;color:#C67A42;text-decoration:none;font-weight:600;border-bottom:1px solid #F0DFD0;">philippdoukakis.com</a>
+  <a href="https://philippdoukakis.com" style="font-size:11px;color:#D4782F;text-decoration:none;font-weight:600;border-bottom:1px solid #F0DFD1;">philippdoukakis.com</a>
 </div>
 
 </body>
