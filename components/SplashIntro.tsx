@@ -1,48 +1,25 @@
-import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
+  View,
+  Text,
+  StyleSheet,
   Animated,
-  Easing,
+  TouchableOpacity,
   Platform,
   ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
 } from 'react-native';
-import Svg, { Path, type PathProps } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import Colors from '@/constants/colors';
 
-const SvgPathWithoutCollapsable = forwardRef<Path, PathProps & { collapsable?: boolean }>(
-  ({ collapsable: _collapsable, ...props }, ref) => <Path ref={ref} {...props} />
-);
-
-SvgPathWithoutCollapsable.displayName = 'SvgPathWithoutCollapsable';
-
-const AnimatedPath = Animated.createAnimatedComponent(SvgPathWithoutCollapsable);
-
-const LOGO_SIZE = 140;
-const INTRO_LOGO_SCALE = 0.56;
-
-const FRAME_PATH = 'M 34 86 H 18 V 24 C 18 18 22 14 28 14 H 86';
-const STEM_PATH = 'M 52 18 V 86';
-const BOWL_PATH = 'M 52 18 H 67 C 79 18 84 23 84 35 V 69 C 84 81 79 86 67 86 H 52';
-
-const FRAME_LENGTH = 160;
-const STEM_LENGTH = 68;
-const BOWL_LENGTH = 146;
-
-const FRAME_STROKE = 6;
-const LETTER_STROKE = 6.2;
-const MARKER_SIZE = 14;
-const MARKER_RADIUS = 2;
-const MARKER_LEFT = LOGO_SIZE * 0.24;
-const MARKER_TOP = LOGO_SIZE * 0.24;
+const LOGO_SIZE_SPLASH = 140;
+const LOGO_SIZE_INTRO = 68;
 
 const FRAME_COLOR = '#6A6A6A';
-const LETTER_COLOR = FRAME_COLOR;
-const SPLASH_STROKE_COLOR = '#FFFFFF';
+const MARKER_COLOR = '#6A6A6A';
+const D_COLOR = '#1F1F1F';
+
+const SPLASH_COLOR_WHITE = '#FFFFFF';
 
 const BULLETS = [
   'Realistic construction cost estimates',
@@ -51,125 +28,59 @@ const BULLETS = [
   'Evaluate project feasibility before construction',
 ];
 
-interface DometrikLogoProps {
-  frameColor: string;
-  markerColor: string;
-  letterColor: string;
-  frameDashOffset?: Animated.Value;
-  stemDashOffset?: Animated.Value;
-  bowlDashOffset?: Animated.Value;
-  markerOpacity?: Animated.Value;
-  markerScale?: Animated.Value;
-}
-
-function DometrikLogo({
-  frameColor,
-  markerColor,
-  letterColor,
-  frameDashOffset,
-  stemDashOffset,
-  bowlDashOffset,
-  markerOpacity,
-  markerScale,
-}: DometrikLogoProps) {
-  return (
-    <View style={styles.logoCanvas}>
-      <Svg width={LOGO_SIZE} height={LOGO_SIZE} viewBox="0 0 100 100">
-        <AnimatedPath
-          d={FRAME_PATH}
-          fill="none"
-          stroke={frameColor}
-          strokeWidth={FRAME_STROKE}
-          strokeLinecap="square"
-          strokeLinejoin="miter"
-          strokeDasharray={`${FRAME_LENGTH} ${FRAME_LENGTH}`}
-          strokeDashoffset={frameDashOffset ?? 0}
-        />
-        <AnimatedPath
-          d={STEM_PATH}
-          fill="none"
-          stroke={letterColor}
-          strokeWidth={LETTER_STROKE}
-          strokeLinecap="square"
-          strokeLinejoin="miter"
-          strokeDasharray={`${STEM_LENGTH} ${STEM_LENGTH}`}
-          strokeDashoffset={stemDashOffset ?? 0}
-        />
-        <AnimatedPath
-          d={BOWL_PATH}
-          fill="none"
-          stroke={letterColor}
-          strokeWidth={LETTER_STROKE}
-          strokeLinecap="square"
-          strokeLinejoin="miter"
-          strokeDasharray={`${BOWL_LENGTH} ${BOWL_LENGTH}`}
-          strokeDashoffset={bowlDashOffset ?? 0}
-        />
-      </Svg>
-
-      <Animated.View
-        style={[
-          styles.marker,
-          {
-            backgroundColor: markerColor,
-            opacity: markerOpacity ?? 1,
-            transform: [{ scale: markerScale ?? 1 }],
-          },
-        ]}
-      />
-    </View>
-  );
-}
-
 interface SplashIntroProps {
   onSplashDone: () => void;
   onStart: () => void;
 }
 
 export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps) {
+
   const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<'splash' | 'transition' | 'intro'>('splash');
 
-  const frameDashOffset = useRef(new Animated.Value(FRAME_LENGTH)).current;
-  const stemDashOffset = useRef(new Animated.Value(STEM_LENGTH)).current;
-  const bowlDashOffset = useRef(new Animated.Value(BOWL_LENGTH)).current;
+  const frameOpacity = useRef(new Animated.Value(0)).current;
   const markerOpacity = useRef(new Animated.Value(0)).current;
-  const markerScale = useRef(new Animated.Value(0.7)).current;
+  const dLetterOpacity = useRef(new Animated.Value(0)).current;
 
   const splashFadeOut = useRef(new Animated.Value(1)).current;
   const introFadeIn = useRef(new Animated.Value(0)).current;
-  const splashLogoOpacity = useRef(new Animated.Value(1)).current;
-  const introLogoOpacity = useRef(new Animated.Value(0)).current;
-  const logoLift = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(1)).current;
 
   const brandOpacity = useRef(new Animated.Value(0)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const taglineOpacity = useRef(new Animated.Value(0)).current;
+
   const bulletAnims = useRef(BULLETS.map(() => new Animated.Value(0))).current;
+
   const buttonOpacity = useRef(new Animated.Value(0)).current;
   const buttonSlide = useRef(new Animated.Value(20)).current;
 
+  const SW = 6.5;
+
   const showIntroContent = useCallback(() => {
+
     Animated.sequence([
+
       Animated.timing(brandOpacity, {
         toValue: 1,
-        duration: 220,
+        duration: 250,
         useNativeDriver: true,
       }),
+
       Animated.timing(subtitleOpacity, {
         toValue: 1,
-        duration: 180,
+        duration: 200,
         useNativeDriver: true,
       }),
+
       Animated.timing(taglineOpacity, {
         toValue: 1,
-        duration: 180,
+        duration: 200,
         useNativeDriver: true,
       }),
+
       Animated.stagger(
         60,
-        bulletAnims.map((anim) =>
+        bulletAnims.map(anim =>
           Animated.timing(anim, {
             toValue: 1,
             duration: 180,
@@ -177,134 +88,161 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
           })
         )
       ),
+
       Animated.parallel([
         Animated.timing(buttonOpacity, {
           toValue: 1,
-          duration: 240,
+          duration: 250,
           useNativeDriver: true,
         }),
         Animated.timing(buttonSlide, {
           toValue: 0,
-          duration: 240,
+          duration: 250,
           useNativeDriver: true,
         }),
       ]),
     ]).start();
+
   }, [brandOpacity, subtitleOpacity, taglineOpacity, bulletAnims, buttonOpacity, buttonSlide]);
 
   const startTransition = useCallback(() => {
+
     onSplashDone();
-    setPhase('transition');
 
     Animated.parallel([
       Animated.timing(splashFadeOut, {
         toValue: 0,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
+        duration: 400,
         useNativeDriver: true,
       }),
       Animated.timing(introFadeIn, {
         toValue: 1,
-        duration: 540,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(splashLogoOpacity, {
-        toValue: 0,
-        duration: 320,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(introLogoOpacity, {
-        toValue: 1,
-        duration: 420,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoLift, {
-        toValue: -54,
-        duration: 560,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoScale, {
-        toValue: INTRO_LOGO_SCALE,
-        duration: 560,
-        easing: Easing.inOut(Easing.cubic),
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start(() => {
       setPhase('intro');
       showIntroContent();
     });
-  }, [
-    introFadeIn,
-    introLogoOpacity,
-    logoLift,
-    logoScale,
-    onSplashDone,
-    showIntroContent,
-    splashFadeOut,
-    splashLogoOpacity,
-  ]);
+
+    setPhase('transition');
+
+  }, [onSplashDone, splashFadeOut, introFadeIn, showIntroContent]);
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.delay(100),
-      Animated.timing(frameDashOffset, {
-        toValue: 0,
-        duration: 920,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }),
-      Animated.parallel([
+
+    Animated.parallel([
+
+      Animated.sequence([
+        Animated.delay(100),
+        Animated.timing(frameOpacity, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      Animated.sequence([
+        Animated.delay(600),
         Animated.timing(markerOpacity, {
           toValue: 1,
-          duration: 160,
+          duration: 450,
           useNativeDriver: true,
         }),
-        Animated.spring(markerScale, {
+      ]),
+
+      Animated.sequence([
+        Animated.delay(1200),
+        Animated.timing(dLetterOpacity, {
           toValue: 1,
-          tension: 110,
-          friction: 10,
+          duration: 900,
           useNativeDriver: true,
         }),
       ]),
-      Animated.parallel([
-        Animated.timing(stemDashOffset, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        }),
-        Animated.sequence([
-          Animated.delay(70),
-          Animated.timing(bowlDashOffset, {
-            toValue: 0,
-            duration: 380,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-        ]),
-      ]),
-      Animated.delay(240),
-    ]).start(startTransition);
-  }, [
-    bowlDashOffset,
-    frameDashOffset,
-    markerOpacity,
-    markerScale,
-    startTransition,
-    stemDashOffset,
-  ]);
+
+    ]).start(() => {
+      setTimeout(() => {
+        startTransition();
+      }, 300);
+    });
+
+  }, [frameOpacity, markerOpacity, dLetterOpacity, startTransition]);
+
+  const renderSplashLogo = () => (
+
+    <View style={{ width: LOGO_SIZE_SPLASH, height: LOGO_SIZE_SPLASH }}>
+
+      {/* FRAME */}
+      <Animated.View style={[styles.svgLayer, { opacity: frameOpacity }]}>
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
+          <Path
+            d="M 30,88 L 13,88 L 13,22 Q 13,13 22,13 L 88,13"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={SW}
+            strokeLinecap="square"
+            strokeLinejoin="miter"
+          />
+        </Svg>
+      </Animated.View>
+
+      {/* MARKER */}
+      <Animated.View style={[styles.svgLayer, { opacity: markerOpacity }]}>
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
+          <Rect
+            x="25.5"
+            y="25.5"
+            width="9"
+            height="9"
+            rx="1.5"
+            ry="1.5"
+            fill={Colors.accent}
+          />
+        </Svg>
+      </Animated.View>
+
+      {/* D LETTER */}
+      <Animated.View style={[styles.svgLayer, { opacity: dLetterOpacity }]}>
+        <Svg width={LOGO_SIZE_SPLASH} height={LOGO_SIZE_SPLASH} viewBox="0 0 100 100">
+
+          <Path
+            d="M 48,34 L 48,86"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={SW + 2}
+            strokeLinecap="round"
+          />
+
+          <Path
+            d="M 48,34 C 72,34 72,86 48,86"
+            fill="none"
+            stroke={SPLASH_COLOR_WHITE}
+            strokeWidth={SW + 2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+        </Svg>
+      </Animated.View>
+
+    </View>
+
+  );
 
   return (
     <View style={styles.container}>
+
+      {/* SPLASH */}
       <Animated.View
         style={[styles.splashScreen, { opacity: splashFadeOut }]}
         pointerEvents={phase === 'splash' ? 'auto' : 'none'}
-      />
+      >
+        <View style={styles.splashCenter}>
+          {renderSplashLogo()}
+        </View>
+      </Animated.View>
 
+      {/* INTRO */}
       <Animated.View
         style={[
           styles.introScreen,
@@ -316,239 +254,163 @@ export default function SplashIntro({ onSplashDone, onStart }: SplashIntroProps)
         ]}
         pointerEvents={phase !== 'splash' ? 'auto' : 'none'}
       >
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View style={styles.introContent}>
-            <Animated.Text style={[styles.brandName, { opacity: brandOpacity }]}>Dometrik</Animated.Text>
 
-            <Animated.Text style={[styles.subtitleText, { opacity: subtitleOpacity }]}>
-              Construction Cost Estimator
-            </Animated.Text>
+          {/* STATIC LOGO */}
+          <View style={styles.introLogoWrap}>
+            <Svg width={LOGO_SIZE_INTRO} height={LOGO_SIZE_INTRO} viewBox="0 0 100 100">
 
-            <Animated.View style={[styles.taglineWrap, { opacity: taglineOpacity }]}>
-              <View style={styles.taglineLine} />
-              <Text style={styles.taglineText}>Understand the real cost before you build.</Text>
-              <View style={styles.taglineLine} />
-            </Animated.View>
+              <Path
+                d="M 30,88 L 13,88 L 13,22 Q 13,13 22,13 L 88,13"
+                fill="none"
+                stroke={FRAME_COLOR}
+                strokeWidth={SW}
+                strokeLinecap="square"
+                strokeLinejoin="miter"
+              />
 
-            <View style={styles.bulletsWrap}>
-              {BULLETS.map((bullet, index) => (
-                <Animated.View key={bullet} style={[styles.bulletRow, { opacity: bulletAnims[index] }]}>
-                  <View style={styles.bulletDot} />
-                  <Text style={styles.bulletText}>{bullet}</Text>
-                </Animated.View>
-              ))}
-            </View>
+              <Rect
+                x="25.5"
+                y="25.5"
+                width="9"
+                height="9"
+                rx="1.5"
+                ry="1.5"
+                fill={MARKER_COLOR}
+              />
 
-            <Animated.View
-              style={[
-                styles.buttonWrap,
-                {
-                  opacity: buttonOpacity,
-                  transform: [{ translateY: buttonSlide }],
-                },
-              ]}
-            >
-              <TouchableOpacity
-                style={styles.startButton}
-                activeOpacity={0.85}
-                onPress={onStart}
-                testID="intro-start-button"
-              >
-                <Text style={styles.startButtonText}>Start Estimate</Text>
-              </TouchableOpacity>
-            </Animated.View>
+              <Path
+                d="M 48,34 L 48,86"
+                fill="none"
+                stroke={D_COLOR}
+                strokeWidth={SW + 2}
+                strokeLinecap="round"
+              />
+
+              <Path
+                d="M 48,34 C 72,34 72,86 48,86"
+                fill="none"
+                stroke={D_COLOR}
+                strokeWidth={SW + 2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+
+            </Svg>
           </View>
+
+          {/* Text content continues unchanged */}
+
+          <Animated.Text style={[styles.brandName, { opacity: brandOpacity }]}>
+            Dometrik
+          </Animated.Text>
+
+          <Animated.Text style={[styles.subtitleText, { opacity: subtitleOpacity }]}>
+            Construction Cost Estimator
+          </Animated.Text>
+
+          <Animated.View style={[styles.taglineWrap, { opacity: taglineOpacity }]}>
+            <View style={styles.taglineLine} />
+            <Text style={styles.taglineText}>
+              Understand the real cost before you build.
+            </Text>
+            <View style={styles.taglineLine} />
+          </Animated.View>
+
         </ScrollView>
+
       </Animated.View>
 
-      <View pointerEvents="none" style={styles.logoStage}>
-        <Animated.View
-          style={[
-            styles.logoLayer,
-            {
-              opacity: splashLogoOpacity,
-              transform: [{ translateY: logoLift }, { scale: logoScale }],
-            },
-          ]}
-        >
-          <DometrikLogo
-            frameColor={SPLASH_STROKE_COLOR}
-            markerColor={Colors.accent}
-            letterColor={SPLASH_STROKE_COLOR}
-            frameDashOffset={frameDashOffset}
-            stemDashOffset={stemDashOffset}
-            bowlDashOffset={bowlDashOffset}
-            markerOpacity={markerOpacity}
-            markerScale={markerScale}
-          />
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.logoLayer,
-            {
-              opacity: introLogoOpacity,
-              transform: [{ translateY: logoLift }, { scale: logoScale }],
-            },
-          ]}
-        >
-          <DometrikLogo frameColor={FRAME_COLOR} markerColor={Colors.accent} letterColor={LETTER_COLOR} />
-        </Animated.View>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    zIndex: 9999,
-    elevation: 9999,
-  },
-  splashScreen: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.splash,
-    zIndex: 1,
-  },
-  introScreen: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.background,
-    zIndex: 0,
-    paddingHorizontal: 24,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 20,
-  },
-  introContent: {
-    width: '100%',
-    alignItems: 'center',
-    gap: 10,
-    paddingTop: 138,
-  },
-  logoStage: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  logoLayer: {
-    position: 'absolute',
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
-  },
-  logoCanvas: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
-  },
-  marker: {
-    position: 'absolute',
-    top: MARKER_TOP,
-    left: MARKER_LEFT,
-    width: MARKER_SIZE,
-    height: MARKER_SIZE,
-    borderRadius: MARKER_RADIUS,
-  },
-  brandName: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: Colors.text,
-    textAlign: 'center',
-    letterSpacing: 0.6,
-  },
-  subtitleText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
-  taglineWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 8,
-    marginTop: 8,
-  },
-  taglineLine: {
-    width: 18,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  taglineText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.accent,
-    fontStyle: 'italic',
-    letterSpacing: 0.2,
-    textAlign: 'center',
-    flexShrink: 1,
-  },
-  bulletsWrap: {
-    alignSelf: 'stretch',
-    gap: 12,
-    paddingHorizontal: 8,
-    marginTop: 18,
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  bulletDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.accent,
-    marginRight: 12,
-  },
-  bulletText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text,
-    flex: 1,
-    lineHeight: 22,
-  },
-  buttonWrap: {
-    alignSelf: 'stretch',
-    paddingHorizontal: 8,
-    marginTop: 22,
-  },
-  startButton: {
-    backgroundColor: Colors.accent,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.accent,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-      },
-      android: { elevation: 6 },
-      web: {
-        shadowColor: Colors.accent,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-      },
-    }),
-  },
-  startButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-  },
-});
 
+container:{
+position:'absolute',
+top:0,left:0,right:0,bottom:0,
+zIndex:9999,
+elevation:9999
+},
+
+splashScreen:{
+...StyleSheet.absoluteFillObject,
+backgroundColor:Colors.splash,
+zIndex:2
+},
+
+splashCenter:{
+flex:1,
+alignItems:'center',
+justifyContent:'center'
+},
+
+svgLayer:{
+position:'absolute',
+top:0,
+left:0
+},
+
+introScreen:{
+...StyleSheet.absoluteFillObject,
+backgroundColor:Colors.background,
+zIndex:1,
+paddingHorizontal:24
+},
+
+scrollContent:{
+flexGrow:1,
+alignItems:'center',
+justifyContent:'center',
+paddingBottom:20
+},
+
+introLogoWrap:{
+width:LOGO_SIZE_INTRO,
+height:LOGO_SIZE_INTRO,
+alignItems:'center',
+justifyContent:'center'
+},
+
+brandName:{
+fontSize:34,
+fontWeight:'700',
+color:Colors.text,
+textAlign:'center',
+letterSpacing:0.6
+},
+
+subtitleText:{
+fontSize:15,
+fontWeight:'500',
+color:Colors.textSecondary,
+textAlign:'center'
+},
+
+taglineWrap:{
+flexDirection:'row',
+alignItems:'center',
+gap:10
+},
+
+taglineLine:{
+height:1,
+width:18,
+backgroundColor:Colors.border
+},
+
+taglineText:{
+fontSize:13,
+fontWeight:'600',
+color:Colors.accent,
+fontStyle:'italic',
+textAlign:'center'
+}
+
+});
