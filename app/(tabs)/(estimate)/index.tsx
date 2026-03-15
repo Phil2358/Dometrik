@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw } from 'lucide-react-native';
+ import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot } from 'lucide-react-native';
 import SliderInput from '@/components/SliderInput';
 import ScenarioBar from '@/components/ScenarioBar';
 import { useRouter } from 'expo-router';
@@ -238,12 +238,18 @@ export default function EstimateScreen() {
     setContractorPercent,
     siteConditionId,
     setSiteConditionId,
-    siteCondition,
-    landscapingArea,
-    setLandscapingArea,
-    landscapingCost,
-    bathrooms,
-    setBathrooms,
+     siteCondition,
+     landscapingArea,
+     setLandscapingArea,
+     landscapingCost,
+     landValue,
+     setLandValue,
+     landAcquisitionCosts,
+     setLandAcquisitionCosts,
+     landAcquisitionCostsMode,
+     setLandAcquisitionCostsMode,
+     bathrooms,
+     setBathrooms,
     wcs,
     setWcs,
     hvacSelections,
@@ -278,6 +284,9 @@ export default function EstimateScreen() {
 
   const isLargeProject = permitDesignEffectiveArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
   const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
+  const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
+    ? landValue * 0.06
+    : landAcquisitionCosts;
 
   const handleLocationSelect = useCallback(
     (id: string) => {
@@ -362,12 +371,119 @@ export default function EstimateScreen() {
                 {loc.name}
               </Text>
               <Text style={[styles.chipMult, isSelected && styles.chipMultSelected]}>
-                ×{loc.multiplier.toFixed(2)}
+                {'\u00D7'}{loc.multiplier.toFixed(2)}
               </Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
+
+      <View style={styles.sectionHeader}>
+        <LandPlot size={16} color={Colors.accent} />
+        <Text style={styles.sectionTitle}>Land Acquisition</Text>
+      </View>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Land Value (DIN 110)</Text>
+        </View>
+        <View style={styles.costInputRow}>
+          <Text style={styles.euroSign}>{'\u20AC'}</Text>
+          <TextInput
+            style={styles.costInput}
+            value={landValue > 0 ? String(landValue) : ''}
+            onChangeText={(text) => {
+              const cleaned = text.replace(/[^0-9]/g, '');
+              setLandValue(parseInt(cleaned, 10) || 0);
+            }}
+            keyboardType="numeric"
+            placeholder="0"
+            placeholderTextColor={Colors.textTertiary}
+            testID="land-value-input"
+          />
+        </View>
+
+        <View style={styles.divider} />
+        <Text style={styles.poolSubsectionTitle}>Incidental Land Acquisition Costs (DIN 120)</Text>
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'auto' && styles.utilityOptionRowSelected]}
+          onPress={() => {
+            if (Platform.OS !== 'web') {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+            setLandAcquisitionCostsMode('auto');
+          }}
+          testID="land-acquisition-mode-auto"
+        >
+          <View style={styles.optionInfo}>
+            <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'auto' && { color: Colors.accent }]}>
+              Auto estimate (6%)
+            </Text>
+            <Text style={styles.optionSubtext}>Derived from land value {'\u00D7'} 0.06</Text>
+          </View>
+          <View style={[styles.radioOuter, landAcquisitionCostsMode === 'auto' && styles.radioOuterSelected]}>
+            {landAcquisitionCostsMode === 'auto' && <View style={styles.radioInner} />}
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'manual' && styles.utilityOptionRowSelected]}
+          onPress={() => {
+            if (Platform.OS !== 'web') {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+            setLandAcquisitionCostsMode('manual');
+          }}
+          testID="land-acquisition-mode-manual"
+        >
+          <View style={styles.optionInfo}>
+            <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'manual' && { color: Colors.accent }]}>
+              Manual override
+            </Text>
+            <Text style={styles.optionSubtext}>Enter incidental acquisition costs directly</Text>
+          </View>
+          <View style={[styles.radioOuter, landAcquisitionCostsMode === 'manual' && styles.radioOuterSelected]}>
+            {landAcquisitionCostsMode === 'manual' && <View style={styles.radioInner} />}
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        {landAcquisitionCostsMode === 'manual' ? (
+          <>
+            <View style={styles.costInputRow}>
+              <Text style={styles.euroSign}>{'\u20AC'}</Text>
+              <TextInput
+                style={styles.costInput}
+                value={landAcquisitionCosts > 0 ? String(landAcquisitionCosts) : ''}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9]/g, '');
+                  setLandAcquisitionCosts(parseInt(cleaned, 10) || 0);
+                }}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor={Colors.textTertiary}
+                testID="land-acquisition-costs-input"
+              />
+            </View>
+            <View style={styles.divider} />
+          </>
+        ) : null}
+
+        <View style={styles.effectiveRow}>
+          <Text style={styles.effectiveLabel}>Estimated Acquisition Costs</Text>
+          <Text style={styles.effectiveValue}>{formatEuro(displayedLandAcquisitionCosts)}</Text>
+        </View>
+        <Text style={styles.effectiveFormula}>
+          {landAcquisitionCostsMode === 'auto'
+            ? `${formatEuro(displayedLandAcquisitionCosts)} (6% of ${formatEuro(landValue)})`
+            : 'Manual override value'}
+        </Text>
+      </View>
 
       <View style={styles.sectionHeader}>
         <Ruler size={16} color={Colors.accent} />

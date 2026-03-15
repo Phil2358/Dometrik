@@ -105,3 +105,5 @@ Do not change:
 
 unless the task explicitly requires it.
 
+All currency and number formatting must use the shared formatting utilities in utils/format.ts.
+Do not format numbers inline inside UI components.

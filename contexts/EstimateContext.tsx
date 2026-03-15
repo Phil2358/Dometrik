@@ -62,6 +62,9 @@ export interface ScenarioConfig {
   contractorPercent: number;
   siteConditionId: string;
   landscapingArea: number;
+  landValue: number;
+  landAcquisitionCosts: number;
+  landAcquisitionCostsMode: 'auto' | 'manual';
   bathrooms: number;
   wcs: number;
   hvacSelections: Record<string, boolean>;
@@ -69,6 +72,27 @@ export interface ScenarioConfig {
   customUtilityCost: number;
   groundwaterConditionId: string;
   siteAccessibilityId: string;
+}
+
+const DEFAULT_LAND_ACQUISITION_PERCENTAGE = 0.06;
+
+function getAutoEstimatedLandAcquisitionCosts(landValue: number): number {
+  return landValue * DEFAULT_LAND_ACQUISITION_PERCENTAGE;
+}
+
+function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
+  const landValue = config.landValue ?? 0;
+  const landAcquisitionCostsMode = config.landAcquisitionCostsMode ?? 'auto';
+  const landAcquisitionCosts = landAcquisitionCostsMode === 'auto'
+    ? getAutoEstimatedLandAcquisitionCosts(landValue)
+    : (config.landAcquisitionCosts ?? 0);
+
+  return {
+    ...config,
+    landValue,
+    landAcquisitionCosts,
+    landAcquisitionCostsMode,
+  };
 }
 
 const MAX_SCENARIOS = 6;
@@ -109,6 +133,9 @@ function createDefaultConfig(name: string): ScenarioConfig {
     contractorPercent: DEFAULT_CONTRACTOR_PERCENTAGE,
     siteConditionId: 'flat_normal',
     landscapingArea: 0,
+    landValue: 0,
+    landAcquisitionCosts: 0,
+    landAcquisitionCostsMode: 'auto',
     bathrooms: 1,
     wcs: 1,
     hvacSelections: {
@@ -130,7 +157,7 @@ async function loadSavedScenarios(): Promise<{ scenarios: ScenarioConfig[]; acti
       AsyncStorage.getItem(STORAGE_KEY_ACTIVE_INDEX),
     ]);
     if (scenariosJson) {
-      const parsed = JSON.parse(scenariosJson) as ScenarioConfig[];
+      const parsed = (JSON.parse(scenariosJson) as ScenarioConfig[]).map(normalizeScenarioConfig);
       if (Array.isArray(parsed) && parsed.length > 0) {
         const activeIndex = indexJson ? Math.min(parseInt(indexJson, 10) || 0, parsed.length - 1) : 0;
         console.log('[Persistence] Loaded', parsed.length, 'scenarios, active index:', activeIndex);
@@ -180,6 +207,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [contractorPercent, setContractorPercent] = useState<number>(DEFAULT_CONTRACTOR_PERCENTAGE);
   const [siteConditionId, setSiteConditionId] = useState<string>('flat_normal');
   const [landscapingArea, setLandscapingArea] = useState<number>(0);
+  const [landValue, setLandValue] = useState<number>(0);
+  const [landAcquisitionCosts, setLandAcquisitionCosts] = useState<number>(0);
+  const [landAcquisitionCostsMode, setLandAcquisitionCostsMode] = useState<'auto' | 'manual'>('auto');
   const [bathrooms, setBathrooms] = useState<number>(1);
   const [wcs, setWcs] = useState<number>(1);
   const [hvacSelections, setHvacSelections] = useState<Record<string, boolean>>({
@@ -211,6 +241,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       contractorPercent,
       siteConditionId,
       landscapingArea,
+      landValue,
+      landAcquisitionCosts: landAcquisitionCostsMode === 'auto'
+        ? getAutoEstimatedLandAcquisitionCosts(landValue)
+        : landAcquisitionCosts,
+      landAcquisitionCostsMode,
       bathrooms,
       wcs,
       hvacSelections: { ...hvacSelections },
@@ -223,11 +258,13 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     locationId, qualityId, customCostPerSqm, mainArea, terraceArea, balconyArea,
     basementArea, basementTypeId, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
-    landscapingArea, bathrooms, wcs, hvacSelections, utilityConnectionId, customUtilityCost,
+    landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
+    bathrooms, wcs, hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId,
   ]);
 
   const loadConfig = useCallback((config: ScenarioConfig) => {
+    const normalizedConfig = normalizeScenarioConfig(config);
     setLocationId(config.locationId);
     setQualityId(config.qualityId);
     setCustomCostPerSqm(config.customCostPerSqm);
@@ -245,6 +282,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setContractorPercent(config.contractorPercent);
     setSiteConditionId(config.siteConditionId);
     setLandscapingArea(config.landscapingArea);
+    setLandValue(normalizedConfig.landValue);
+    setLandAcquisitionCosts(normalizedConfig.landAcquisitionCosts);
+    setLandAcquisitionCostsMode(normalizedConfig.landAcquisitionCostsMode);
     setBathrooms(config.bathrooms);
     setWcs(config.wcs);
     setHvacSelections({ ...config.hvacSelections });
@@ -296,12 +336,18 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   }, [loadConfig]);
 
   useEffect(() => {
+    if (landAcquisitionCostsMode !== 'auto') return;
+    setLandAcquisitionCosts(getAutoEstimatedLandAcquisitionCosts(landValue));
+  }, [landValue, landAcquisitionCostsMode]);
+
+  useEffect(() => {
     persistState();
   }, [
     locationId, qualityId, customCostPerSqm, mainArea, terraceArea, balconyArea,
     basementArea, basementTypeId, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
-    landscapingArea, bathrooms, wcs, hvacSelections, utilityConnectionId, customUtilityCost,
+    landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
+    bathrooms, wcs, hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId, persistState,
   ]);
 
@@ -311,7 +357,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setScenarios((prev) => {
       const updated = [...prev];
       if (updated[activeIndexRef.current]) {
-        updated[activeIndexRef.current] = { ...updated[activeIndexRef.current], ...snapshot };
+        updated[activeIndexRef.current] = normalizeScenarioConfig({ ...updated[activeIndexRef.current], ...snapshot });
       }
       const target = updated[index];
       if (target) {
@@ -341,7 +387,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setScenarios((prev) => {
       const updated = [...prev];
       if (updated[activeIndexRef.current]) {
-        updated[activeIndexRef.current] = { ...updated[activeIndexRef.current], ...snapshot };
+        updated[activeIndexRef.current] = normalizeScenarioConfig({ ...updated[activeIndexRef.current], ...snapshot });
       }
       return [...updated, newConfig];
     });
@@ -358,7 +404,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     }
     const snapshot = snapshotCurrentState();
     const source = sourceIndex === activeIndexRef.current
-      ? { ...scenarios[sourceIndex], ...snapshot }
+      ? normalizeScenarioConfig({ ...scenarios[sourceIndex], ...snapshot })
       : scenarios[sourceIndex];
     if (!source) return false;
     const existingNames = scenarios.map((s) => s.name);
@@ -373,7 +419,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setScenarios((prev) => {
       const updated = [...prev];
       if (updated[activeIndexRef.current]) {
-        updated[activeIndexRef.current] = { ...updated[activeIndexRef.current], ...snapshot };
+        updated[activeIndexRef.current] = normalizeScenarioConfig({ ...updated[activeIndexRef.current], ...snapshot });
       }
       return [...updated, newConfig];
     });
@@ -401,7 +447,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setScenarios((prev) => {
       const updated = [...prev];
       if (updated[activeIndexRef.current]) {
-        updated[activeIndexRef.current] = { ...updated[activeIndexRef.current], ...snapshot };
+        updated[activeIndexRef.current] = normalizeScenarioConfig({ ...updated[activeIndexRef.current], ...snapshot });
       }
       updated.splice(index, 1);
       let newActiveIndex = activeIndexRef.current;
@@ -666,9 +712,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     const snapshot = snapshotCurrentState();
     return scenarios.map((s, i) => {
       if (i === activeIndexRef.current) {
-        return { ...s, ...snapshot };
+        return normalizeScenarioConfig({ ...s, ...snapshot });
       }
-      return s;
+      return normalizeScenarioConfig(s);
     });
   }, [scenarios, snapshotCurrentState]);
 
@@ -683,6 +729,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landscapingArea,
     setLandscapingArea,
     landscapingCost,
+    landValue,
+    setLandValue,
+    landAcquisitionCosts,
+    setLandAcquisitionCosts,
+    landAcquisitionCostsMode,
+    setLandAcquisitionCostsMode,
     bathrooms,
     setBathrooms,
     wcs,
@@ -779,6 +831,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     locationId, setLocationId, qualityId, selectQuality,
     siteConditionId, setSiteConditionId, siteCondition,
     landscapingArea, setLandscapingArea, landscapingCost,
+    landValue, setLandValue, landAcquisitionCosts, setLandAcquisitionCosts,
+    landAcquisitionCostsMode, setLandAcquisitionCostsMode,
     bathrooms, setBathrooms, wcs, setWcs,
     hvacSelections, toggleHvacOption, hvacCosts, totalHvacCost,
     customCostPerSqm, setCustomCostPerSqm,
