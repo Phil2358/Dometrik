@@ -405,7 +405,7 @@ export default function EstimateScreen() {
       </View>
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Land Value (DIN 110)</Text>
+          <Text style={styles.cardTitle}>Land Value</Text>
         </View>
         <View style={styles.costInputRow}>
           <TextInput
@@ -424,7 +424,7 @@ export default function EstimateScreen() {
         </View>
 
         <View style={styles.divider} />
-        <Text style={styles.poolSubsectionTitle}>Incidental Land Acquisition Costs (DIN 120)</Text>
+        <Text style={styles.poolSubsectionTitle}>Incidental Land Acquisition Costs</Text>
 
         <TouchableOpacity
           activeOpacity={0.7}
