@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
- import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot } from 'lucide-react-native';
+import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot } from 'lucide-react-native';
 import SliderInput from '@/components/SliderInput';
 import ScenarioBar from '@/components/ScenarioBar';
 import { useRouter } from 'expo-router';
@@ -57,9 +57,29 @@ import {
   CONTRACTOR_MAX_PERCENTAGE,
   CONTRACTOR_STEP,
   getSizeCorrectionLabel,
-  formatEuro,
-  formatNumber,
 } from '@/constants/construction';
+import { formatCurrency, formatDecimal, formatNumber } from '@/utils/format';
+
+function sanitizeEstimateText(value: string): string {
+  return value
+    .replace(/Ãƒâ€”/g, '×')
+    .replace(/Ã—/g, '×')
+    .replace(/Ã¢â€šÂ¬/g, '€')
+    .replace(/â‚¬/g, '€')
+    .replace(/mÂ²/g, 'm²')
+    .replace(/âˆ’/g, '−')
+    .replace(/â€“/g, '–')
+    .replace(/â†’/g, '→')
+    .replace(/Â·/g, '·');
+}
+
+const EURO_SYMBOL = '\u20AC';
+const MULTIPLY_SYMBOL = '\u00D7';
+const MIDDLE_DOT = '\u00B7';
+const EN_DASH = '\u2013';
+const MINUS_SYMBOL = '\u2212';
+const ARROW_SYMBOL = '\u2192';
+const SQUARE_METER_UNIT = 'm\u00B2';
 
 function SiteConditionIcon({ conditionId, size = 40, color }: { conditionId: string; size?: number; color: string }) {
   const secondaryColor = color + '66';
@@ -182,7 +202,7 @@ function IntegerInputRow({
           activeOpacity={0.7}
           testID={`decrement-${label.toLowerCase()}`}
         >
-          <Text style={[styles.integerBtnText, value <= min && styles.integerBtnTextDisabled]}>−</Text>
+          <Text style={[styles.integerBtnText, value <= min && styles.integerBtnTextDisabled]}>{MINUS_SYMBOL}</Text>
         </TouchableOpacity>
         <Text style={styles.integerValue}>{value}</Text>
         <TouchableOpacity
@@ -284,6 +304,7 @@ export default function EstimateScreen() {
 
   const isLargeProject = permitDesignEffectiveArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
   const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
+  const displaySizeCorrectionLabel = sanitizeEstimateText(sizeCorrectionLabel);
   const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? landValue * 0.06
     : landAcquisitionCosts;
@@ -371,7 +392,7 @@ export default function EstimateScreen() {
                 {loc.name}
               </Text>
               <Text style={[styles.chipMult, isSelected && styles.chipMultSelected]}>
-                {'\u00D7'}{loc.multiplier.toFixed(2)}
+                {MULTIPLY_SYMBOL}{formatDecimal(loc.multiplier, 2)}
               </Text>
             </TouchableOpacity>
           );
@@ -387,10 +408,9 @@ export default function EstimateScreen() {
           <Text style={styles.cardTitle}>Land Value (DIN 110)</Text>
         </View>
         <View style={styles.costInputRow}>
-          <Text style={styles.euroSign}>{'\u20AC'}</Text>
           <TextInput
             style={styles.costInput}
-            value={landValue > 0 ? String(landValue) : ''}
+            value={landValue > 0 ? formatNumber(landValue) : ''}
             onChangeText={(text) => {
               const cleaned = text.replace(/[^0-9]/g, '');
               setLandValue(parseInt(cleaned, 10) || 0);
@@ -400,6 +420,7 @@ export default function EstimateScreen() {
             placeholderTextColor={Colors.textTertiary}
             testID="land-value-input"
           />
+          <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
         </View>
 
         <View style={styles.divider} />
@@ -420,7 +441,7 @@ export default function EstimateScreen() {
             <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'auto' && { color: Colors.accent }]}>
               Auto estimate (6%)
             </Text>
-            <Text style={styles.optionSubtext}>Derived from land value {'\u00D7'} 0.06</Text>
+            <Text style={styles.optionSubtext}>Derived from land value {MULTIPLY_SYMBOL} {formatDecimal(0.06, 2)}</Text>
           </View>
           <View style={[styles.radioOuter, landAcquisitionCostsMode === 'auto' && styles.radioOuterSelected]}>
             {landAcquisitionCostsMode === 'auto' && <View style={styles.radioInner} />}
@@ -456,10 +477,9 @@ export default function EstimateScreen() {
         {landAcquisitionCostsMode === 'manual' ? (
           <>
             <View style={styles.costInputRow}>
-              <Text style={styles.euroSign}>{'\u20AC'}</Text>
               <TextInput
                 style={styles.costInput}
-                value={landAcquisitionCosts > 0 ? String(landAcquisitionCosts) : ''}
+                value={landAcquisitionCosts > 0 ? formatNumber(landAcquisitionCosts) : ''}
                 onChangeText={(text) => {
                   const cleaned = text.replace(/[^0-9]/g, '');
                   setLandAcquisitionCosts(parseInt(cleaned, 10) || 0);
@@ -469,6 +489,7 @@ export default function EstimateScreen() {
                 placeholderTextColor={Colors.textTertiary}
                 testID="land-acquisition-costs-input"
               />
+              <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
             </View>
             <View style={styles.divider} />
           </>
@@ -476,11 +497,11 @@ export default function EstimateScreen() {
 
         <View style={styles.effectiveRow}>
           <Text style={styles.effectiveLabel}>Estimated Acquisition Costs</Text>
-          <Text style={styles.effectiveValue}>{formatEuro(displayedLandAcquisitionCosts)}</Text>
+          <Text style={styles.effectiveValue}>{formatCurrency(displayedLandAcquisitionCosts)}</Text>
         </View>
         <Text style={styles.effectiveFormula}>
           {landAcquisitionCostsMode === 'auto'
-            ? `${formatEuro(displayedLandAcquisitionCosts)} (6% of ${formatEuro(landValue)})`
+            ? `${formatCurrency(displayedLandAcquisitionCosts)} (6% of ${formatCurrency(landValue)})`
             : 'Manual override value'}
         </Text>
       </View>
@@ -499,10 +520,10 @@ export default function EstimateScreen() {
       {showCostBasisInfo && (
         <View style={styles.costBasisCard}>
           <Text style={styles.costBasisTitle}>{COST_BASIS_TITLE}</Text>
-          <Text style={styles.costBasisText}>{COST_BASIS_TEXT}</Text>
+          <Text style={styles.costBasisText}>{sanitizeEstimateText(COST_BASIS_TEXT)}</Text>
           <View style={styles.costBasisDivider} />
           <Text style={styles.costBasisTitle}>{COST_BASIS_SCOPE_TITLE}</Text>
-          <Text style={styles.costBasisText}>{COST_BASIS_SCOPE_TEXT}</Text>
+          <Text style={styles.costBasisText}>{sanitizeEstimateText(COST_BASIS_SCOPE_TEXT)}</Text>
         </View>
       )}
       <View style={styles.qualityRow}>
@@ -520,10 +541,10 @@ export default function EstimateScreen() {
                 {q.name}
               </Text>
               <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
-                €{formatNumber(q.baseCostPerSqm)}
+                {formatCurrency(q.baseCostPerSqm)}
               </Text>
               <Text style={[styles.qualityUnit, isSelected && styles.qualityUnitSelected]}>
-                /m²
+                {` /${SQUARE_METER_UNIT}`}
               </Text>
             </TouchableOpacity>
           );
@@ -539,7 +560,7 @@ export default function EstimateScreen() {
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Base Cost per m²</Text>
+          <Text style={styles.cardTitle}>{`Base Cost per ${SQUARE_METER_UNIT}`}</Text>
           {customCostPerSqm !== null && (
             <TouchableOpacity onPress={() => setCustomCostPerSqm(null)}>
               <Text style={styles.resetLink}>Reset</Text>
@@ -547,10 +568,9 @@ export default function EstimateScreen() {
           )}
         </View>
         <View style={styles.costInputRow}>
-          <Text style={styles.euroSign}>€</Text>
           <TextInput
             style={styles.costInput}
-            value={String(baseCostPerSqm)}
+            value={formatNumber(baseCostPerSqm)}
             onChangeText={(text) => {
               const cleaned = text.replace(/[^0-9]/g, '');
               const num = parseInt(cleaned, 10);
@@ -563,7 +583,7 @@ export default function EstimateScreen() {
             keyboardType="numeric"
             testID="cost-per-sqm-input"
           />
-          <Text style={styles.costInputUnit}>/m² (base)</Text>
+          <Text style={styles.costInputUnit}>{` ${EURO_SYMBOL} /${SQUARE_METER_UNIT} (base)`}</Text>
         </View>
         {sizeCorrectionFactor !== 1.0 && (
           <View style={styles.sizeCorrectionRow}>
@@ -572,14 +592,14 @@ export default function EstimateScreen() {
               styles.sizeCorrectionValue,
               sizeCorrectionFactor > 1 ? styles.sizeCorrectionUp : styles.sizeCorrectionDown,
             ]}>
-              {sizeCorrectionLabel} → €{formatNumber(correctedCostPerSqm)}/m²
+              {`${displaySizeCorrectionLabel} ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} /${SQUARE_METER_UNIT}`}
             </Text>
           </View>
         )}
         <View style={styles.costHintRow}>
           <Info size={13} color={Colors.textTertiary} />
           <Text style={styles.costHint}>
-            Adjust freely. Quality presets: Standard €1,200 · Premium €1,500 · Luxury €2,000. Size correction applies automatically.
+            Adjust freely. Quality presets: Standard {formatCurrency(1200)} {MIDDLE_DOT} Premium {formatCurrency(1500)} {MIDDLE_DOT} Luxury {formatCurrency(2000)}. Size correction applies automatically.
           </Text>
         </View>
       </View>
@@ -626,10 +646,10 @@ export default function EstimateScreen() {
         <View style={styles.divider} />
         <View style={styles.effectiveRow}>
           <Text style={styles.effectiveLabel}>Effective Area</Text>
-          <Text style={styles.effectiveValue}>{effectiveArea.toFixed(0)} m²</Text>
+          <Text style={styles.effectiveValue}>{`${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}</Text>
         </View>
         <Text style={styles.effectiveFormula}>
-          {mainArea} + ({terraceArea} × 0.5){balconyArea > 0 ? ` + (${balconyArea} × 0.30)` : ''}{basementArea > 0 ? ` + (${basementArea} × ${basementType.costFactor})` : ''} = {effectiveArea.toFixed(0)} m²
+          {`${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${basementArea > 0 ? ` + (${formatNumber(basementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(basementType.costFactor, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
         </Text>
       </View>
 
@@ -663,7 +683,7 @@ export default function EstimateScreen() {
             </View>
             {showBasementTypeInfo && (
               <View style={styles.basementTooltip}>
-                <Text style={styles.basementTooltipText}>{BASEMENT_TYPE_TOOLTIP}</Text>
+                <Text style={styles.basementTooltipText}>{sanitizeEstimateText(BASEMENT_TYPE_TOOLTIP)}</Text>
               </View>
             )}
             <View style={styles.basementTypeOptions}>
@@ -691,15 +711,15 @@ export default function EstimateScreen() {
             <View style={styles.basementCostBreakdown}>
               <View style={styles.basementCostRow}>
                 <Text style={styles.basementCostLabel}>Excavation (KG 200)</Text>
-                <Text style={styles.basementCostValue}>{formatEuro(basementExcavationCost)}</Text>
+                <Text style={styles.basementCostValue}>{formatCurrency(basementExcavationCost)}</Text>
               </View>
               <View style={styles.basementCostRow}>
                 <Text style={styles.basementCostLabel}>Structure (KG 300)</Text>
-                <Text style={styles.basementCostValue}>{formatEuro(basementStructureCost)}</Text>
+                <Text style={styles.basementCostValue}>{formatCurrency(basementStructureCost)}</Text>
               </View>
               <View style={[styles.basementCostRow, styles.basementCostTotal]}>
                 <Text style={styles.basementCostTotalLabel}>Total Basement</Text>
-                <Text style={styles.basementCostTotalValue}>{formatEuro(basementTotalCost)}</Text>
+                <Text style={styles.basementCostTotalValue}>{formatCurrency(basementTotalCost)}</Text>
               </View>
             </View>
           </>
@@ -719,7 +739,7 @@ export default function EstimateScreen() {
       </View>
       {showSiteConditionInfo && (
         <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{SITE_CONDITIONS_TOOLTIP}</Text>
+          <Text style={styles.tooltipText}>{sanitizeEstimateText(SITE_CONDITIONS_TOOLTIP)}</Text>
         </View>
       )}
       <View style={styles.siteConditionsGrid}>
@@ -755,7 +775,7 @@ export default function EstimateScreen() {
           <AlertTriangle size={16} color={Colors.warning} />
           <View style={styles.warningContent}>
             <Text style={styles.warningTitle}>Important notice</Text>
-            <Text style={styles.warningText}>{UNSTABLE_SOIL_WARNING}</Text>
+            <Text style={styles.warningText}>{sanitizeEstimateText(UNSTABLE_SOIL_WARNING)}</Text>
           </View>
         </View>
       )}
@@ -773,7 +793,7 @@ export default function EstimateScreen() {
       </View>
       {showGroundwaterInfo && (
         <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{GROUNDWATER_TOOLTIP}</Text>
+          <Text style={styles.tooltipText}>{sanitizeEstimateText(GROUNDWATER_TOOLTIP)}</Text>
         </View>
       )}
       <View style={styles.card}>
@@ -810,7 +830,7 @@ export default function EstimateScreen() {
           <AlertTriangle size={16} color={Colors.warning} />
           <View style={styles.warningContent}>
             <Text style={styles.warningTitle}>Important notice</Text>
-            <Text style={styles.warningText}>{HIGH_GROUNDWATER_WARNING}</Text>
+            <Text style={styles.warningText}>{sanitizeEstimateText(HIGH_GROUNDWATER_WARNING)}</Text>
           </View>
         </View>
       )}
@@ -828,7 +848,7 @@ export default function EstimateScreen() {
       </View>
       {showAccessibilityInfo && (
         <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{SITE_ACCESSIBILITY_TOOLTIP}</Text>
+          <Text style={styles.tooltipText}>{sanitizeEstimateText(SITE_ACCESSIBILITY_TOOLTIP)}</Text>
         </View>
       )}
       <View style={styles.card}>
@@ -864,9 +884,9 @@ export default function EstimateScreen() {
             <View style={styles.divider} />
             <View style={styles.effectiveRow}>
               <Text style={styles.effectiveLabel}>Access Logistics Cost</Text>
-              <Text style={styles.effectiveValue}>{formatEuro(siteAccessibility.fixedCost)}</Text>
+              <Text style={styles.effectiveValue}>{formatCurrency(siteAccessibility.fixedCost)}</Text>
             </View>
-            <Text style={styles.effectiveFormula}>Fixed cost added to KG 250 – Temporary construction measures</Text>
+            <Text style={styles.effectiveFormula}>{`Fixed cost added to KG 250 ${EN_DASH} Temporary construction measures`}</Text>
           </>
         )}
       </View>
@@ -875,7 +895,7 @@ export default function EstimateScreen() {
           <AlertTriangle size={16} color={Colors.warning} />
           <View style={styles.warningContent}>
             <Text style={styles.warningText}>
-              {siteAccessibilityId === 'very_difficult' ? VERY_DIFFICULT_ACCESS_WARNING : DIFFICULT_ACCESS_WARNING}
+              {sanitizeEstimateText(siteAccessibilityId === 'very_difficult' ? VERY_DIFFICULT_ACCESS_WARNING : DIFFICULT_ACCESS_WARNING)}
             </Text>
           </View>
         </View>
@@ -901,10 +921,10 @@ export default function EstimateScreen() {
             <View style={styles.divider} />
             <View style={styles.effectiveRow}>
               <Text style={styles.effectiveLabel}>Landscaping Cost</Text>
-              <Text style={styles.effectiveValue}>{formatEuro(landscapingCost)}</Text>
+              <Text style={styles.effectiveValue}>{formatCurrency(landscapingCost)}</Text>
             </View>
             <Text style={styles.effectiveFormula}>
-              Based on €40/m² · {siteCondition.name}
+              {`Based on ${formatCurrency(40)} /${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${siteCondition.name}`}
             </Text>
           </>
         )}
@@ -923,7 +943,7 @@ export default function EstimateScreen() {
       </View>
       {showHvacInfo && (
         <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{HVAC_TOOLTIP}</Text>
+          <Text style={styles.tooltipText}>{sanitizeEstimateText(HVAC_TOOLTIP)}</Text>
         </View>
       )}
       <View style={styles.card}>
@@ -939,7 +959,7 @@ export default function EstimateScreen() {
                   <Text style={styles.optionLabel}>{opt.name}</Text>
                   <Text style={styles.optionSubtext}>
                     {isEnabled && hvacItem
-                      ? `${formatEuro(hvacItem.cost)} · ${opt.description}`
+                      ? `${formatCurrency(hvacItem.cost)} ${MIDDLE_DOT} ${opt.description}`
                       : opt.description}
                   </Text>
                 </View>
@@ -964,7 +984,7 @@ export default function EstimateScreen() {
             <View style={styles.divider} />
             <View style={styles.effectiveRow}>
               <Text style={styles.effectiveLabel}>Energy Systems Total</Text>
-              <Text style={styles.effectiveValue}>{formatEuro(totalHvacCost)}</Text>
+              <Text style={styles.effectiveValue}>{formatCurrency(totalHvacCost)}</Text>
             </View>
           </>
         )}
@@ -1005,7 +1025,7 @@ export default function EstimateScreen() {
       </View>
       {showPoolInfo && (
         <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{POOL_TOOLTIP}</Text>
+          <Text style={styles.tooltipText}>{sanitizeEstimateText(POOL_TOOLTIP)}</Text>
         </View>
       )}
       <View style={styles.card}>
@@ -1014,7 +1034,7 @@ export default function EstimateScreen() {
             <Text style={styles.optionLabel}>Include Swimming Pool</Text>
             <Text style={styles.optionSubtext}>
               {includePool
-                ? `${formatEuro(poolCost)} · ${poolQualityOption.name}`
+                ? `${formatCurrency(poolCost)} ${MIDDLE_DOT} ${poolQualityOption.name}`
                 : 'Not included in estimate'}
             </Text>
           </View>
@@ -1056,7 +1076,7 @@ export default function EstimateScreen() {
                     </Text>
                     {opt.area > 0 && (
                       <Text style={[styles.poolSizeArea, isSelected && styles.poolSizeAreaSelected]}>
-                        {opt.area} m²
+                        {`${formatNumber(opt.area)} ${SQUARE_METER_UNIT}`}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -1070,7 +1090,7 @@ export default function EstimateScreen() {
                   <View style={styles.poolCustomInputWrap}>
                     <TextInput
                       style={styles.poolCustomInput}
-                      value={poolCustomArea > 0 ? String(poolCustomArea) : ''}
+                      value={poolCustomArea > 0 ? formatNumber(poolCustomArea) : ''}
                       onChangeText={(text) => {
                         const cleaned = text.replace(/[^0-9]/g, '');
                         setPoolCustomArea(parseInt(cleaned, 10) || 0);
@@ -1080,7 +1100,7 @@ export default function EstimateScreen() {
                       placeholderTextColor={Colors.textTertiary}
                       testID="pool-custom-area"
                     />
-                    <Text style={styles.poolCustomUnit}>m²</Text>
+                    <Text style={styles.poolCustomUnit}>{SQUARE_METER_UNIT}</Text>
                   </View>
                 </View>
                 <View style={styles.poolCustomField}>
@@ -1088,14 +1108,14 @@ export default function EstimateScreen() {
                   <View style={styles.poolCustomInputWrap}>
                     <TextInput
                       style={styles.poolCustomInput}
-                      value={poolCustomDepth > 0 ? String(poolCustomDepth) : ''}
+                      value={poolCustomDepth > 0 ? formatDecimal(poolCustomDepth, 2) : ''}
                       onChangeText={(text) => {
-                        const cleaned = text.replace(/[^0-9.]/g, '');
+                        const cleaned = text.replace(/[^0-9,]/g, '').replace(',', '.');
                         const num = parseFloat(cleaned);
                         setPoolCustomDepth(isNaN(num) ? 0 : num);
                       }}
                       keyboardType="decimal-pad"
-                      placeholder="1.40"
+                      placeholder={formatDecimal(1.4, 2)}
                       placeholderTextColor={Colors.textTertiary}
                       testID="pool-custom-depth"
                     />
@@ -1163,10 +1183,10 @@ export default function EstimateScreen() {
             <View style={styles.divider} />
             <View style={styles.effectiveRow}>
               <Text style={styles.effectiveLabel}>Pool Cost</Text>
-              <Text style={styles.effectiveValue}>{formatEuro(poolCost)}</Text>
+              <Text style={styles.effectiveValue}>{formatCurrency(poolCost)}</Text>
             </View>
             <Text style={styles.effectiveFormula}>
-              {poolArea} m² · {poolDepth.toFixed(2)} m depth · {poolQualityOption.name} · {poolTypeOption.name}
+              {`${formatNumber(poolArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${formatDecimal(poolDepth, 2)} m depth ${MIDDLE_DOT} ${poolQualityOption.name} ${MIDDLE_DOT} ${poolTypeOption.name}`}
             </Text>
           </>
         )}
@@ -1185,7 +1205,7 @@ export default function EstimateScreen() {
       </View>
       {showUtilityInfo && (
         <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{UTILITY_CONNECTION_TOOLTIP}</Text>
+          <Text style={styles.tooltipText}>{sanitizeEstimateText(UTILITY_CONNECTION_TOOLTIP)}</Text>
         </View>
       )}
       <View style={styles.card}>
@@ -1208,7 +1228,7 @@ export default function EstimateScreen() {
                 <View style={styles.optionInfo}>
                   <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>{opt.name}</Text>
                   <Text style={styles.optionSubtext}>
-                    {opt.id !== 'custom' ? `${formatEuro(opt.cost)} · ${opt.description}` : opt.description}
+                    {opt.id !== 'custom' ? `${formatCurrency(opt.cost)} ${MIDDLE_DOT} ${opt.description}` : opt.description}
                   </Text>
                 </View>
                 <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
@@ -1222,10 +1242,9 @@ export default function EstimateScreen() {
           <>
             <View style={styles.divider} />
             <View style={styles.costInputRow}>
-              <Text style={styles.euroSign}>€</Text>
               <TextInput
                 style={styles.costInput}
-                value={customUtilityCost > 0 ? String(customUtilityCost) : ''}
+                value={customUtilityCost > 0 ? formatNumber(customUtilityCost) : ''}
                 onChangeText={(text) => {
                   const cleaned = text.replace(/[^0-9]/g, '');
                   setCustomUtilityCost(parseInt(cleaned, 10) || 0);
@@ -1235,13 +1254,14 @@ export default function EstimateScreen() {
                 placeholderTextColor={Colors.textTertiary}
                 testID="utility-custom-cost"
               />
+              <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
             </View>
           </>
         )}
         <View style={styles.divider} />
         <View style={styles.effectiveRow}>
           <Text style={styles.effectiveLabel}>Connection Cost</Text>
-          <Text style={styles.effectiveValue}>{formatEuro(utilityConnectionCost)}</Text>
+          <Text style={styles.effectiveValue}>{formatCurrency(utilityConnectionCost)}</Text>
         </View>
       </View>
 
@@ -1258,21 +1278,21 @@ export default function EstimateScreen() {
       </View>
       {showPermitDesignInfo && (
         <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{PERMIT_DESIGN_TOOLTIP}</Text>
+          <Text style={styles.tooltipText}>{sanitizeEstimateText(PERMIT_DESIGN_TOOLTIP)}</Text>
         </View>
       )}
       <View style={styles.card}>
         <View style={styles.effectiveRow}>
           <Text style={styles.effectiveLabel}>Permit & Design Fees</Text>
-          <Text style={styles.effectiveValue}>{formatEuro(permitDesignFee)}</Text>
+          <Text style={styles.effectiveValue}>{formatCurrency(permitDesignFee)}</Text>
         </View>
         <Text style={styles.effectiveFormula}>
-          Based on {quality.name} quality · {permitDesignEffectiveArea.toFixed(0)} m² effective project area
+          {`Based on ${quality.name} quality ${MIDDLE_DOT} ${formatNumber(permitDesignEffectiveArea)} ${SQUARE_METER_UNIT} effective project area`}
         </Text>
         {isLargeProject && (
           <View style={styles.permitDesignAdvisory}>
             <Info size={13} color={Colors.accent} />
-            <Text style={styles.permitDesignAdvisoryText}>{PERMIT_DESIGN_LARGE_PROJECT_MESSAGE}</Text>
+            <Text style={styles.permitDesignAdvisoryText}>{sanitizeEstimateText(PERMIT_DESIGN_LARGE_PROJECT_MESSAGE)}</Text>
           </View>
         )}
         <TouchableOpacity
@@ -1293,7 +1313,7 @@ export default function EstimateScreen() {
       <View style={styles.card}>
         <SliderInput
           label="Contractor Overhead & Profit"
-          subtitle={`${contractorPercent.toFixed(1)}% of construction = ${formatEuro(contractorCost)}`}
+          subtitle={`${formatDecimal(contractorPercent, 1)}% of construction = ${formatCurrency(contractorCost)}`}
           value={contractorPercent}
           onChangeValue={setContractorPercent}
           min={CONTRACTOR_MIN_PERCENTAGE}
@@ -1306,7 +1326,7 @@ export default function EstimateScreen() {
         <View style={styles.costHintRow}>
           <ShieldAlert size={13} color={Colors.accent} />
           <Text style={styles.costHint}>
-            Construction contingency ({Math.round(contingencyPercent * 100)}%) is applied to KG 300–600 based on {quality.name} quality level.
+            {`Construction contingency (${formatNumber(Math.round(contingencyPercent * 100))}%) is applied to KG 300${EN_DASH}600 based on ${quality.name} quality level.`}
           </Text>
         </View>
       </View>
@@ -1323,7 +1343,7 @@ export default function EstimateScreen() {
 
       <View style={styles.disclaimer}>
         <Info size={14} color={Colors.textTertiary} style={styles.disclaimerIcon} />
-        <Text style={styles.disclaimerText}>{DISCLAIMER_TEXT}</Text>
+        <Text style={styles.disclaimerText}>{sanitizeEstimateText(DISCLAIMER_TEXT)}</Text>
       </View>
 
       <TouchableOpacity
