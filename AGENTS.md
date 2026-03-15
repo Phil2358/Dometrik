@@ -82,3 +82,25 @@ These instructions apply to the entire repository.
 
 \- Any change affecting totals, subtotals, sliders, factors, or scenario outputs must be treated carefully and kept as isolated as possible.
 
+
+
+\## Numeric safety
+
+Do not change:
+
+\- decimal separators
+
+\- currency symbols
+
+\- rounding logic
+
+\- numeric formatting
+
+\- slider output formatting
+
+\- scenario export formatting
+
+
+
+unless the task explicitly requires it.
+
