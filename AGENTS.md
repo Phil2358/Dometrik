@@ -22,6 +22,7 @@ These instructions apply to the entire repository.
 
 \- Do not rename files, move files, or refactor broadly unless explicitly requested.
 
+\- Do not reformat code or apply stylistic changes unless explicitly requested.
 
 
 \## Files to avoid unless explicitly requested
