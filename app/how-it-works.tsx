@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   View,
   Text,
@@ -57,7 +57,7 @@ export default function HowItWorksScreen() {
         <SectionCard title="Cost Calculation Structure" icon={Layers}>
           <View style={styles.formulaCard}>
             <Text style={styles.formulaLine}>Base building cost</Text>
-            <Text style={styles.formulaDetail}>= €/m² × living area (+ size correction)</Text>
+            <Text style={styles.formulaDetail}>= € /m² × living area (+ size correction)</Text>
             <View style={styles.formulaDivider} />
             <Text style={styles.formulaLine}>+ Site preparation costs (KG 200)</Text>
             <Text style={styles.formulaDetail}>Excavation, utilities, basement excavation</Text>
@@ -78,7 +78,7 @@ export default function HowItWorksScreen() {
           </View>
         </SectionCard>
 
-        <SectionCard title="What's Included in the Base €/m²" icon={Home}>
+        <SectionCard title="What's Included in the Base € /m²" icon={Home}>
           <Text style={styles.bodyText}>
             The base construction cost per square meter represents a standard reference building and includes:
           </Text>
@@ -94,7 +94,7 @@ export default function HowItWorksScreen() {
           </View>
         </SectionCard>
 
-        <SectionCard title="What's NOT Included in the Base €/m²" icon={Info}>
+        <SectionCard title="What's NOT Included in the Base € /m²" icon={Info}>
           <Text style={styles.bodyText}>
             The following cost groups are calculated separately:
           </Text>
@@ -110,7 +110,7 @@ export default function HowItWorksScreen() {
 
         <SectionCard title="Size Correction (Economies of Scale)" icon={TrendingDown}>
           <Text style={styles.bodyText}>
-            Small houses have higher €/m² costs due to fixed overhead, while larger houses benefit from economies of scale. The correction applies only to KG 300, 400, and 600.
+            Small houses have higher € /m² costs due to fixed overhead, while larger houses benefit from economies of scale. The correction applies only to KG 300, 400, and 600.
           </Text>
           <View style={styles.correctionTable}>
             <View style={styles.correctionHeaderRow}>
@@ -155,7 +155,7 @@ export default function HowItWorksScreen() {
 
         <SectionCard title="Basement Cost Logic" icon={Layers}>
           <Text style={styles.bodyText}>
-            Basement cost is not a simple €/m² multiplier. It is calculated as two separate components:
+            Basement cost is not a simple € /m² multiplier. It is calculated as two separate components:
           </Text>
           <View style={styles.formulaCard}>
             <Text style={styles.formulaLine}>Excavation component (KG 200)</Text>

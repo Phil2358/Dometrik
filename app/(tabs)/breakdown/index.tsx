@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+﻿import React, { useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -59,10 +59,10 @@ import {
   PERMIT_DESIGN_CONTACT_URL,
   PERMIT_DESIGN_CONTACT_LABEL,
   getSizeCorrectionLabel,
-  formatEuro,
 } from '@/constants/construction';
 import { generateClientReportHtml } from '@/utils/generateClientReportHtml';
 import type { ClientReportData } from '@/utils/generateClientReportHtml';
+import { formatCurrency, formatDecimal, formatNumber, formatPercent } from '@/utils/format';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -85,6 +85,11 @@ interface DinGroup {
   subgroups: SubgroupItem[];
   accentColor: string;
 }
+
+const MULTIPLY_SYMBOL = '\u00D7';
+const MIDDLE_DOT = '\u00B7';
+const EN_DASH = '\u2013';
+const SQUARE_METER_UNIT = 'm\u00B2';
 
 function CollapsibleGroup({ group }: { group: DinGroup }) {
   const [expanded, setExpanded] = useState<boolean>(true);
@@ -112,8 +117,8 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
           </View>
           <View style={styles.groupHeaderRight}>
             <View style={styles.groupCostColumn}>
-              <Text style={styles.groupSubtotal}>{formatEuro(group.subtotal)}</Text>
-              <Text style={styles.groupPercent}>{group.percentOfTotal.toFixed(1)}%</Text>
+              <Text style={styles.groupSubtotal}>{formatCurrency(group.subtotal)}</Text>
+              <Text style={styles.groupPercent}>{formatPercent(group.percentOfTotal, 1)}</Text>
             </View>
             {expanded ? (
               <ChevronDown size={18} color={Colors.textTertiary} />
@@ -140,7 +145,7 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
                   <Text style={styles.subgroupSublabel}>{item.sublabel}</Text>
                 ) : null}
               </View>
-              <Text style={styles.subgroupCost}>{formatEuro(item.cost)}</Text>
+              <Text style={styles.subgroupCost}>{formatCurrency(item.cost)}</Text>
             </View>
           ))}
         </View>
@@ -371,8 +376,8 @@ export default function BreakdownScreen() {
             cost: siteExcavationCost + basementExcavationCost,
             icon: Shovel,
             sublabel: basementArea > 0
-              ? `Building footprint + basement excavation · ${siteCondition.name}`
-              : `Building footprint · ${siteCondition.name}`,
+              ? `Building footprint + basement excavation ${MIDDLE_DOT} ${siteCondition.name}`
+              : `Building footprint ${MIDDLE_DOT} ${siteCondition.name}`,
             visible: true,
           },
           {
@@ -397,7 +402,7 @@ export default function BreakdownScreen() {
             cost: siteAccessibilityCost,
             icon: HardHat,
             sublabel: siteAccessibilityCost > 0
-              ? `Site logistics · ${siteAccessibility.name}`
+              ? `Site logistics ${MIDDLE_DOT} ${siteAccessibility.name}`
               : 'Site logistics, temporary facilities',
             visible: siteAccessibilityCost > 0,
           },
@@ -416,7 +421,7 @@ export default function BreakdownScreen() {
             cost: getCategoryCost('concrete') + basementStructureCost,
             icon: Building,
             sublabel: basementArea > 0
-              ? `Reinforced concrete structure + basement (${basementArea} m² · ${basementType.name})`
+              ? `Reinforced concrete structure + basement (${formatNumber(basementArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${basementType.name})`
               : 'Reinforced concrete, beams, columns, floor slabs',
             visible: true,
           },
@@ -519,7 +524,7 @@ export default function BreakdownScreen() {
             name: 'Terrain works',
             cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.3) : 0,
             icon: LandPlot,
-            sublabel: `Grading, retaining walls · ${siteCondition.name}`,
+            sublabel: `Grading, retaining walls ${MIDDLE_DOT} ${siteCondition.name}`,
             visible: landscapingCost > 0,
           },
           {
@@ -535,7 +540,7 @@ export default function BreakdownScreen() {
             name: 'Planting',
             cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.25) : 0,
             icon: Flower2,
-            sublabel: `${landscapingArea} m² landscape area`,
+            sublabel: `${formatNumber(landscapingArea)} ${SQUARE_METER_UNIT} landscape area`,
             visible: landscapingCost > 0,
           },
           {
@@ -544,7 +549,7 @@ export default function BreakdownScreen() {
             cost: poolCost + (landscapingCost > 0 ? landscapingCost - Math.round(landscapingCost * 0.3) - Math.round(landscapingCost * 0.25) - Math.round(landscapingCost * 0.25) : 0),
             icon: Waves,
             sublabel: includePool
-              ? `Pool ${poolArea} m² · ${poolQualityOption.name} · ${poolTypeOption.name}`
+              ? `Pool ${formatNumber(poolArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${poolQualityOption.name} ${MIDDLE_DOT} ${poolTypeOption.name}`
               : 'Irrigation, outdoor lighting',
             visible: includePool || landscapingCost > 0,
           },
@@ -644,7 +649,7 @@ export default function BreakdownScreen() {
           </View>
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Location</Text>
-            <Text style={styles.assumptionValue}>{location.name} (×{location.multiplier.toFixed(2)})</Text>
+            <Text style={styles.assumptionValue}>{location.name} (${MULTIPLY_SYMBOL}{formatDecimal(location.multiplier, 2)})</Text>
           </View>
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Site Conditions</Text>
@@ -661,19 +666,19 @@ export default function BreakdownScreen() {
           {basementArea > 0 && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Basement</Text>
-              <Text style={styles.assumptionValue}>{basementArea} m² · {basementType.name}</Text>
+              <Text style={styles.assumptionValue}>{formatNumber(basementArea)} {SQUARE_METER_UNIT} {MIDDLE_DOT} {basementType.name}</Text>
             </View>
           )}
           {balconyArea > 0 && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Balconies</Text>
-              <Text style={styles.assumptionValue}>{balconyArea} m² (30%)</Text>
+              <Text style={styles.assumptionValue}>{formatNumber(balconyArea)} {SQUARE_METER_UNIT} (${formatPercent(30)})</Text>
             </View>
           )}
           {landscapingArea > 0 && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Landscaping Area</Text>
-              <Text style={styles.assumptionValue}>{landscapingArea} m²</Text>
+              <Text style={styles.assumptionValue}>{formatNumber(landscapingArea)} {SQUARE_METER_UNIT}</Text>
             </View>
           )}
           <View style={styles.assumptionItem}>
@@ -687,22 +692,22 @@ export default function BreakdownScreen() {
           {enabledHvac.map((h) => (
             <View key={h.option.id} style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>{h.option.name}</Text>
-              <Text style={styles.assumptionValue}>{formatEuro(h.cost)}</Text>
+              <Text style={styles.assumptionValue}>{formatCurrency(h.cost)}</Text>
             </View>
           ))}
           {includePool && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Swimming Pool</Text>
-              <Text style={styles.assumptionValue}>{poolArea} m² · {poolDepth.toFixed(2)} m · {poolQualityOption.name} · {poolTypeOption.name}</Text>
+              <Text style={styles.assumptionValue}>{formatNumber(poolArea)} {SQUARE_METER_UNIT} {MIDDLE_DOT} {formatDecimal(poolDepth, 2)} m {MIDDLE_DOT} {poolQualityOption.name} {MIDDLE_DOT} {poolTypeOption.name}</Text>
             </View>
           )}
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Effective Area</Text>
-            <Text style={styles.assumptionValue}>{effectiveArea.toFixed(0)} m²</Text>
+            <Text style={styles.assumptionValue}>{formatNumber(effectiveArea)} {SQUARE_METER_UNIT}</Text>
           </View>
           <View style={styles.assumptionItem}>
-            <Text style={styles.assumptionLabel}>Corrected €/m²</Text>
-            <Text style={styles.assumptionValue}>{formatEuro(correctedCostPerSqm)}/m²</Text>
+            <Text style={styles.assumptionLabel}>{`Corrected €/${SQUARE_METER_UNIT}`}</Text>
+            <Text style={styles.assumptionValue}>{`${formatCurrency(correctedCostPerSqm)}/${SQUARE_METER_UNIT}`}</Text>
           </View>
           {sizeCorrectionFactor !== 1.0 && (
             <View style={styles.assumptionItem}>
@@ -723,8 +728,8 @@ export default function BreakdownScreen() {
       ))}
 
       <View style={styles.constructionSubtotalCard}>
-        <Text style={styles.constructionSubtotalLabel}>Construction Subtotal (KG 300–600)</Text>
-        <Text style={styles.constructionSubtotalValue}>{formatEuro(constructionSubtotal)}</Text>
+        <Text style={styles.constructionSubtotalLabel}>{`Construction Subtotal (KG 300${EN_DASH}600)`}</Text>
+        <Text style={styles.constructionSubtotalValue}>{formatCurrency(constructionSubtotal)}</Text>
       </View>
       <View style={styles.disclaimerInline}>
         <Info size={12} color={Colors.textTertiary} />
@@ -741,10 +746,10 @@ export default function BreakdownScreen() {
             <View style={styles.overheadInfo}>
               <Text style={styles.overheadLabel}>Construction Contingency</Text>
               <Text style={styles.overheadSub}>
-                {Math.round(contingencyPercent * 100)}% risk reserve · {quality.name} quality
+                {`${formatPercent(Math.round(contingencyPercent * 100))} risk reserve ${MIDDLE_DOT} ${quality.name} quality`}
               </Text>
             </View>
-            <Text style={styles.overheadValue}>{formatEuro(contingencyCost)}</Text>
+            <Text style={styles.overheadValue}>{formatCurrency(contingencyCost)}</Text>
           </View>
           <View style={styles.overheadDivider} />
           <View style={styles.overheadRow}>
@@ -753,9 +758,9 @@ export default function BreakdownScreen() {
             </View>
             <View style={styles.overheadInfo}>
               <Text style={styles.overheadLabel}>Contractor Overhead & Profit</Text>
-              <Text style={styles.overheadSub}>{contractorPercent}% of construction subtotal</Text>
+              <Text style={styles.overheadSub}>{formatPercent(contractorPercent, 1)} of construction subtotal</Text>
             </View>
-            <Text style={styles.overheadValue}>{formatEuro(contractorCost)}</Text>
+            <Text style={styles.overheadValue}>{formatCurrency(contractorCost)}</Text>
           </View>
         </View>
       </View>
@@ -773,24 +778,24 @@ export default function BreakdownScreen() {
       <View style={styles.grandTotalCard}>
         <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>Total Project Cost</Text>
-          <Text style={styles.grandTotalValue}>{formatEuro(totalCost)}</Text>
+          <Text style={styles.grandTotalValue}>{formatCurrency(totalCost)}</Text>
         </View>
         <View style={styles.grandTotalBreakdown}>
           <Text style={styles.grandTotalBreakdownText}>
-            KG 200 {formatEuro(kg200Total)} + KG 300–600 {formatEuro(constructionSubtotal)} + KG 500 {formatEuro(kg500Total)} + KG 700 {formatEuro(permitDesignFee)} + Contingency {formatEuro(contingencyCost)} + Overhead {formatEuro(contractorCost)}
+            {`KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
           </Text>
         </View>
       </View>
 
       <View style={styles.vatCard}>
         <View style={styles.vatRow}>
-          <Text style={styles.vatLabel}>+ VAT (24%)</Text>
-          <Text style={styles.vatValue}>{formatEuro(Math.round(totalCost * 0.24))}</Text>
+          <Text style={styles.vatLabel}>+ VAT (24 %)</Text>
+          <Text style={styles.vatValue}>{formatCurrency(Math.round(totalCost * 0.24))}</Text>
         </View>
         <View style={styles.vatDivider} />
         <View style={styles.vatRow}>
           <Text style={styles.vatTotalLabel}>Total incl. VAT</Text>
-          <Text style={styles.vatTotalValue}>{formatEuro(Math.round(totalCost * 1.24))}</Text>
+          <Text style={styles.vatTotalValue}>{formatCurrency(Math.round(totalCost * 1.24))}</Text>
         </View>
         <Text style={styles.vatNote}>VAT calculated using the current Greek construction VAT rate (24%).</Text>
       </View>

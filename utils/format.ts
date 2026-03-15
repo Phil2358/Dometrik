@@ -23,3 +23,12 @@ export function formatDecimal(value: number, fractionDigits = 2): string {
     maximumFractionDigits: fractionDigits,
   }).format(value);
 }
+
+export function formatPercent(value: number, fractionDigits = 0): string {
+  const formattedNumber = new Intl.NumberFormat(EUROPEAN_LOCALE, {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value);
+
+  return `${formattedNumber} %`;
+}

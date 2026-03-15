@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+﻿import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,9 @@ import { useEstimate } from '@/contexts/EstimateContext';
 import { computeScenarioCosts } from '@/utils/computeScenarioCosts';
 import type { ComputedScenarioCosts } from '@/utils/computeScenarioCosts';
 import { formatEuro } from '@/constants/construction';
+import { formatNumber, formatPercent } from '@/utils/format';
+
+const SQUARE_METER_UNIT = 'm\u00B2';
 
 const VAT_RATE = 0.24;
 
@@ -51,28 +54,28 @@ function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
     { label: 'Location', getter: (s) => s.locationName ?? '' },
     { label: 'Quality level', getter: (s) => s.qualityName ?? '' },
 
-    { label: 'Interior area', getter: (s) => `${(s.mainArea ?? 0)} m²` },
-    { label: 'Covered terrace', getter: (s) => `${(s.terraceArea ?? 0)} m²` },
-    { label: 'Balcony', getter: (s) => `${(s.balconyArea ?? 0)} m²` },
+    { label: 'Interior area', getter: (s) => `${formatNumber(s.mainArea ?? 0)} ${SQUARE_METER_UNIT}` },
+    { label: 'Covered terrace', getter: (s) => `${formatNumber(s.terraceArea ?? 0)} ${SQUARE_METER_UNIT}` },
+    { label: 'Balcony', getter: (s) => `${formatNumber(s.balconyArea ?? 0)} ${SQUARE_METER_UNIT}` },
 
     {
       label: 'Basement',
       getter: (s) =>
         (s.basementArea ?? 0) > 0
-          ? `${s.basementArea ?? 0} m²`
+          ? `${formatNumber(s.basementArea ?? 0)} ${SQUARE_METER_UNIT}`
           : 'None',
     },
 
     {
       label: 'Effective area',
-      getter: (s) => `${((s as any).effectiveArea ?? 0).toFixed(0)} m²`,
+      getter: (s) => `${formatNumber((s as any).effectiveArea ?? 0)} ${SQUARE_METER_UNIT}`,
     },
 
     {
       label: 'Pool',
       getter: (s) =>
         (s as any).includePool
-          ? `${(s as any).poolSizeName ?? ''} (${(s as any).poolArea ?? 0} m²)`
+          ? `${(s as any).poolSizeName ?? ''} (${formatNumber((s as any).poolArea ?? 0)} ${SQUARE_METER_UNIT})`
           : 'None',
     },
 
@@ -84,7 +87,7 @@ function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
       label: 'Landscaping',
       getter: (s) =>
         ((s as any).landscapingArea ?? 0) > 0
-          ? `${(s as any).landscapingArea ?? 0} m²`
+          ? `${formatNumber((s as any).landscapingArea ?? 0)} ${SQUARE_METER_UNIT}`
           : 'None',
     },
 
@@ -98,7 +101,7 @@ function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
 
     {
       label: 'Contractor overhead',
-      getter: (s) => `${((s as any).contractorPercent ?? 0)}%`,
+      getter: (s) => formatPercent((s as any).contractorPercent ?? 0, 1),
     },
   ];
 
@@ -230,7 +233,7 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
             <Text style={summaryStyles.diffText}>
               +{formatEuro(diffFromCheapest)} vs cheapest
             </Text>
-            <Text style={summaryStyles.diffPercent}>(+{diffPercent}%)</Text>
+            <Text style={summaryStyles.diffPercent}>{`(+${formatPercent(diffPercent)})`}</Text>
           </View>
         )}
 
@@ -285,7 +288,7 @@ const maxCost = Math.max(...scenarios.map(s => (s.totalCost ?? 0) * (1 + VAT_RAT
           </View>
         );
       })}
-      <Text style={chartStyles.vatNote}>Amounts include 24% VAT</Text>
+      <Text style={chartStyles.vatNote}>Amounts include 24 % VAT</Text>
     </View>
   );
 }
@@ -366,7 +369,7 @@ export default function CompareScreen() {
       <View style={styles.headerCard}>
         <Text style={styles.headerTitle}>Scenario Comparison</Text>
         <Text style={styles.headerSubtext}>
-          Comparing {computed.length} scenarios · VAT 24% included
+          Comparing {computed.length} scenarios · VAT 24 % included
         </Text>
       </View>
 
@@ -414,7 +417,7 @@ export default function CompareScreen() {
               ))}
             </>
           )}
-          <Text style={styles.diffVatNote}>All amounts include 24% VAT</Text>
+          <Text style={styles.diffVatNote}>All amounts include 24 % VAT</Text>
         </View>
       )}
 
@@ -574,7 +577,7 @@ export default function CompareScreen() {
 
           <View style={[styles.tableRow, styles.tableVatRow]}>
             <View style={styles.tableLabelCellWide}>
-              <Text style={styles.tableVatLabel}>VAT (24%)</Text>
+              <Text style={styles.tableVatLabel}>VAT (24 %)</Text>
             </View>
             {computed.map((s, i) => (
               <View key={i} style={styles.tableValueCell}>
@@ -601,7 +604,7 @@ export default function CompareScreen() {
       <View style={styles.vatInfoCard}>
         <Info size={14} color={Colors.primary} />
         <Text style={styles.vatInfoText}>
-          VAT calculated using the current Greek construction VAT rate (24%). VAT is applied to the full project subtotal and is not included in individual cost categories.
+          VAT calculated using the current Greek construction VAT rate (24 %). VAT is applied to the full project subtotal and is not included in individual cost categories.
         </Text>
       </View>
 
