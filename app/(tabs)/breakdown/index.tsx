@@ -47,6 +47,7 @@ import {
   HardHat,
   LandPlot,
   Wind,
+  Landmark,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useEstimate } from '@/contexts/EstimateContext';
@@ -352,10 +353,18 @@ export default function BreakdownScreen() {
     basementStructureCost,
     siteExcavationCost,
     sizeCorrectionFactor,
+    landValue,
+    landAcquisitionCosts,
+    landAcquisitionCostsMode,
   } = useEstimate();
 
   const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
   const enabledHvac = hvacCosts.filter((h) => h.enabled);
+  const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
+    ? landValue * 0.06
+    : landAcquisitionCosts;
+  const group100Total = landValue + displayedLandAcquisitionCosts;
+  const investmentTotal = totalCost + group100Total;
 
   const getCategoryCost = useCallback((id: string): number => {
     return categoryCosts.find((c) => c.category.id === id)?.cost ?? 0;
@@ -364,10 +373,36 @@ export default function BreakdownScreen() {
   const dinGroups = useMemo<DinGroup[]>(() => {
     const groups: DinGroup[] = [
       {
+        code: '100',
+        name: 'Land',
+        subtotal: group100Total,
+        percentOfTotal: investmentTotal > 0 ? (group100Total / investmentTotal) * 100 : 0,
+        accentColor: '#7A5C3E',
+        subgroups: [
+          {
+            code: '110',
+            name: 'Land Value',
+            cost: landValue,
+            icon: LandPlot,
+            visible: landValue > 0,
+          },
+          {
+            code: '120',
+            name: 'Incidental Land Acquisition Costs',
+            cost: displayedLandAcquisitionCosts,
+            sublabel: landAcquisitionCostsMode === 'auto'
+              ? `${formatCurrency(displayedLandAcquisitionCosts)} (6 % of ${formatCurrency(landValue)})`
+              : 'Manual override',
+            icon: Landmark,
+            visible: displayedLandAcquisitionCosts > 0 || landAcquisitionCostsMode === 'manual',
+          },
+        ],
+      },
+      {
         code: '200',
         name: 'Site Preparation & Utilities',
         subtotal: kg200Total,
-        percentOfTotal: totalCost > 0 ? (kg200Total / totalCost) * 100 : 0,
+        percentOfTotal: investmentTotal > 0 ? (kg200Total / investmentTotal) * 100 : 0,
         accentColor: '#8B6914',
         subgroups: [
           {
@@ -412,7 +447,7 @@ export default function BreakdownScreen() {
         code: '300',
         name: 'Building Construction',
         subtotal: kg300Total,
-        percentOfTotal: totalCost > 0 ? (kg300Total / totalCost) * 100 : 0,
+        percentOfTotal: investmentTotal > 0 ? (kg300Total / investmentTotal) * 100 : 0,
         accentColor: '#1B3A4B',
         subgroups: [
           {
@@ -471,7 +506,7 @@ export default function BreakdownScreen() {
         code: '400',
         name: 'Technical Systems',
         subtotal: kg400Total,
-        percentOfTotal: totalCost > 0 ? (kg400Total / totalCost) * 100 : 0,
+        percentOfTotal: investmentTotal > 0 ? (kg400Total / investmentTotal) * 100 : 0,
         accentColor: '#2D8B55',
         subgroups: [
           {
@@ -516,7 +551,7 @@ export default function BreakdownScreen() {
         code: '500',
         name: 'External Works',
         subtotal: kg500Total,
-        percentOfTotal: totalCost > 0 ? (kg500Total / totalCost) * 100 : 0,
+        percentOfTotal: investmentTotal > 0 ? (kg500Total / investmentTotal) * 100 : 0,
         accentColor: '#6B8E23',
         subgroups: [
           {
@@ -567,7 +602,7 @@ export default function BreakdownScreen() {
         code: '600',
         name: 'Built-in Equipment',
         subtotal: kg600Cost,
-        percentOfTotal: totalCost > 0 ? (kg600Cost / totalCost) * 100 : 0,
+        percentOfTotal: investmentTotal > 0 ? (kg600Cost / investmentTotal) * 100 : 0,
         accentColor: '#8B5CF6',
         subgroups: [
           {
@@ -592,7 +627,7 @@ export default function BreakdownScreen() {
         code: '700',
         name: 'Planning & Professional Fees',
         subtotal: permitDesignFee,
-        percentOfTotal: totalCost > 0 ? (permitDesignFee / totalCost) * 100 : 0,
+        percentOfTotal: investmentTotal > 0 ? (permitDesignFee / investmentTotal) * 100 : 0,
         accentColor: '#D4782F',
         subgroups: [
           {
@@ -629,7 +664,7 @@ export default function BreakdownScreen() {
     siteExcavationCost, basementExcavationCost, utilityConnectionCost, basementStructureCost,
     basementArea, basementType, siteCondition, landscapingCost, landscapingArea, poolCost,
     includePool, poolArea, poolQualityOption, poolTypeOption, enabledHvac, getCategoryCost,
-    siteAccessibilityCost, siteAccessibility,
+    siteAccessibilityCost, siteAccessibility, landValue, displayedLandAcquisitionCosts, landAcquisitionCostsMode, investmentTotal,
   ]);
 
   return (
@@ -778,11 +813,11 @@ export default function BreakdownScreen() {
       <View style={styles.grandTotalCard}>
         <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>Total Project Cost</Text>
-          <Text style={styles.grandTotalValue}>{formatCurrency(totalCost)}</Text>
+          <Text style={styles.grandTotalValue}>{formatCurrency(investmentTotal)}</Text>
         </View>
         <View style={styles.grandTotalBreakdown}>
           <Text style={styles.grandTotalBreakdownText}>
-            {`KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
+            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
           </Text>
         </View>
       </View>

@@ -5,8 +5,9 @@ import HeaderCostDisplay from '@/components/HeaderCostDisplay';
 import { useEstimate } from '@/contexts/EstimateContext';
 
 function BreakdownHeaderTitle() {
-  const { totalCost } = useEstimate();
-  return <HeaderCostDisplay totalCost={totalCost} />;
+  const { totalCost, landValue, landAcquisitionCosts, landAcquisitionCostsMode } = useEstimate();
+  const group100Total = landValue + (landAcquisitionCostsMode === 'auto' ? landValue * 0.06 : landAcquisitionCosts);
+  return <HeaderCostDisplay totalCost={totalCost + group100Total} />;
 }
 
 export default function BreakdownLayout() {
