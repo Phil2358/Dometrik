@@ -6,15 +6,29 @@ import {
 } from "../../constants/construction"
 
 interface CategoryCostsInput {
-  rawBuildingCost: number
+  kg300Base: number
+  kg400Base: number
 }
 
 export function calculateCategoryCosts(input: CategoryCostsInput) {
 
   const categoryCosts = COST_CATEGORIES.map(category => {
+    const groupBase =
+      category.din276 === 'KG 300'
+        ? input.kg300Base
+        : category.din276 === 'KG 400'
+          ? input.kg400Base
+          : 0
+
+    const groupPercentage =
+      category.din276 === 'KG 300'
+        ? category.percentage / 67
+        : category.din276 === 'KG 400'
+          ? category.percentage / 24
+          : 0
 
     const cost =
-      (category.percentage / 100) * input.rawBuildingCost
+      groupPercentage * groupBase
 
     return {
       id: category.id,

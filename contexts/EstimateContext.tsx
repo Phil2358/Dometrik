@@ -25,6 +25,9 @@ import {
   CONTINGENCY_PERCENTAGES,
   GROUNDWATER_CONDITIONS,
   SITE_ACCESSIBILITY_OPTIONS,
+  BASE_GROUP_SHARE_KG200,
+  BASE_GROUP_SHARE_KG300,
+  BASE_GROUP_SHARE_KG400,
   KG300_CATEGORY_IDS,
   KG400_CATEGORY_IDS,
   KG600_CATEGORY_IDS,
@@ -512,14 +515,29 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const correctedCostPerSqm = Math.round(baseCostPerSqm * sizeCorrectionFactor);
   const finalCostPerSqm = Math.round(correctedCostPerSqm * location.multiplier);
 
-  const rawBuildingCost = effectiveArea * finalCostPerSqm;
+  const baseConstructionCost = effectiveArea * finalCostPerSqm;
+  const kg200Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG200);
+  const kg300Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG300);
+  const kg400Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG400);
 
   const deltaBathrooms = bathrooms - INTERIOR_BASELINE.bathrooms;
   const deltaWcs = wcs - INTERIOR_BASELINE.wcs;
 
   const categoryCosts = useMemo<CategoryCost[]>(() => {
     return COST_CATEGORIES.map((category) => {
-      let categoryCost = Math.round(rawBuildingCost * (category.percentage / 100));
+      let categoryCost = 0;
+
+      if (category.din276 === 'KG 300') {
+        categoryCost = Math.round(kg300Base * (category.percentage / 67));
+      }
+
+      if (category.din276 === 'KG 400') {
+        categoryCost = Math.round(kg400Base * (category.percentage / 24));
+      }
+
+      if (category.din276 === 'KG 600') {
+        categoryCost = Math.round(baseConstructionCost * (category.percentage / 100));
+      }
 
       if (category.id === 'interior') {
         const adj = 1
@@ -548,7 +566,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
         costPerSqm: Math.round(categoryCost / (effectiveArea || 1)),
       };
     });
-  }, [rawBuildingCost, effectiveArea, deltaBathrooms, deltaWcs]);
+  }, [kg300Base, kg400Base, baseConstructionCost, effectiveArea, deltaBathrooms, deltaWcs]);
 
   const constructionCost = useMemo(
     () => categoryCosts.reduce((sum, c) => sum + c.cost, 0),
@@ -570,11 +588,16 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [categoryCosts],
   );
 
-  const utilityConnectionCost = useMemo(() => {
+  const selectedUtilityConnectionCost = useMemo(() => {
     if (utilityConnectionId === 'custom') return customUtilityCost;
     const opt = UTILITY_CONNECTION_OPTIONS.find((o) => o.id === utilityConnectionId);
     return opt?.cost ?? 4000;
   }, [utilityConnectionId, customUtilityCost]);
+
+  const baselineUtilityConnectionCost = useMemo(
+    () => UTILITY_CONNECTION_OPTIONS.find((o) => o.id === 'standard')?.cost ?? 4000,
+    [],
+  );
 
   const basementExcavationCost = useMemo(
     () => getBasementExcavationCost(basementArea, siteCondition, groundwaterCondition),
@@ -588,12 +611,22 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const basementTotalCost = basementExcavationCost + basementStructureCost;
 
-  const siteExcavationCost = useMemo(
-    () => Math.round(mainArea * 15 * siteCondition.terrainMultiplier),
-    [mainArea, siteCondition],
+  const baselineSiteExcavationCost = useMemo(
+    () => Math.round(mainArea * 15),
+    [mainArea],
   );
 
-  const kg200Total = siteExcavationCost + basementExcavationCost + utilityConnectionCost + siteAccessibilityCost;
+  const siteExcavationCost = useMemo(
+    () => Math.round(kg200Base + (Math.round(mainArea * 15 * siteCondition.terrainMultiplier) - baselineSiteExcavationCost)),
+    [kg200Base, mainArea, siteCondition, baselineSiteExcavationCost],
+  );
+
+  const utilityConnectionAdjustmentCost = useMemo(
+    () => selectedUtilityConnectionCost - baselineUtilityConnectionCost,
+    [selectedUtilityConnectionCost, baselineUtilityConnectionCost],
+  );
+
+  const kg200Total = siteExcavationCost + basementExcavationCost + utilityConnectionAdjustmentCost + siteAccessibilityCost;
 
   const kg300Total = kg300Cost + basementStructureCost;
 
@@ -793,7 +826,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setUtilityConnectionId,
     customUtilityCost,
     setCustomUtilityCost,
-    utilityConnectionCost,
+    utilityConnectionCost: utilityConnectionAdjustmentCost,
     groundwaterConditionId,
     setGroundwaterConditionId,
     groundwaterCondition,
@@ -849,7 +882,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     location, quality, effectiveArea, baseCostPerSqm, costPerSqm,
     sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm,
     constructionCost, categoryCosts, contractorCost, poolCost, permitDesignFee, totalCost,
-    utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, utilityConnectionCost,
+    utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, utilityConnectionAdjustmentCost,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost,
     kg200Total, kg300Cost, kg300Total, kg400Cost, kg400Total, kg500Total, kg600Cost,

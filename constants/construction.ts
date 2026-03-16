@@ -22,6 +22,17 @@ export interface CostCategory {
   description: string;
 }
 
+const STANDARD_QUALITY_FACTOR = 1200 / 1500;
+const LUXURY_QUALITY_FACTOR = 2000 / 1500;
+
+export const BASE_GROUP_SHARE_KG200 = 0.015;
+export const BASE_GROUP_SHARE_KG300 = 0.64;
+export const BASE_GROUP_SHARE_KG400 = 0.345;
+
+export const KG300_BASE_SHARE = BASE_GROUP_SHARE_KG300;
+export const KG400_BASE_SHARE = BASE_GROUP_SHARE_KG400;
+export const KG600_BASE_SHARE = 0;
+
 export const LOCATIONS: Location[] = [
   { id: 'corfu', name: 'Corfu', region: 'Ionian Islands', multiplier: 1.15 },
   { id: 'athens', name: 'Athens', region: 'Attica', multiplier: 1.00 },
@@ -42,19 +53,19 @@ export const QUALITY_LEVELS: QualityLevel[] = [
     id: 'standard',
     name: 'Standard',
     description: 'Good quality materials, energy-efficient, standard finishes',
-    baseCostPerSqm: 1200,
+    baseCostPerSqm: Math.round(1930 * STANDARD_QUALITY_FACTOR),
   },
   {
     id: 'premium',
     name: 'Premium',
     description: 'High-end materials, smart home ready, premium finishes',
-    baseCostPerSqm: 1500,
+    baseCostPerSqm: 1930,
   },
   {
     id: 'luxury',
     name: 'Luxury',
     description: 'Top-tier materials, bespoke design, luxury finishes throughout',
-    baseCostPerSqm: 2000,
+    baseCostPerSqm: Math.round(1930 * LUXURY_QUALITY_FACTOR),
   },
 ];
 

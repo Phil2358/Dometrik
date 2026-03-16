@@ -75,7 +75,8 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
 
   const categoryCosts =
     calculateCategoryCosts({
-      rawBuildingCost: buildingCost.rawBuildingCost
+      kg300Base: buildingCost.kg300Base,
+      kg400Base: buildingCost.kg400Base
     })
 
 
@@ -96,6 +97,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
 
   const siteCosts =
     calculateSiteCosts({
+      kg200Base: buildingCost.kg200Base,
       mainArea: input.mainArea,
       basementArea: input.basementArea,
       siteConditionId: input.siteConditionId,
@@ -162,7 +164,8 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
   // -----------------------------------------
 
   const totalCost =
-      buildingCost.rawBuildingCost
+      categoryCosts.kg300Total
+    + categoryCosts.kg400Total
     + siteCosts.kg200Total
     + basementCosts.basementStructureCost
     + hvacCosts.hvacExtrasCost
