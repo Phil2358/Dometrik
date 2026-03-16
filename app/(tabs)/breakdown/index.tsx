@@ -63,6 +63,7 @@ import {
 } from '@/constants/construction';
 import { generateClientReportHtml } from '@/utils/generateClientReportHtml';
 import type { ClientReportData } from '@/utils/generateClientReportHtml';
+import { formatBasementSummary } from '@/utils/computeScenarioCosts';
 import { formatCurrency, formatDecimal, formatNumber, formatPercent } from '@/utils/format';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -177,8 +178,10 @@ function GenerateReportButton() {
     effectiveArea,
     mainArea,
     balconyArea,
+    storageBasementArea,
+    parkingBasementArea,
+    habitableBasementArea,
     basementArea,
-    basementType,
     includePool,
     poolArea,
     poolDepth,
@@ -200,8 +203,6 @@ function GenerateReportButton() {
     constructionSubtotal,
     contingencyPercent,
     sizeCorrectionFactor,
-    basementExcavationCost,
-    basementStructureCost,
   } = useEstimate();
 
   const handleGenerate = useCallback(async () => {
@@ -219,7 +220,9 @@ function GenerateReportButton() {
         qualityName: quality.name,
         balconyArea,
         basementArea,
-        basementTypeName: basementType.name,
+        storageBasementArea,
+        parkingBasementArea,
+        habitableBasementArea,
         includePool,
         poolArea,
         poolDepth,
@@ -241,8 +244,6 @@ function GenerateReportButton() {
         constructionSubtotal,
         contingencyPercent,
         sizeCorrectionFactor,
-        basementExcavationCost,
-        basementStructureCost,
       };
 
       const reportTitle = getReportTitle(userMode);
@@ -275,11 +276,12 @@ function GenerateReportButton() {
       setGenerating(false);
     }
   }, [
-    generating, location, quality, effectiveArea, mainArea, balconyArea, basementArea, basementType,
+    generating, location, quality, effectiveArea, mainArea, balconyArea, basementArea,
+    storageBasementArea, parkingBasementArea, habitableBasementArea,
     includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption,
     siteCondition, groundwaterCondition, siteAccessibility, hvacCosts, kg200Total, kg300Total, kg400Total, kg500Total,
     kg600Cost, permitDesignFee, contingencyCost, contractorCost, totalCost,
-    constructionSubtotal, contingencyPercent, sizeCorrectionFactor, basementExcavationCost, basementStructureCost,
+    constructionSubtotal, contingencyPercent, sizeCorrectionFactor,
     userMode,
   ]);
 
@@ -319,8 +321,10 @@ export default function BreakdownScreen() {
     landscapingArea,
     landscapingCost,
     balconyArea,
+    storageBasementArea,
+    parkingBasementArea,
+    habitableBasementArea,
     basementArea,
-    basementType,
     bathrooms,
     wcs,
     hvacCosts,
@@ -348,8 +352,6 @@ export default function BreakdownScreen() {
     constructionSubtotal,
     contingencyPercent,
     contingencyCost,
-    basementExcavationCost,
-    basementStructureCost,
     siteExcavationCost,
     sizeCorrectionFactor,
     landValue,
@@ -362,6 +364,11 @@ export default function BreakdownScreen() {
   const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? landValue * 0.06
     : landAcquisitionCosts;
+  const basementSummary = formatBasementSummary(
+    storageBasementArea,
+    parkingBasementArea,
+    habitableBasementArea,
+  );
   const group100Total = landValue + displayedLandAcquisitionCosts;
   const investmentTotal = totalCost + group100Total;
 
@@ -456,10 +463,10 @@ export default function BreakdownScreen() {
           {
             code: '320',
             name: 'Foundations',
-            cost: getCategoryCost('concrete') + basementStructureCost,
+            cost: getCategoryCost('concrete'),
             icon: Building,
             sublabel: basementArea > 0
-              ? `Reinforced concrete structure + basement (${formatNumber(basementArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${basementType.name})`
+              ? `Reinforced concrete structure, beams, columns, floor slabs ${MIDDLE_DOT} basement mix integrated via effective area`
               : 'Reinforced concrete, beams, columns, floor slabs',
             visible: true,
           },
@@ -664,8 +671,8 @@ export default function BreakdownScreen() {
     return groups;
   }, [
     kg200Total, kg300Total, kg400Total, kg500Total, kg600Cost, permitDesignFee, totalCost,
-    siteExcavationCost, basementExcavationCost, utilityGroup220Cost, utilityGroup230Cost, basementStructureCost,
-    basementArea, basementType, siteCondition, landscapingCost, landscapingArea, poolCost,
+    siteExcavationCost, utilityGroup220Cost, utilityGroup230Cost,
+    basementArea, siteCondition, landscapingCost, landscapingArea, poolCost,
     includePool, poolArea, poolQualityOption, poolTypeOption, enabledHvac, getCategoryCost,
     landValue, displayedLandAcquisitionCosts, landAcquisitionCostsMode, investmentTotal,
   ]);
@@ -700,7 +707,7 @@ export default function BreakdownScreen() {
           {basementArea > 0 && (
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Basement</Text>
-              <Text style={styles.assumptionValue}>{formatNumber(basementArea)} {SQUARE_METER_UNIT} {MIDDLE_DOT} {basementType.name}</Text>
+              <Text style={styles.assumptionValue}>{basementSummary}</Text>
             </View>
           )}
           {balconyArea > 0 && (

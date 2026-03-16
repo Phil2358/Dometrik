@@ -23,7 +23,7 @@ import {
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useEstimate } from '@/contexts/EstimateContext';
-import { computeScenarioCosts } from '@/utils/computeScenarioCosts';
+import { computeScenarioCosts, formatBasementSummary } from '@/utils/computeScenarioCosts';
 import type { ComputedScenarioCosts } from '@/utils/computeScenarioCosts';
 import { formatEuro } from '@/constants/construction';
 import { formatNumber, formatPercent } from '@/utils/format';
@@ -62,7 +62,11 @@ function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
       label: 'Basement',
       getter: (s) =>
         (s.basementArea ?? 0) > 0
-          ? `${formatNumber(s.basementArea ?? 0)} ${SQUARE_METER_UNIT}`
+          ? `${formatNumber(s.basementArea ?? 0)} ${SQUARE_METER_UNIT} · ${formatBasementSummary(
+            s.storageBasementArea ?? 0,
+            s.parkingBasementArea ?? 0,
+            s.habitableBasementArea ?? 0,
+          )}`
           : 'None',
     },
 

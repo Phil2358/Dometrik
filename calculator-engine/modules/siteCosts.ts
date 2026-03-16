@@ -77,8 +77,7 @@ export function calculateSiteCosts(input: SiteCostsInput) {
   const group250Cost = accessibilityCost
 
   const kg200Adjustments =
-      basementExcavationCost
-    + utilityConnectionCost
+      utilityConnectionCost
     + group240Cost
     + group250Cost
 

@@ -36,7 +36,6 @@ import {
   clampSitePreparationMultiplier,
   getSizeCorrectionFactor,
   getBasementExcavationCost,
-  getBasementStructureCost,
   getLandscapingSizeAdjustment,
   getPoolDepthFactor,
   getPlotSizeFactor,
@@ -60,8 +59,11 @@ export interface ScenarioConfig {
   mainArea: number;
   terraceArea: number;
   balconyArea: number;
-  basementArea: number;
-  basementTypeId: string;
+  basementArea?: number;
+  basementTypeId?: string;
+  storageBasementArea: number;
+  parkingBasementArea: number;
+  habitableBasementArea: number;
   includePool: boolean;
   poolSizeId: string;
   poolCustomArea: number;
@@ -92,6 +94,22 @@ function getAutoEstimatedLandAcquisitionCosts(landValue: number): number {
 function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
   const plotSize = config.plotSize ?? 4000;
+  const legacyBasementArea = config.basementArea ?? 0;
+  const legacyBasementTypeId = config.basementTypeId ?? 'storage';
+  const hasMixedBasementAreas =
+    config.storageBasementArea !== undefined ||
+    config.parkingBasementArea !== undefined ||
+    config.habitableBasementArea !== undefined;
+  const storageBasementArea = hasMixedBasementAreas
+    ? (config.storageBasementArea ?? 0)
+    : (legacyBasementTypeId === 'storage' ? legacyBasementArea : 0);
+  const parkingBasementArea = hasMixedBasementAreas
+    ? (config.parkingBasementArea ?? 0)
+    : (legacyBasementTypeId === 'parking' ? legacyBasementArea : 0);
+  const habitableBasementArea = hasMixedBasementAreas
+    ? (config.habitableBasementArea ?? 0)
+    : (legacyBasementTypeId === 'habitable' ? legacyBasementArea : 0);
+  const basementArea = storageBasementArea + parkingBasementArea + habitableBasementArea;
   const landAcquisitionCostsMode = config.landAcquisitionCostsMode ?? 'auto';
   const landAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? getAutoEstimatedLandAcquisitionCosts(landValue)
@@ -100,6 +118,11 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   return {
     ...config,
     plotSize,
+    basementArea,
+    basementTypeId: basementArea > 0 ? legacyBasementTypeId : 'storage',
+    storageBasementArea,
+    parkingBasementArea,
+    habitableBasementArea,
     landValue,
     landAcquisitionCosts,
     landAcquisitionCostsMode,
@@ -136,6 +159,9 @@ function createDefaultConfig(name: string): ScenarioConfig {
     balconyArea: 0,
     basementArea: 0,
     basementTypeId: 'storage',
+    storageBasementArea: 0,
+    parkingBasementArea: 0,
+    habitableBasementArea: 0,
     includePool: false,
     poolSizeId: 'medium',
     poolCustomArea: 35,
@@ -209,8 +235,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [mainArea, setMainArea] = useState<number>(150);
   const [terraceArea, setTerraceArea] = useState<number>(30);
   const [balconyArea, setBalconyArea] = useState<number>(0);
-  const [basementArea, setBasementArea] = useState<number>(0);
-  const [basementTypeId, setBasementTypeId] = useState<string>('storage');
+  const [storageBasementArea, setStorageBasementArea] = useState<number>(0);
+  const [parkingBasementArea, setParkingBasementArea] = useState<number>(0);
+  const [habitableBasementArea, setHabitableBasementArea] = useState<number>(0);
   const [includePool, setIncludePool] = useState<boolean>(false);
   const [poolSizeId, setPoolSizeId] = useState<string>('medium');
   const [poolCustomArea, setPoolCustomArea] = useState<number>(35);
@@ -244,8 +271,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       mainArea,
       terraceArea,
       balconyArea,
-      basementArea,
-      basementTypeId,
+      basementArea: storageBasementArea + parkingBasementArea + habitableBasementArea,
+      basementTypeId: 'storage',
+      storageBasementArea,
+      parkingBasementArea,
+      habitableBasementArea,
       includePool,
       poolSizeId,
       poolCustomArea,
@@ -270,7 +300,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     };
   }, [
     locationId, qualityId, customCostPerSqm, plotSize, mainArea, terraceArea, balconyArea,
-    basementArea, basementTypeId, includePool, poolSizeId, poolCustomArea,
+    storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, hvacSelections, utilityConnectionId, customUtilityCost,
@@ -286,8 +316,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setMainArea(config.mainArea);
     setTerraceArea(config.terraceArea);
     setBalconyArea(config.balconyArea);
-    setBasementArea(config.basementArea);
-    setBasementTypeId(config.basementTypeId);
+    setStorageBasementArea(normalizedConfig.storageBasementArea);
+    setParkingBasementArea(normalizedConfig.parkingBasementArea);
+    setHabitableBasementArea(normalizedConfig.habitableBasementArea);
     setIncludePool(config.includePool);
     setPoolSizeId(config.poolSizeId);
     setPoolCustomArea(config.poolCustomArea);
@@ -359,7 +390,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     persistState();
   }, [
     locationId, qualityId, customCostPerSqm, plotSize, mainArea, terraceArea, balconyArea,
-    basementArea, basementTypeId, includePool, poolSizeId, poolCustomArea,
+    storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, hvacSelections, utilityConnectionId, customUtilityCost,
@@ -489,14 +520,43 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [qualityId],
   );
 
-  const basementType = useMemo(
-    () => BASEMENT_TYPES.find((b) => b.id === basementTypeId) ?? BASEMENT_TYPES[0],
-    [basementTypeId],
-  );
+  const basementArea = storageBasementArea + parkingBasementArea + habitableBasementArea;
+
+  const weightedBasementArea = useMemo(() => {
+    const storageBasementType = BASEMENT_TYPES.find((b) => b.id === 'storage') ?? BASEMENT_TYPES[0];
+    const parkingBasementType = BASEMENT_TYPES.find((b) => b.id === 'parking') ?? BASEMENT_TYPES[0];
+    const habitableBasementType = BASEMENT_TYPES.find((b) => b.id === 'habitable') ?? BASEMENT_TYPES[0];
+    return storageBasementArea * storageBasementType.costFactor
+      + parkingBasementArea * parkingBasementType.costFactor
+      + habitableBasementArea * habitableBasementType.costFactor;
+  }, [storageBasementArea, parkingBasementArea, habitableBasementArea]);
+
+  const basementType = useMemo(() => {
+    const activeTypes = [
+      storageBasementArea > 0 ? 'storage' : null,
+      parkingBasementArea > 0 ? 'parking' : null,
+      habitableBasementArea > 0 ? 'habitable' : null,
+    ].filter(Boolean) as string[];
+
+    if (activeTypes.length === 1) {
+      return BASEMENT_TYPES.find((b) => b.id === activeTypes[0]) ?? BASEMENT_TYPES[0];
+    }
+
+    const weightedCostFactor = basementArea > 0 ? weightedBasementArea / basementArea : 0.50;
+    return {
+      id: 'mixed',
+      name: activeTypes.length > 1 ? 'Mixed basement' : 'Storage / technical',
+      description: activeTypes.length > 1
+        ? 'Combination of storage, parking, and/or habitable basement areas'
+        : 'Storage, technical rooms, or utility spaces',
+      costFactor: weightedCostFactor,
+      structureCostPerSqm: 0,
+    };
+  }, [storageBasementArea, parkingBasementArea, habitableBasementArea, basementArea, weightedBasementArea]);
 
   const effectiveArea = useMemo(
-    () => mainArea + terraceArea * 0.5 + balconyArea * 0.30 + basementArea * basementType.costFactor,
-    [mainArea, terraceArea, balconyArea, basementArea, basementType],
+    () => mainArea + terraceArea * 0.5 + balconyArea * 0.30 + weightedBasementArea,
+    [mainArea, terraceArea, balconyArea, weightedBasementArea],
   );
 
   const siteCondition = useMemo(
@@ -627,10 +687,22 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [basementArea, siteCondition, groundwaterCondition],
   );
 
-  const basementStructureCost = useMemo(
-    () => getBasementStructureCost(basementArea, basementType, groundwaterCondition),
-    [basementArea, basementType, groundwaterCondition],
-  );
+  const basementStructureCost = useMemo(() => {
+    const storageBasementType = BASEMENT_TYPES.find((b) => b.id === 'storage') ?? BASEMENT_TYPES[0];
+    const parkingBasementType = BASEMENT_TYPES.find((b) => b.id === 'parking') ?? BASEMENT_TYPES[0];
+    const habitableBasementType = BASEMENT_TYPES.find((b) => b.id === 'habitable') ?? BASEMENT_TYPES[0];
+
+    let cost =
+      storageBasementArea * storageBasementType.structureCostPerSqm +
+      parkingBasementArea * parkingBasementType.structureCostPerSqm +
+      habitableBasementArea * habitableBasementType.structureCostPerSqm;
+
+    if (groundwaterCondition.basementCostMultiplier > 1) {
+      cost *= 1.08;
+    }
+
+    return Math.round(cost);
+  }, [storageBasementArea, parkingBasementArea, habitableBasementArea, groundwaterCondition]);
 
   const basementTotalCost = basementExcavationCost + basementStructureCost;
 
@@ -646,9 +718,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [kg200Base, sitePreparationMultiplier],
   );
 
-  const kg200Total = siteExcavationCost + basementExcavationCost + selectedUtilityConnectionCost + group240Cost + group250Cost;
+  const kg200Total = siteExcavationCost + selectedUtilityConnectionCost + group240Cost + group250Cost;
 
-  const kg300Total = kg300Cost + basementStructureCost;
+  const kg300Total = kg300Cost;
 
   const kg300SubgroupCosts = useMemo(
     () => calculateKg300SubgroupCosts({
@@ -718,8 +790,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   );
 
   const permitDesignEffectiveArea = useMemo(
-    () => mainBuildingArea + balconyArea * 0.30 + basementArea * basementType.costFactor,
-    [mainBuildingArea, balconyArea, basementArea, basementType],
+    () => mainBuildingArea + balconyArea * 0.30 + weightedBasementArea,
+    [mainBuildingArea, balconyArea, weightedBasementArea],
   );
 
   const permitDesignFee = useMemo(() => {
@@ -817,10 +889,14 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setTerraceArea,
     balconyArea,
     setBalconyArea,
+    storageBasementArea,
+    setStorageBasementArea,
+    parkingBasementArea,
+    setParkingBasementArea,
+    habitableBasementArea,
+    setHabitableBasementArea,
     basementArea,
-    setBasementArea,
-    basementTypeId,
-    setBasementTypeId,
+    basementTypeId: basementType.id,
     basementType,
     includePool,
     setIncludePool,
@@ -911,7 +987,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     customCostPerSqm, setCustomCostPerSqm, plotSize, setPlotSize,
     mainArea, setMainArea, terraceArea, setTerraceArea,
     balconyArea, setBalconyArea,
-    basementArea, setBasementArea, basementTypeId, setBasementTypeId, basementType,
+    storageBasementArea, setStorageBasementArea,
+    parkingBasementArea, setParkingBasementArea,
+    habitableBasementArea, setHabitableBasementArea,
+    basementArea, basementType,
     includePool, setIncludePool,
     poolSizeId, setPoolSizeId, poolSizeOption,
     poolCustomArea, setPoolCustomArea, poolCustomDepth, setPoolCustomDepth,

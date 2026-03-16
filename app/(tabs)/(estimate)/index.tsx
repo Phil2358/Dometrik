@@ -26,8 +26,6 @@ import {
   DISCLAIMER_TEXT,
   SITE_CONDITIONS,
   SITE_CONDITIONS_TOOLTIP,
-  BASEMENT_TYPES,
-  BASEMENT_TYPE_TOOLTIP,
   HVAC_OPTIONS,
   HVAC_TOOLTIP,
   POOL_SIZE_OPTIONS,
@@ -233,11 +231,13 @@ export default function EstimateScreen() {
     setTerraceArea,
     balconyArea,
     setBalconyArea,
+    storageBasementArea,
+    setStorageBasementArea,
+    parkingBasementArea,
+    setParkingBasementArea,
+    habitableBasementArea,
+    setHabitableBasementArea,
     basementArea,
-    setBasementArea,
-    basementTypeId,
-    setBasementTypeId,
-    basementType,
     includePool,
     setIncludePool,
     poolSizeId,
@@ -298,9 +298,6 @@ export default function EstimateScreen() {
     siteAccessibilityId,
     setSiteAccessibilityId,
     siteAccessibility,
-    basementExcavationCost,
-    basementStructureCost,
-    basementTotalCost,
     resetAllData,
   } = useEstimate();
 
@@ -343,23 +340,12 @@ export default function EstimateScreen() {
 
   const [showCostBasisInfo, setShowCostBasisInfo] = React.useState<boolean>(false);
   const [showSiteConditionInfo, setShowSiteConditionInfo] = React.useState<boolean>(false);
-  const [showBasementTypeInfo, setShowBasementTypeInfo] = React.useState<boolean>(false);
   const [showHvacInfo, setShowHvacInfo] = React.useState<boolean>(false);
   const [showPoolInfo, setShowPoolInfo] = React.useState<boolean>(false);
   const [showPermitDesignInfo, setShowPermitDesignInfo] = React.useState<boolean>(false);
   const [showUtilityInfo, setShowUtilityInfo] = React.useState<boolean>(false);
   const [showGroundwaterInfo, setShowGroundwaterInfo] = React.useState<boolean>(false);
   const [showAccessibilityInfo, setShowAccessibilityInfo] = React.useState<boolean>(false);
-
-  const handleBasementTypeSelect = useCallback(
-    (id: string) => {
-      if (Platform.OS !== 'web') {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-      setBasementTypeId(id);
-    },
-    [setBasementTypeId],
-  );
 
   return (
     <View style={styles.outerContainer}>
@@ -651,7 +637,7 @@ export default function EstimateScreen() {
           <Text style={styles.effectiveValue}>{`${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}</Text>
         </View>
         <Text style={styles.effectiveFormula}>
-          {`${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${basementArea > 0 ? ` + (${formatNumber(basementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(basementType.costFactor, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
+          {`${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${storageBasementArea > 0 ? ` + (${formatNumber(storageBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})` : ''}${parkingBasementArea > 0 ? ` + (${formatNumber(parkingBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.65, 2)})` : ''}${habitableBasementArea > 0 ? ` + (${formatNumber(habitableBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.85, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
         </Text>
       </View>
 
@@ -661,69 +647,50 @@ export default function EstimateScreen() {
       </View>
       <View style={styles.card}>
         <SliderInput
-          label="Basement Area"
-          subtitle="Separate from main building area"
-          value={basementArea}
-          onChangeValue={setBasementArea}
+          label="Storage Basement Area"
+          subtitle="Technical rooms, storage, utility spaces"
+          value={storageBasementArea}
+          onChangeValue={setStorageBasementArea}
           min={0}
           max={250}
           step={5}
-          testID="slider-basement-area"
+          badge="50%"
+          testID="slider-storage-basement-area"
+        />
+        <View style={styles.divider} />
+        <SliderInput
+          label="Parking Basement Area"
+          subtitle="Garage and vehicle storage areas"
+          value={parkingBasementArea}
+          onChangeValue={setParkingBasementArea}
+          min={0}
+          max={250}
+          step={5}
+          badge="65%"
+          testID="slider-parking-basement-area"
+        />
+        <View style={styles.divider} />
+        <SliderInput
+          label="Habitable Basement Area"
+          subtitle="Guest rooms, recreation, living-quality basement space"
+          value={habitableBasementArea}
+          onChangeValue={setHabitableBasementArea}
+          min={0}
+          max={250}
+          step={5}
+          badge="85%"
+          testID="slider-habitable-basement-area"
         />
         {basementArea > 0 && (
           <>
             <View style={styles.divider} />
-            <View style={styles.basementTypeHeader}>
-              <Text style={styles.basementTypeTitle}>Basement Type</Text>
-              <TouchableOpacity
-                onPress={() => setShowBasementTypeInfo(!showBasementTypeInfo)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                testID="basement-type-info-btn"
-              >
-                <Info size={14} color={Colors.textTertiary} />
-              </TouchableOpacity>
+            <View style={styles.effectiveRow}>
+              <Text style={styles.effectiveLabel}>Basement Mix</Text>
+              <Text style={styles.effectiveValue}>{`${formatNumber(basementArea)} ${SQUARE_METER_UNIT}`}</Text>
             </View>
-            {showBasementTypeInfo && (
-              <View style={styles.basementTooltip}>
-                <Text style={styles.basementTooltipText}>{sanitizeEstimateText(BASEMENT_TYPE_TOOLTIP)}</Text>
-              </View>
-            )}
-            <View style={styles.basementTypeOptions}>
-              {BASEMENT_TYPES.map((bt) => {
-                const isSelected = basementTypeId === bt.id;
-                return (
-                  <TouchableOpacity
-                    key={bt.id}
-                    activeOpacity={0.7}
-                    style={[styles.basementTypeBtn, isSelected && styles.basementTypeBtnSelected]}
-                    onPress={() => handleBasementTypeSelect(bt.id)}
-                    testID={`basement-type-${bt.id}`}
-                  >
-                    <Text style={[styles.basementTypeName, isSelected && styles.basementTypeNameSelected]}>
-                      {bt.name}
-                    </Text>
-                    <Text style={[styles.basementTypeDesc, isSelected && styles.basementTypeDescSelected]}>
-                      {bt.description}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.basementCostBreakdown}>
-              <View style={styles.basementCostRow}>
-                <Text style={styles.basementCostLabel}>Excavation (KG 200)</Text>
-                <Text style={styles.basementCostValue}>{formatCurrency(basementExcavationCost)}</Text>
-              </View>
-              <View style={styles.basementCostRow}>
-                <Text style={styles.basementCostLabel}>Structure (KG 300)</Text>
-                <Text style={styles.basementCostValue}>{formatCurrency(basementStructureCost)}</Text>
-              </View>
-              <View style={[styles.basementCostRow, styles.basementCostTotal]}>
-                <Text style={styles.basementCostTotalLabel}>Total Basement</Text>
-                <Text style={styles.basementCostTotalValue}>{formatCurrency(basementTotalCost)}</Text>
-              </View>
-            </View>
+            <Text style={styles.effectiveFormula}>
+              {`${storageBasementArea > 0 ? `${formatNumber(storageBasementArea)} ${SQUARE_METER_UNIT} storage` : ''}${storageBasementArea > 0 && (parkingBasementArea > 0 || habitableBasementArea > 0) ? ` ${MIDDLE_DOT} ` : ''}${parkingBasementArea > 0 ? `${formatNumber(parkingBasementArea)} ${SQUARE_METER_UNIT} parking` : ''}${parkingBasementArea > 0 && habitableBasementArea > 0 ? ` ${MIDDLE_DOT} ` : ''}${habitableBasementArea > 0 ? `${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT} habitable` : ''}`}
+            </Text>
           </>
         )}
       </View>

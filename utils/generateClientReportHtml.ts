@@ -1,4 +1,5 @@
 import { formatEuro } from '@/constants/construction';
+import { formatBasementSummary } from '@/utils/computeScenarioCosts';
 
 export interface ClientReportData {
   location: string;
@@ -7,7 +8,9 @@ export interface ClientReportData {
   qualityName: string;
   balconyArea: number;
   basementArea: number;
-  basementTypeName: string;
+  storageBasementArea: number;
+  parkingBasementArea: number;
+  habitableBasementArea: number;
   includePool: boolean;
   poolArea: number;
   poolDepth: number;
@@ -29,8 +32,6 @@ export interface ClientReportData {
   constructionSubtotal: number;
   contingencyPercent: number;
   sizeCorrectionFactor: number;
-  basementExcavationCost: number;
-  basementStructureCost: number;
 }
 
 interface ChartSegment {
@@ -81,13 +82,7 @@ function buildAssumptions(data: ClientReportData): string[] {
     assumptions.push(`Size correction: ${corrText} (living area ${data.mainArea} m²)`);
   }
   if (data.basementArea > 0) {
-    assumptions.push(`${data.basementTypeName} basement (${data.basementArea} m²)`);
-    if (data.basementExcavationCost > 0) {
-      assumptions.push(`Basement excavation: ${formatEuro(data.basementExcavationCost)}`);
-    }
-    if (data.basementStructureCost > 0) {
-      assumptions.push(`Basement structure: ${formatEuro(data.basementStructureCost)}`);
-    }
+    assumptions.push(`Basement mix: ${formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea)}`);
   }
   if (data.includePool) {
     assumptions.push(`${data.poolQualityName} · ${data.poolTypeName}`);
@@ -212,7 +207,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     overviewItems.push({ label: 'Balconies', value: `${data.balconyArea} m² (30% weighting)` });
   }
   if (data.basementArea > 0) {
-    overviewItems.push({ label: 'Basement', value: `${data.basementArea} m² · ${data.basementTypeName}` });
+    overviewItems.push({ label: 'Basement', value: formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea) });
   }
   if (data.includePool) {
     overviewItems.push({ label: 'Swimming pool', value: `${data.poolArea} m² · ${data.poolDepth.toFixed(2)} m · ${data.poolTypeName}` });

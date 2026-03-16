@@ -14,8 +14,11 @@ interface ProjectCalculationInput {
   mainArea: number
   terraceArea: number
   balconyArea: number
-  basementArea: number
-  basementTypeId: string
+  basementArea?: number
+  basementTypeId?: string
+  storageBasementArea?: number
+  parkingBasementArea?: number
+  habitableBasementArea?: number
 
   locationId: string
   qualityId: string
@@ -41,6 +44,15 @@ interface ProjectCalculationInput {
 }
 
 export function calculateProjectCost(input: ProjectCalculationInput) {
+  const totalBasementArea =
+    (input.storageBasementArea ?? 0) +
+    (input.parkingBasementArea ?? 0) +
+    (input.habitableBasementArea ?? 0)
+
+  const resolvedBasementArea =
+    totalBasementArea > 0
+      ? totalBasementArea
+      : (input.basementArea ?? 0)
 
   // -----------------------------------------
   // Effective area
@@ -52,7 +64,10 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       terraceArea: input.terraceArea,
       balconyArea: input.balconyArea,
       basementArea: input.basementArea,
-      basementTypeId: input.basementTypeId
+      basementTypeId: input.basementTypeId,
+      storageBasementArea: input.storageBasementArea,
+      parkingBasementArea: input.parkingBasementArea,
+      habitableBasementArea: input.habitableBasementArea
     })
 
 
@@ -101,7 +116,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       kg200Base: buildingCost.kg200Base,
       plotSize: input.plotSize,
       mainArea: input.mainArea,
-      basementArea: input.basementArea,
+      basementArea: resolvedBasementArea,
       siteConditionId: input.siteConditionId,
       groundwaterConditionId: input.groundwaterConditionId,
       accessibilityId: input.accessibilityId,
@@ -118,12 +133,15 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     calculateBasementCosts({
       basementArea: input.basementArea,
       basementTypeId: input.basementTypeId,
+      storageBasementArea: input.storageBasementArea,
+      parkingBasementArea: input.parkingBasementArea,
+      habitableBasementArea: input.habitableBasementArea,
       groundwaterConditionId: input.groundwaterConditionId,
       siteConditionIsRocky: input.siteConditionId === "rock"
     })
 
   const kg300Total =
-    categoryCosts.kg300Total + basementCosts.basementStructureCost
+    categoryCosts.kg300Total
 
   const kg300SubgroupCosts =
     calculateKg300SubgroupCosts({
@@ -181,7 +199,6 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       categoryCosts.kg300Total
     + categoryCosts.kg400Total
     + siteCosts.kg200Total
-    + basementCosts.basementStructureCost
     + hvacCosts.hvacExtrasCost
     + poolCosts.poolCost
     + landscapingCosts.landscapingCost
