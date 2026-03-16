@@ -124,6 +124,7 @@ export interface SiteCondition {
   name: string;
   description: string;
   terrainMultiplier: number;
+  sitePreparationFactor: number;
   isRocky: boolean;
 }
 
@@ -133,6 +134,7 @@ export const SITE_CONDITIONS: SiteCondition[] = [
     name: 'Flat / normal soil',
     description: 'Level terrain with standard soil conditions',
     terrainMultiplier: 1.00,
+    sitePreparationFactor: 0.90,
     isRocky: false,
   },
   {
@@ -140,6 +142,7 @@ export const SITE_CONDITIONS: SiteCondition[] = [
     name: 'Flat / rocky soil',
     description: 'Level terrain with rock requiring excavation',
     terrainMultiplier: 1.10,
+    sitePreparationFactor: 1.10,
     isRocky: true,
   },
   {
@@ -147,6 +150,7 @@ export const SITE_CONDITIONS: SiteCondition[] = [
     name: 'Inclined / normal soil',
     description: 'Sloped terrain with standard soil',
     terrainMultiplier: 1.30,
+    sitePreparationFactor: 1.25,
     isRocky: false,
   },
   {
@@ -154,6 +158,7 @@ export const SITE_CONDITIONS: SiteCondition[] = [
     name: 'Inclined / rocky soil',
     description: 'Sloped terrain with rock requiring excavation',
     terrainMultiplier: 1.40,
+    sitePreparationFactor: 1.45,
     isRocky: true,
   },
   {
@@ -161,6 +166,7 @@ export const SITE_CONDITIONS: SiteCondition[] = [
     name: 'Inclined / sandy or unstable soil',
     description: 'Sloped terrain with sandy or unstable ground',
     terrainMultiplier: 1.60,
+    sitePreparationFactor: 1.45,
     isRocky: false,
   },
 ];
@@ -200,6 +206,7 @@ export interface SiteAccessibility {
   name: string;
   description: string;
   fixedCost: number;
+  sitePreparationFactor: number;
 }
 
 export const SITE_ACCESSIBILITY_OPTIONS: SiteAccessibility[] = [
@@ -208,24 +215,28 @@ export const SITE_ACCESSIBILITY_OPTIONS: SiteAccessibility[] = [
     name: 'Normal road access',
     description: 'Concrete trucks and construction equipment can reach the site easily',
     fixedCost: 0,
+    sitePreparationFactor: 1.00,
   },
   {
     id: 'limited',
     name: 'Limited truck access',
     description: 'Narrow or steep roads may require smaller trucks or additional logistics',
-    fixedCost: 5000,
+    fixedCost: 0,
+    sitePreparationFactor: 1.10,
   },
   {
     id: 'difficult',
     name: 'Difficult access / narrow road',
     description: 'Construction vehicles cannot reach the site directly. Materials may require cranes or manual transport',
-    fixedCost: 12000,
+    fixedCost: 0,
+    sitePreparationFactor: 1.22,
   },
   {
     id: 'very_difficult',
     name: 'Very difficult access / crane logistics',
     description: 'Remote or inaccessible site requiring crane logistics and manual material transport',
-    fixedCost: 20000,
+    fixedCost: 0,
+    sitePreparationFactor: 1.40,
   },
 ];
 
@@ -238,6 +249,18 @@ export const VERY_DIFFICULT_ACCESS_WARNING = `Very difficult site access with cr
 export const LANDSCAPING_BASE_COST_PER_SQM = 40;
 
 export const BASE_EXCAVATION_COST_PER_SQM = 80;
+
+export function getPlotSizeFactor(plotSize: number): number {
+  if (plotSize <= 800) return 0.90;
+  if (plotSize <= 2000) return 1.00;
+  if (plotSize <= 4000) return 1.10;
+  if (plotSize <= 8000) return 1.22;
+  return 1.35;
+}
+
+export function clampSitePreparationMultiplier(multiplier: number): number {
+  return Math.min(1.80, Math.max(0.80, multiplier));
+}
 
 export function getSizeCorrectionFactor(livingArea: number): number {
   if (livingArea < 120) return 1.10;

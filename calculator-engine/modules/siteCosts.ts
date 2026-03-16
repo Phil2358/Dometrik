@@ -4,12 +4,15 @@ import {
   SITE_ACCESSIBILITY_OPTIONS,
   UTILITY_CONNECTION_OPTIONS,
   BASE_EXCAVATION_COST_PER_SQM,
+  clampSitePreparationMultiplier,
   getBasementExcavationCost,
+  getPlotSizeFactor,
   getUtilityConnectionGroupCosts
 } from "../../constants/construction"
 
 interface SiteCostsInput {
   kg200Base: number
+  plotSize: number
   mainArea: number
   basementArea: number
 
@@ -36,27 +39,20 @@ export function calculateSiteCosts(input: SiteCostsInput) {
     groundwaterConditions.find((g: any) => g.id === input.groundwaterConditionId)
     ?? groundwaterConditions[0]
 
-  const accessibility =
-    accessibilityOptions.find((a: any) => a.id === input.accessibilityId)
-    ?? accessibilityOptions[0]
-
   const utility =
     utilityOptions.find((u: any) => u.id === input.utilityConnectionId)
     ?? utilityOptions[0]
 
-  // main building excavation
-  const baselineSiteCondition =
-    siteConditions.find((s: any) => s.id === "flat_normal")
-    ?? siteConditions[0]
+  const accessibility =
+    accessibilityOptions.find((a: any) => a.id === input.accessibilityId)
+    ?? accessibilityOptions[0]
 
-  let siteExcavationCost =
-    input.mainArea * 15 * BASE_EXCAVATION_COST_PER_SQM
-
-  siteExcavationCost =
-    siteExcavationCost * siteCondition.terrainMultiplier
-
-  const baselineSiteExcavationCost =
-    input.mainArea * 15 * BASE_EXCAVATION_COST_PER_SQM * baselineSiteCondition.terrainMultiplier
+  const sitePreparationMultiplier =
+    clampSitePreparationMultiplier(
+      getPlotSizeFactor(input.plotSize) *
+      siteCondition.sitePreparationFactor *
+      accessibility.sitePreparationFactor
+    )
 
   // basement excavation
   const basementExcavationCost =
@@ -76,26 +72,29 @@ export function calculateSiteCosts(input: SiteCostsInput) {
     getUtilityConnectionGroupCosts(input.utilityConnectionId, utilityConnectionCost)
 
   // logistics / access
-  const accessibilityCost =
-    accessibility.fixedCost
+  const group240Cost = 0
+  const accessibilityCost = 0
+  const group250Cost = accessibilityCost
 
   const kg200Adjustments =
-      (siteExcavationCost - baselineSiteExcavationCost)
-    + basementExcavationCost
+      basementExcavationCost
     + utilityConnectionCost
-    + accessibilityCost
+    + group240Cost
+    + group250Cost
 
   const kg200Total =
     input.kg200Base +
     kg200Adjustments
 
   return {
-    siteExcavationCost: Math.round(input.kg200Base + (siteExcavationCost - baselineSiteExcavationCost)),
+    siteExcavationCost: Math.round(input.kg200Base * sitePreparationMultiplier),
     basementExcavationCost: Math.round(basementExcavationCost),
     utilityConnectionCost: Math.round(utilityConnectionCost),
     group220Cost: utilityGroupCosts.group220Cost,
     group230Cost: utilityGroupCosts.group230Cost,
+    group240Cost,
     accessibilityCost,
+    group250Cost,
     kg200Total: Math.round(kg200Total)
   }
 

@@ -32,11 +32,13 @@ import {
   KG300_CATEGORY_IDS,
   KG400_CATEGORY_IDS,
   KG600_CATEGORY_IDS,
+  clampSitePreparationMultiplier,
   getSizeCorrectionFactor,
   getBasementExcavationCost,
   getBasementStructureCost,
   getLandscapingSizeAdjustment,
   getPoolDepthFactor,
+  getPlotSizeFactor,
   getUtilityConnectionGroupCosts,
 } from '@/constants/construction';
 import type { CostCategory } from '@/constants/construction';
@@ -53,6 +55,7 @@ export interface ScenarioConfig {
   locationId: string;
   qualityId: string;
   customCostPerSqm: number | null;
+  plotSize: number;
   mainArea: number;
   terraceArea: number;
   balconyArea: number;
@@ -87,6 +90,7 @@ function getAutoEstimatedLandAcquisitionCosts(landValue: number): number {
 
 function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
+  const plotSize = config.plotSize ?? 4000;
   const landAcquisitionCostsMode = config.landAcquisitionCostsMode ?? 'auto';
   const landAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? getAutoEstimatedLandAcquisitionCosts(landValue)
@@ -94,6 +98,7 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
 
   return {
     ...config,
+    plotSize,
     landValue,
     landAcquisitionCosts,
     landAcquisitionCostsMode,
@@ -124,6 +129,7 @@ function createDefaultConfig(name: string): ScenarioConfig {
     locationId: 'corfu',
     qualityId: 'premium',
     customCostPerSqm: null,
+    plotSize: 4000,
     mainArea: 150,
     terraceArea: 30,
     balconyArea: 0,
@@ -198,6 +204,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [locationId, setLocationId] = useState<string>('corfu');
   const [qualityId, setQualityId] = useState<string>('premium');
   const [customCostPerSqm, setCustomCostPerSqm] = useState<number | null>(null);
+  const [plotSize, setPlotSize] = useState<number>(4000);
   const [mainArea, setMainArea] = useState<number>(150);
   const [terraceArea, setTerraceArea] = useState<number>(30);
   const [balconyArea, setBalconyArea] = useState<number>(0);
@@ -232,6 +239,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       locationId,
       qualityId,
       customCostPerSqm,
+      plotSize,
       mainArea,
       terraceArea,
       balconyArea,
@@ -260,7 +268,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       siteAccessibilityId,
     };
   }, [
-    locationId, qualityId, customCostPerSqm, mainArea, terraceArea, balconyArea,
+    locationId, qualityId, customCostPerSqm, plotSize, mainArea, terraceArea, balconyArea,
     basementArea, basementTypeId, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
@@ -273,6 +281,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setLocationId(config.locationId);
     setQualityId(config.qualityId);
     setCustomCostPerSqm(config.customCostPerSqm);
+    setPlotSize(config.plotSize ?? 4000);
     setMainArea(config.mainArea);
     setTerraceArea(config.terraceArea);
     setBalconyArea(config.balconyArea);
@@ -348,7 +357,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   useEffect(() => {
     persistState();
   }, [
-    locationId, qualityId, customCostPerSqm, mainArea, terraceArea, balconyArea,
+    locationId, qualityId, customCostPerSqm, plotSize, mainArea, terraceArea, balconyArea,
     basementArea, basementTypeId, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
@@ -504,7 +513,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [siteAccessibilityId],
   );
 
-  const siteAccessibilityCost = siteAccessibility.fixedCost;
+  const group240Cost = 0;
+  const group250Cost = 0;
+  const siteAccessibilityCost = group250Cost;
 
   const baseCostPerSqm = customCostPerSqm ?? quality.baseCostPerSqm;
   const costPerSqm = Math.round(baseCostPerSqm * location.multiplier);
@@ -605,6 +616,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [utilityConnectionId, selectedUtilityConnectionCost],
   );
 
+  const plotSizeFactor = useMemo(
+    () => getPlotSizeFactor(plotSize),
+    [plotSize],
+  );
+
   const basementExcavationCost = useMemo(
     () => getBasementExcavationCost(basementArea, siteCondition, groundwaterCondition),
     [basementArea, siteCondition, groundwaterCondition],
@@ -617,17 +633,19 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const basementTotalCost = basementExcavationCost + basementStructureCost;
 
-  const baselineSiteExcavationCost = useMemo(
-    () => Math.round(mainArea * 15),
-    [mainArea],
+  const sitePreparationMultiplier = useMemo(
+    () => clampSitePreparationMultiplier(
+      plotSizeFactor * siteCondition.sitePreparationFactor * siteAccessibility.sitePreparationFactor
+    ),
+    [plotSizeFactor, siteCondition, siteAccessibility],
   );
 
   const siteExcavationCost = useMemo(
-    () => Math.round(kg200Base + (Math.round(mainArea * 15 * siteCondition.terrainMultiplier) - baselineSiteExcavationCost)),
-    [kg200Base, mainArea, siteCondition, baselineSiteExcavationCost],
+    () => Math.round(kg200Base * sitePreparationMultiplier),
+    [kg200Base, sitePreparationMultiplier],
   );
 
-  const kg200Total = siteExcavationCost + basementExcavationCost + selectedUtilityConnectionCost + siteAccessibilityCost;
+  const kg200Total = siteExcavationCost + basementExcavationCost + selectedUtilityConnectionCost + group240Cost + group250Cost;
 
   const kg300Total = kg300Cost + basementStructureCost;
 
@@ -779,6 +797,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     totalHvacCost,
     customCostPerSqm,
     setCustomCostPerSqm,
+    plotSize,
+    setPlotSize,
     mainArea,
     setMainArea,
     terraceArea,
@@ -837,6 +857,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setSiteAccessibilityId,
     siteAccessibility,
     siteAccessibilityCost,
+    group240Cost,
+    group250Cost,
     kg200Total,
     kg300Cost,
     kg300Total,
@@ -853,6 +875,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     basementStructureCost,
     basementTotalCost,
     siteExcavationCost,
+    plotSizeFactor,
+    sitePreparationMultiplier,
     scenarios,
     activeScenarioIndex,
     switchScenario,
@@ -871,7 +895,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landAcquisitionCostsMode, setLandAcquisitionCostsMode,
     bathrooms, setBathrooms, wcs, setWcs,
     hvacSelections, toggleHvacOption, hvacCosts, totalHvacCost,
-    customCostPerSqm, setCustomCostPerSqm,
+    customCostPerSqm, setCustomCostPerSqm, plotSize, setPlotSize,
     mainArea, setMainArea, terraceArea, setTerraceArea,
     balconyArea, setBalconyArea,
     basementArea, setBasementArea, basementTypeId, setBasementTypeId, basementType,
@@ -887,10 +911,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     constructionCost, categoryCosts, contractorCost, poolCost, permitDesignFee, totalCost,
     utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, selectedUtilityConnectionCost, utilityGroupCosts,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
-    siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost,
+    siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
     kg200Total, kg300Cost, kg300Total, kg400Cost, kg400Total, kg500Total, kg600Cost,
     constructionSubtotal, contingencyPercent, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
-    basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost,
+    basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
     getAllScenarioConfigs, resetAllData,
   ]);

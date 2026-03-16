@@ -316,8 +316,6 @@ export default function BreakdownScreen() {
     quality,
     siteCondition,
     groundwaterCondition,
-    siteAccessibility,
-    siteAccessibilityCost,
     landscapingArea,
     landscapingCost,
     balconyArea,
@@ -408,12 +406,10 @@ export default function BreakdownScreen() {
         subgroups: [
           {
             code: '210',
-            name: 'Site preparation / earthworks',
-            cost: siteExcavationCost + basementExcavationCost,
+            name: 'Site preparation',
+            cost: siteExcavationCost,
             icon: Shovel,
-            sublabel: basementArea > 0
-              ? `Building footprint + basement excavation ${MIDDLE_DOT} ${siteCondition.name}`
-              : `Building footprint ${MIDDLE_DOT} ${siteCondition.name}`,
+            sublabel: `Basic plot preparation ${MIDDLE_DOT} ${siteCondition.name}`,
             visible: true,
           },
           {
@@ -433,14 +429,20 @@ export default function BreakdownScreen() {
             visible: true,
           },
           {
+            code: '240',
+            name: 'Compensation measures and levies',
+            cost: 0,
+            icon: ClipboardCheck,
+            sublabel: 'Reserved for future logic',
+            visible: false,
+          },
+          {
             code: '250',
             name: 'Temporary construction measures',
-            cost: siteAccessibilityCost,
+            cost: 0,
             icon: HardHat,
-            sublabel: siteAccessibilityCost > 0
-              ? `Site logistics ${MIDDLE_DOT} ${siteAccessibility.name}`
-              : 'Site logistics, temporary facilities',
-            visible: siteAccessibilityCost > 0,
+            sublabel: 'Reserved for future logic',
+            visible: false,
           },
         ],
       },
@@ -665,7 +667,7 @@ export default function BreakdownScreen() {
     siteExcavationCost, basementExcavationCost, utilityGroup220Cost, utilityGroup230Cost, basementStructureCost,
     basementArea, basementType, siteCondition, landscapingCost, landscapingArea, poolCost,
     includePool, poolArea, poolQualityOption, poolTypeOption, enabledHvac, getCategoryCost,
-    siteAccessibilityCost, siteAccessibility, landValue, displayedLandAcquisitionCosts, landAcquisitionCostsMode, investmentTotal,
+    landValue, displayedLandAcquisitionCosts, landAcquisitionCostsMode, investmentTotal,
   ]);
 
   return (
@@ -694,10 +696,6 @@ export default function BreakdownScreen() {
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Groundwater</Text>
             <Text style={styles.assumptionValue}>{groundwaterCondition.name}</Text>
-          </View>
-          <View style={styles.assumptionItem}>
-            <Text style={styles.assumptionLabel}>Site Access</Text>
-            <Text style={styles.assumptionValue}>{siteAccessibility.name}</Text>
           </View>
           {basementArea > 0 && (
             <View style={styles.assumptionItem}>

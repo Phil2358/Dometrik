@@ -10,6 +10,7 @@ import { calculatePermitCosts } from "./modules/permitCosts"
 
 interface ProjectCalculationInput {
 
+  plotSize: number
   mainArea: number
   terraceArea: number
   balconyArea: number
@@ -98,6 +99,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
   const siteCosts =
     calculateSiteCosts({
       kg200Base: buildingCost.kg200Base,
+      plotSize: input.plotSize,
       mainArea: input.mainArea,
       basementArea: input.basementArea,
       siteConditionId: input.siteConditionId,

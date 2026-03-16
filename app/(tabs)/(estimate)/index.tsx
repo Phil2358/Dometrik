@@ -279,6 +279,8 @@ export default function EstimateScreen() {
     quality,
     effectiveArea,
     baseCostPerSqm,
+    plotSize,
+    setPlotSize,
     sizeCorrectionFactor,
     correctedCostPerSqm,
     contractorCost,
@@ -836,6 +838,24 @@ export default function EstimateScreen() {
       )}
 
       <View style={styles.sectionHeader}>
+        <Ruler size={16} color={Colors.accent} />
+        <Text style={styles.sectionTitle}>Plot size</Text>
+      </View>
+      <View style={styles.card}>
+        <SliderInput
+          label="Plot size"
+          subtitle=""
+          value={plotSize}
+          onChangeValue={setPlotSize}
+          min={500}
+          max={10000}
+          step={100}
+          suffix={SQUARE_METER_UNIT}
+          testID="slider-plot-size"
+        />
+      </View>
+
+      <View style={styles.sectionHeader}>
         <Truck size={16} color={Colors.accent} />
         <Text style={styles.sectionTitle}>Site Accessibility</Text>
         <TouchableOpacity
@@ -879,16 +899,6 @@ export default function EstimateScreen() {
             </React.Fragment>
           );
         })}
-        {siteAccessibility.fixedCost > 0 && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.effectiveRow}>
-              <Text style={styles.effectiveLabel}>Access Logistics Cost</Text>
-              <Text style={styles.effectiveValue}>{formatCurrency(siteAccessibility.fixedCost)}</Text>
-            </View>
-            <Text style={styles.effectiveFormula}>{`Fixed cost added to KG 250 ${EN_DASH} Temporary construction measures`}</Text>
-          </>
-        )}
       </View>
       {(siteAccessibilityId === 'difficult' || siteAccessibilityId === 'very_difficult') && (
         <View style={styles.warningCard}>
