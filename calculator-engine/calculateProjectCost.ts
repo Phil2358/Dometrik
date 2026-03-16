@@ -1,6 +1,12 @@
 import { calculateEffectiveArea } from "./modules/effectiveArea"
 import { calculateRawBuildingCost } from "./modules/rawBuildingCost"
-import { calculateCategoryCosts, calculateKg300SubgroupCosts } from "./modules/categoryCosts"
+import {
+  calculateCategoryCosts,
+  calculateKg300SubgroupCosts,
+  calculateWeightedBasementArea,
+  getAdjustedKg300Share,
+  getAdjustedKg400Share
+} from "./modules/categoryCosts"
 import { calculateSiteCosts } from "./modules/siteCosts"
 import { calculateBasementCosts } from "./modules/basementCosts"
 import { calculateHvacExtras } from "./modules/hvacExtras"
@@ -70,6 +76,16 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       habitableBasementArea: input.habitableBasementArea
     })
 
+  const weightedBasementArea =
+    calculateWeightedBasementArea({
+      storageBasementArea: input.storageBasementArea,
+      parkingBasementArea: input.parkingBasementArea,
+      habitableBasementArea: input.habitableBasementArea
+    })
+
+  const weightedBasementRatio =
+    weightedBasementArea / Math.max(input.mainArea, 1)
+
 
   // -----------------------------------------
   // Raw building cost
@@ -91,8 +107,8 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
 
   const categoryCosts =
     calculateCategoryCosts({
-      kg300Base: buildingCost.kg300Base,
-      kg400Base: buildingCost.kg400Base
+      kg300Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg300Share(weightedBasementRatio)),
+      kg400Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg400Share(weightedBasementRatio))
     })
 
 
@@ -147,6 +163,10 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     calculateKg300SubgroupCosts({
       kg300Total,
       effectiveArea,
+      mainArea: input.mainArea,
+      storageBasementArea: input.storageBasementArea,
+      parkingBasementArea: input.parkingBasementArea,
+      habitableBasementArea: input.habitableBasementArea,
       locationId: input.locationId,
       qualityId: input.qualityId,
       sizeCorrectionFactor: buildingCost.sizeCorrectionFactor

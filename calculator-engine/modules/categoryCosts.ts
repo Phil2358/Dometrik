@@ -1,4 +1,6 @@
 import {
+  BASEMENT_TYPES,
+  BASE_GROUP_SHARE_KG400,
   BASE_GROUP_SHARE_KG300,
   COST_CATEGORIES,
   KG300_CATEGORY_IDS,
@@ -23,6 +25,10 @@ interface Kg300SubgroupShareSet {
 interface Kg300SubgroupCostsInput {
   kg300Total: number
   effectiveArea: number
+  mainArea: number
+  storageBasementArea?: number
+  parkingBasementArea?: number
+  habitableBasementArea?: number
   locationId: string
   qualityId: string
   sizeCorrectionFactor: number
@@ -42,23 +48,56 @@ export interface Kg300SubgroupCosts {
 
 const KG300_FLEXIBLE_SUBGROUP_SHARES: Record<string, Kg300SubgroupShareSet> = {
   standard: {
-    subgroup330Share: 0.54,
-    subgroup340Share: 0.26,
+    subgroup330Share: 0.55,
+    subgroup340Share: 0.25,
     subgroup360Share: 0.15,
     subgroup390Share: 0.05
   },
   premium: {
     subgroup330Share: 0.60,
-    subgroup340Share: 0.21,
-    subgroup360Share: 0.14,
+    subgroup340Share: 0.23,
+    subgroup360Share: 0.12,
     subgroup390Share: 0.05
   },
   luxury: {
-    subgroup330Share: 0.67,
-    subgroup340Share: 0.15,
-    subgroup360Share: 0.13,
+    subgroup330Share: 0.65,
+    subgroup340Share: 0.20,
+    subgroup360Share: 0.10,
     subgroup390Share: 0.05
   }
+}
+
+const KG300_PLUS_KG400_BASE_SHARE = BASE_GROUP_SHARE_KG300 + BASE_GROUP_SHARE_KG400
+
+export function calculateWeightedBasementArea(input: {
+  storageBasementArea?: number
+  parkingBasementArea?: number
+  habitableBasementArea?: number
+}): number {
+  const storageBasementType =
+    BASEMENT_TYPES.find((entry: any) => entry.id === "storage") ??
+    BASEMENT_TYPES[0]
+  const parkingBasementType =
+    BASEMENT_TYPES.find((entry: any) => entry.id === "parking") ??
+    BASEMENT_TYPES[0]
+  const habitableBasementType =
+    BASEMENT_TYPES.find((entry: any) => entry.id === "habitable") ??
+    BASEMENT_TYPES[0]
+
+  return (input.storageBasementArea ?? 0) * storageBasementType.costFactor
+    + (input.parkingBasementArea ?? 0) * parkingBasementType.costFactor
+    + (input.habitableBasementArea ?? 0) * habitableBasementType.costFactor
+}
+
+export function getAdjustedKg300Share(weightedBasementRatio: number): number {
+  if (weightedBasementRatio <= 0) return BASE_GROUP_SHARE_KG300
+  if (weightedBasementRatio <= 0.15) return 0.655
+  if (weightedBasementRatio <= 0.30) return 0.67
+  return 0.685
+}
+
+export function getAdjustedKg400Share(weightedBasementRatio: number): number {
+  return KG300_PLUS_KG400_BASE_SHARE - getAdjustedKg300Share(weightedBasementRatio)
 }
 
 export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg300SubgroupCosts {
@@ -66,18 +105,53 @@ export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg3
     LOCATIONS.find((entry: any) => entry.id === input.locationId) ??
     LOCATIONS[0]
 
+  const weightedBasementArea =
+    calculateWeightedBasementArea({
+      storageBasementArea: input.storageBasementArea,
+      parkingBasementArea: input.parkingBasementArea,
+      habitableBasementArea: input.habitableBasementArea
+    })
+
+  const weightedBasementRatio =
+    weightedBasementArea / Math.max(input.mainArea, 1)
+
+  const adjustedKg300Share =
+    getAdjustedKg300Share(weightedBasementRatio)
+
   const premiumBenchmarkCorrectedCostPerSqm =
     Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * input.sizeCorrectionFactor)
 
   const premiumBenchmarkFinalCostPerSqm =
     Math.round(premiumBenchmarkCorrectedCostPerSqm * location.multiplier)
 
-  const premiumBaseKG300 =
-    Math.round(input.effectiveArea * premiumBenchmarkFinalCostPerSqm * BASE_GROUP_SHARE_KG300)
+  const premiumReferenceConstructionCost =
+    input.effectiveArea * premiumBenchmarkFinalCostPerSqm
 
-  const subgroup310Cost = Math.round(premiumBaseKG300 * 0.08)
-  const subgroup320Cost = Math.round(premiumBaseKG300 * 0.14)
-  const subgroup350Cost = Math.round(premiumBaseKG300 * 0.20)
+  const baseKg300Reference =
+    Math.round(premiumReferenceConstructionCost * BASE_GROUP_SHARE_KG300)
+
+  const adjustedKg300Reference =
+    Math.round(premiumReferenceConstructionCost * adjustedKg300Share)
+
+  const kg300BasementIncrement =
+    Math.max(0, adjustedKg300Reference - baseKg300Reference)
+
+  const baseSubgroup310Cost = Math.round(baseKg300Reference * 0.06)
+  const baseSubgroup320Cost = Math.round(baseKg300Reference * 0.12)
+  const baseSubgroup350Cost = Math.round(baseKg300Reference * 0.20)
+
+  const subgroup310Increment = Math.round(kg300BasementIncrement * 0.35)
+  const subgroup320Increment = Math.round(kg300BasementIncrement * 0.45)
+  const subgroup350Increment =
+    Math.round(
+      kg300BasementIncrement
+      - subgroup310Increment
+      - subgroup320Increment
+    )
+
+  const subgroup310Cost = baseSubgroup310Cost + subgroup310Increment
+  const subgroup320Cost = baseSubgroup320Cost + subgroup320Increment
+  const subgroup350Cost = baseSubgroup350Cost + subgroup350Increment
   const fixedCore = subgroup310Cost + subgroup320Cost + subgroup350Cost
   const flexibleKG300 = Math.max(0, input.kg300Total - fixedCore)
 
