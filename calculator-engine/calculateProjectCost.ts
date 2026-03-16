@@ -1,6 +1,6 @@
 import { calculateEffectiveArea } from "./modules/effectiveArea"
 import { calculateRawBuildingCost } from "./modules/rawBuildingCost"
-import { calculateCategoryCosts } from "./modules/categoryCosts"
+import { calculateCategoryCosts, calculateKg300SubgroupCosts } from "./modules/categoryCosts"
 import { calculateSiteCosts } from "./modules/siteCosts"
 import { calculateBasementCosts } from "./modules/basementCosts"
 import { calculateHvacExtras } from "./modules/hvacExtras"
@@ -122,6 +122,18 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       siteConditionIsRocky: input.siteConditionId === "rock"
     })
 
+  const kg300Total =
+    categoryCosts.kg300Total + basementCosts.basementStructureCost
+
+  const kg300SubgroupCosts =
+    calculateKg300SubgroupCosts({
+      kg300Total,
+      effectiveArea,
+      locationId: input.locationId,
+      qualityId: input.qualityId,
+      sizeCorrectionFactor: buildingCost.sizeCorrectionFactor
+    })
+
 
   // -----------------------------------------
   // HVAC extras
@@ -185,6 +197,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     totalCost,
 
     rawBuildingCost: buildingCost.rawBuildingCost,
+    kg300SubgroupCosts,
     permitFee: permitCosts.permitFee,
     landscapingCost: landscapingCosts.landscapingCost,
     poolCost: poolCosts.poolCost,

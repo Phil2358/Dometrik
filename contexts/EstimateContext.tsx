@@ -1,6 +1,7 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { calculateKg300SubgroupCosts } from '@/calculator-engine/modules/categoryCosts';
 import {
   LOCATIONS,
   QUALITY_LEVELS,
@@ -649,6 +650,17 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const kg300Total = kg300Cost + basementStructureCost;
 
+  const kg300SubgroupCosts = useMemo(
+    () => calculateKg300SubgroupCosts({
+      kg300Total,
+      effectiveArea,
+      locationId,
+      qualityId,
+      sizeCorrectionFactor,
+    }),
+    [kg300Total, effectiveArea, locationId, qualityId, sizeCorrectionFactor],
+  );
+
   const poolSizeOption = useMemo(
     () => POOL_SIZE_OPTIONS.find((p) => p.id === poolSizeId) ?? POOL_SIZE_OPTIONS[1],
     [poolSizeId],
@@ -862,6 +874,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg200Total,
     kg300Cost,
     kg300Total,
+    kg300SubgroupCosts,
     kg400Cost,
     kg400Total,
     kg500Total,
@@ -912,7 +925,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, selectedUtilityConnectionCost, utilityGroupCosts,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
-    kg200Total, kg300Cost, kg300Total, kg400Cost, kg400Total, kg500Total, kg600Cost,
+    kg200Total, kg300Cost, kg300Total, kg300SubgroupCosts, kg400Cost, kg400Total, kg500Total, kg600Cost,
     constructionSubtotal, contingencyPercent, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
     basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
