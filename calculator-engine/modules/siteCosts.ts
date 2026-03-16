@@ -4,7 +4,8 @@ import {
   SITE_ACCESSIBILITY_OPTIONS,
   UTILITY_CONNECTION_OPTIONS,
   BASE_EXCAVATION_COST_PER_SQM,
-  getBasementExcavationCost
+  getBasementExcavationCost,
+  getUtilityConnectionGroupCosts
 } from "../../constants/construction"
 
 interface SiteCostsInput {
@@ -48,10 +49,6 @@ export function calculateSiteCosts(input: SiteCostsInput) {
     siteConditions.find((s: any) => s.id === "flat_normal")
     ?? siteConditions[0]
 
-  const baselineUtility =
-    utilityOptions.find((u: any) => u.id === "standard")
-    ?? utilityOptions[0]
-
   let siteExcavationCost =
     input.mainArea * 15 * BASE_EXCAVATION_COST_PER_SQM
 
@@ -75,8 +72,8 @@ export function calculateSiteCosts(input: SiteCostsInput) {
       ? (input.customUtilityCost ?? 0)
       : utility.cost
 
-  const utilityConnectionAdjustment =
-    utilityConnectionCost - baselineUtility.cost
+  const utilityGroupCosts =
+    getUtilityConnectionGroupCosts(input.utilityConnectionId, utilityConnectionCost)
 
   // logistics / access
   const accessibilityCost =
@@ -85,7 +82,7 @@ export function calculateSiteCosts(input: SiteCostsInput) {
   const kg200Adjustments =
       (siteExcavationCost - baselineSiteExcavationCost)
     + basementExcavationCost
-    + utilityConnectionAdjustment
+    + utilityConnectionCost
     + accessibilityCost
 
   const kg200Total =
@@ -95,7 +92,9 @@ export function calculateSiteCosts(input: SiteCostsInput) {
   return {
     siteExcavationCost: Math.round(input.kg200Base + (siteExcavationCost - baselineSiteExcavationCost)),
     basementExcavationCost: Math.round(basementExcavationCost),
-    utilityConnectionCost: Math.round(utilityConnectionAdjustment),
+    utilityConnectionCost: Math.round(utilityConnectionCost),
+    group220Cost: utilityGroupCosts.group220Cost,
+    group230Cost: utilityGroupCosts.group230Cost,
     accessibilityCost,
     kg200Total: Math.round(kg200Total)
   }

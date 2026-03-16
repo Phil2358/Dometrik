@@ -37,6 +37,7 @@ import {
   getBasementStructureCost,
   getLandscapingSizeAdjustment,
   getPoolDepthFactor,
+  getUtilityConnectionGroupCosts,
 } from '@/constants/construction';
 import type { CostCategory } from '@/constants/construction';
 
@@ -599,9 +600,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     return opt?.cost ?? 4000;
   }, [utilityConnectionId, customUtilityCost]);
 
-  const baselineUtilityConnectionCost = useMemo(
-    () => UTILITY_CONNECTION_OPTIONS.find((o) => o.id === 'standard')?.cost ?? 4000,
-    [],
+  const utilityGroupCosts = useMemo(
+    () => getUtilityConnectionGroupCosts(utilityConnectionId, selectedUtilityConnectionCost),
+    [utilityConnectionId, selectedUtilityConnectionCost],
   );
 
   const basementExcavationCost = useMemo(
@@ -626,12 +627,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [kg200Base, mainArea, siteCondition, baselineSiteExcavationCost],
   );
 
-  const utilityConnectionAdjustmentCost = useMemo(
-    () => selectedUtilityConnectionCost - baselineUtilityConnectionCost,
-    [selectedUtilityConnectionCost, baselineUtilityConnectionCost],
-  );
-
-  const kg200Total = siteExcavationCost + basementExcavationCost + utilityConnectionAdjustmentCost + siteAccessibilityCost;
+  const kg200Total = siteExcavationCost + basementExcavationCost + selectedUtilityConnectionCost + siteAccessibilityCost;
 
   const kg300Total = kg300Cost + basementStructureCost;
 
@@ -831,7 +827,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setUtilityConnectionId,
     customUtilityCost,
     setCustomUtilityCost,
-    utilityConnectionCost: utilityConnectionAdjustmentCost,
+    utilityConnectionCost: selectedUtilityConnectionCost,
+    utilityGroup220Cost: utilityGroupCosts.group220Cost,
+    utilityGroup230Cost: utilityGroupCosts.group230Cost,
     groundwaterConditionId,
     setGroundwaterConditionId,
     groundwaterCondition,
@@ -887,7 +885,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     location, quality, effectiveArea, baseCostPerSqm, costPerSqm,
     sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm,
     constructionCost, categoryCosts, contractorCost, poolCost, permitDesignFee, totalCost,
-    utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, utilityConnectionAdjustmentCost,
+    utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, selectedUtilityConnectionCost, utilityGroupCosts,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost,
     kg200Total, kg300Cost, kg300Total, kg400Cost, kg400Total, kg500Total, kg600Cost,

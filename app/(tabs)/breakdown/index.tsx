@@ -340,7 +340,8 @@ export default function BreakdownScreen() {
     poolTypeOption,
     permitDesignFee,
     totalCost,
-    utilityConnectionCost,
+    utilityGroup220Cost,
+    utilityGroup230Cost,
     kg200Total,
     kg300Total,
     kg400Total,
@@ -418,18 +419,18 @@ export default function BreakdownScreen() {
           {
             code: '220',
             name: 'Public utilities',
-            cost: utilityConnectionCost,
+            cost: utilityGroup220Cost,
             icon: Plug,
-            sublabel: 'Electricity, water, sewage, telecom',
+            sublabel: 'Public network connections',
             visible: true,
           },
           {
             code: '230',
             name: 'Private utilities',
-            cost: 0,
+            cost: utilityGroup230Cost,
             icon: Cable,
             sublabel: 'On-site pipes and cables',
-            visible: false,
+            visible: true,
           },
           {
             code: '250',
@@ -661,7 +662,7 @@ export default function BreakdownScreen() {
     return groups;
   }, [
     kg200Total, kg300Total, kg400Total, kg500Total, kg600Cost, permitDesignFee, totalCost,
-    siteExcavationCost, basementExcavationCost, utilityConnectionCost, basementStructureCost,
+    siteExcavationCost, basementExcavationCost, utilityGroup220Cost, utilityGroup230Cost, basementStructureCost,
     basementArea, basementType, siteCondition, landscapingCost, landscapingArea, poolCost,
     includePool, poolArea, poolQualityOption, poolTypeOption, enabledHvac, getCategoryCost,
     siteAccessibilityCost, siteAccessibility, landValue, displayedLandAcquisitionCosts, landAcquisitionCostsMode, investmentTotal,

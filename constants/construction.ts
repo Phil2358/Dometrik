@@ -380,6 +380,11 @@ export interface UtilityConnectionOption {
   cost: number;
 }
 
+interface UtilityConnectionSplit {
+  group220Share: number;
+  group230Share: number;
+}
+
 export const UTILITY_CONNECTION_OPTIONS: UtilityConnectionOption[] = [
   {
     id: 'standard',
@@ -406,6 +411,25 @@ export const UTILITY_CONNECTION_OPTIONS: UtilityConnectionOption[] = [
     cost: 0,
   },
 ];
+
+const UTILITY_CONNECTION_SPLITS: Record<string, UtilityConnectionSplit> = {
+  standard: { group220Share: 0.70, group230Share: 0.30 },
+  difficult: { group220Share: 0.60, group230Share: 0.40 },
+  remote: { group220Share: 0.40, group230Share: 0.60 },
+  custom: { group220Share: 0.60, group230Share: 0.40 },
+};
+
+export function getUtilityConnectionGroupCosts(optionId: string, totalCost: number): {
+  group220Cost: number;
+  group230Cost: number;
+} {
+  const split = UTILITY_CONNECTION_SPLITS[optionId] ?? UTILITY_CONNECTION_SPLITS.difficult;
+  const group220Cost = Math.round(totalCost * split.group220Share);
+  return {
+    group220Cost,
+    group230Cost: Math.round(totalCost - group220Cost),
+  };
+}
 
 export const UTILITY_CONNECTION_TOOLTIP = `Covers electricity, water supply, sewage/drainage, and telecommunications connections to public infrastructure networks.`;
 
