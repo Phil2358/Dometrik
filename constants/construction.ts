@@ -12,6 +12,7 @@ export interface QualityLevel {
   name: string;
   description: string;
   baseCostPerSqm: number;
+  benchmarkFactor: number;
 }
 
 export interface CostCategory {
@@ -22,8 +23,7 @@ export interface CostCategory {
   description: string;
 }
 
-const STANDARD_QUALITY_FACTOR = 1200 / 1500;
-const LUXURY_QUALITY_FACTOR = 2000 / 1500;
+export const PREMIUM_BENCHMARK_BASE_COST_PER_SQM = 1930;
 
 export const BASE_GROUP_SHARE_KG200 = 0.015;
 export const BASE_GROUP_SHARE_KG300 = 0.64;
@@ -53,19 +53,22 @@ export const QUALITY_LEVELS: QualityLevel[] = [
     id: 'standard',
     name: 'Standard',
     description: 'Good quality materials, energy-efficient, standard finishes',
-    baseCostPerSqm: Math.round(1930 * STANDARD_QUALITY_FACTOR),
+    baseCostPerSqm: Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * 0.90),
+    benchmarkFactor: 0.90,
   },
   {
     id: 'premium',
     name: 'Premium',
     description: 'High-end materials, smart home ready, premium finishes',
-    baseCostPerSqm: 1930,
+    baseCostPerSqm: PREMIUM_BENCHMARK_BASE_COST_PER_SQM,
+    benchmarkFactor: 1.00,
   },
   {
     id: 'luxury',
     name: 'Luxury',
     description: 'Top-tier materials, bespoke design, luxury finishes throughout',
-    baseCostPerSqm: Math.round(1930 * LUXURY_QUALITY_FACTOR),
+    baseCostPerSqm: Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * 1.15),
+    benchmarkFactor: 1.15,
   },
 ];
 

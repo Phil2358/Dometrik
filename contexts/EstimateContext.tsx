@@ -28,6 +28,7 @@ import {
   BASE_GROUP_SHARE_KG200,
   BASE_GROUP_SHARE_KG300,
   BASE_GROUP_SHARE_KG400,
+  PREMIUM_BENCHMARK_BASE_COST_PER_SQM,
   KG300_CATEGORY_IDS,
   KG400_CATEGORY_IDS,
   KG600_CATEGORY_IDS,
@@ -506,6 +507,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const baseCostPerSqm = customCostPerSqm ?? quality.baseCostPerSqm;
   const costPerSqm = Math.round(baseCostPerSqm * location.multiplier);
+  const benchmarkBaseCostPerSqm = customCostPerSqm ?? PREMIUM_BENCHMARK_BASE_COST_PER_SQM;
 
   const sizeCorrectionFactor = useMemo(
     () => getSizeCorrectionFactor(mainArea),
@@ -514,8 +516,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const correctedCostPerSqm = Math.round(baseCostPerSqm * sizeCorrectionFactor);
   const finalCostPerSqm = Math.round(correctedCostPerSqm * location.multiplier);
+  const benchmarkCorrectedCostPerSqm = Math.round(benchmarkBaseCostPerSqm * sizeCorrectionFactor);
+  const benchmarkFinalCostPerSqm = Math.round(benchmarkCorrectedCostPerSqm * location.multiplier);
 
   const baseConstructionCost = effectiveArea * finalCostPerSqm;
+  const benchmarkConstructionCost = effectiveArea * benchmarkFinalCostPerSqm;
   const kg200Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG200);
   const kg300Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG300);
   const kg400Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG400);
@@ -536,7 +541,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       }
 
       if (category.din276 === 'KG 600') {
-        categoryCost = Math.round(baseConstructionCost * (category.percentage / 100));
+        categoryCost = Math.round(benchmarkConstructionCost * (category.percentage / 100));
       }
 
       if (category.id === 'interior') {
@@ -566,7 +571,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
         costPerSqm: Math.round(categoryCost / (effectiveArea || 1)),
       };
     });
-  }, [kg300Base, kg400Base, baseConstructionCost, effectiveArea, deltaBathrooms, deltaWcs]);
+  }, [kg300Base, kg400Base, benchmarkConstructionCost, effectiveArea, deltaBathrooms, deltaWcs]);
 
   const constructionCost = useMemo(
     () => categoryCosts.reduce((sum, c) => sum + c.cost, 0),
