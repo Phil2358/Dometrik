@@ -61,6 +61,7 @@ import {
   PERMIT_DESIGN_CONTACT_LABEL,
   getSizeCorrectionLabel,
 } from '@/constants/construction';
+import { getDin276Group, getDin276Subgroup } from '@/constants/din276Groups';
 import { generateClientReportHtml } from '@/utils/generateClientReportHtml';
 import type { ClientReportData } from '@/utils/generateClientReportHtml';
 import { formatBasementSummary } from '@/utils/computeScenarioCosts';
@@ -381,21 +382,21 @@ export default function BreakdownScreen() {
     const groups: DinGroup[] = [
       {
         code: '100',
-        name: 'Land',
+        name: getDin276Group('100')?.label ?? 'Land',
         subtotal: group100Total,
         percentOfTotal: investmentTotal > 0 ? (group100Total / investmentTotal) * 100 : 0,
         accentColor: '#7A5C3E',
         subgroups: [
           {
             code: '110',
-            name: 'Land Value',
+            name: getDin276Subgroup('110')?.label ?? 'Land Value',
             cost: landValue,
             icon: LandPlot,
             visible: landValue > 0,
           },
           {
             code: '120',
-            name: 'Incidental Land Acquisition Costs',
+            name: getDin276Subgroup('120')?.label ?? 'Incidental Land Acquisition Costs',
             cost: displayedLandAcquisitionCosts,
             sublabel: landAcquisitionCostsMode === 'auto'
               ? `${formatCurrency(displayedLandAcquisitionCosts)} (6 % of ${formatCurrency(landValue)})`
@@ -407,14 +408,14 @@ export default function BreakdownScreen() {
       },
       {
         code: '200',
-        name: 'Site Preparation & Utilities',
+        name: getDin276Group('200')?.label ?? 'Preparatory Measures',
         subtotal: kg200Total,
         percentOfTotal: investmentTotal > 0 ? (kg200Total / investmentTotal) * 100 : 0,
         accentColor: '#8B6914',
         subgroups: [
           {
             code: '210',
-            name: 'Site preparation',
+            name: getDin276Subgroup('210')?.label ?? 'Site Preparation',
             cost: siteExcavationCost,
             icon: Shovel,
             sublabel: `Basic plot preparation ${MIDDLE_DOT} ${siteCondition.name}`,
@@ -422,7 +423,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '220',
-            name: 'Public utilities',
+            name: getDin276Subgroup('220')?.label ?? 'Public Utilities Connections',
             cost: utilityGroup220Cost,
             icon: Plug,
             sublabel: 'Public network connections',
@@ -430,7 +431,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '230',
-            name: 'Private utilities',
+            name: getDin276Subgroup('230')?.label ?? 'Private Utilities Connections',
             cost: utilityGroup230Cost,
             icon: Cable,
             sublabel: 'On-site pipes and cables',
@@ -438,7 +439,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '240',
-            name: 'Compensation measures and levies',
+            name: getDin276Subgroup('240')?.label ?? 'Compensation Measures and Levies',
             cost: 0,
             icon: ClipboardCheck,
             sublabel: 'Reserved for future logic',
@@ -446,7 +447,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '250',
-            name: 'Temporary construction measures',
+            name: getDin276Subgroup('250')?.label ?? 'Temporary Measures',
             cost: 0,
             icon: HardHat,
             sublabel: 'Reserved for future logic',
@@ -456,14 +457,14 @@ export default function BreakdownScreen() {
       },
       {
         code: '300',
-        name: 'Building Construction',
+        name: getDin276Group('300')?.label ?? 'Building - Construction Works',
         subtotal: kg300Total,
         percentOfTotal: investmentTotal > 0 ? (kg300Total / investmentTotal) * 100 : 0,
         accentColor: '#1B3A4B',
         subgroups: [
           {
             code: '310',
-            name: 'Excavation',
+            name: getDin276Subgroup('310')?.label ?? 'Earthworks and Excavation',
             cost: kg300SubgroupCosts.subgroup310Cost,
             icon: Shovel,
             sublabel: 'Excavation and earthworks for building construction',
@@ -471,7 +472,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '320',
-            name: 'Foundations',
+            name: getDin276Subgroup('320')?.label ?? 'Foundations and Substructure',
             cost: kg300SubgroupCosts.subgroup320Cost,
             icon: Building,
             sublabel: 'Foundations and substructure',
@@ -479,7 +480,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '330',
-            name: 'External walls',
+            name: getDin276Subgroup('330')?.label ?? 'External Walls',
             cost: kg300SubgroupCosts.subgroup330Cost,
             icon: Layers,
             sublabel: 'External walls, windows, exterior doors',
@@ -487,7 +488,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '340',
-            name: 'Internal walls',
+            name: getDin276Subgroup('340')?.label ?? 'Internal Walls',
             cost: kg300SubgroupCosts.subgroup340Cost,
             icon: LayoutGrid,
             sublabel: 'Internal walls and interior doors',
@@ -495,7 +496,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '350',
-            name: 'Slabs / horizontal structure',
+            name: getDin276Subgroup('350')?.label ?? 'Floors and Slabs',
             cost: kg300SubgroupCosts.subgroup350Cost,
             icon: Paintbrush,
             sublabel: 'Slabs and horizontal structural elements',
@@ -503,7 +504,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '360',
-            name: 'Roofs',
+            name: getDin276Subgroup('360')?.label ?? 'Roofs',
             cost: kg300SubgroupCosts.subgroup360Cost,
             icon: Home,
             sublabel: 'Roof structure, tiles/membrane, waterproofing, gutters',
@@ -511,7 +512,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '370',
-            name: 'Infrastructure installations',
+            name: getDin276Subgroup('370')?.label ?? 'Infrastructure Installations',
             cost: kg300SubgroupCosts.subgroup370Cost,
             icon: Shield,
             sublabel: 'Integrated construction-related infrastructure installations',
@@ -519,7 +520,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '380',
-            name: 'Built-in construction elements',
+            name: getDin276Subgroup('380')?.label ?? 'Built-In Construction Elements',
             cost: kg300SubgroupCosts.subgroup380Cost,
             icon: Wrench,
             sublabel: 'Built-in construction elements',
@@ -527,7 +528,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '390',
-            name: 'Other building construction',
+            name: getDin276Subgroup('390')?.label ?? 'Other Construction Works',
             cost: kg300SubgroupCosts.subgroup390Cost,
             icon: Hammer,
             sublabel: 'Other building construction works',
@@ -537,14 +538,14 @@ export default function BreakdownScreen() {
       },
       {
         code: '400',
-        name: 'Technical Systems',
+        name: getDin276Group('400')?.label ?? 'Technical Systems',
         subtotal: kg400Total,
         percentOfTotal: investmentTotal > 0 ? (kg400Total / investmentTotal) * 100 : 0,
         accentColor: '#2D8B55',
         subgroups: [
           {
             code: '410',
-            name: 'Sanitary installations',
+            name: getDin276Subgroup('410')?.label ?? 'Sanitary / Plumbing',
             cost: getCategoryCost('plumbing'),
             icon: Droplets,
             sublabel: 'Water supply, drainage, bathroom fittings',
@@ -552,8 +553,8 @@ export default function BreakdownScreen() {
           },
           {
             code: '420',
-            name: 'Heating systems',
-            cost: getCategoryCost('hvac') + enabledHvac.filter(h =>
+            name: getDin276Subgroup('420')?.label ?? 'Heating',
+            cost: getCategoryCost('heating') + enabledHvac.filter(h =>
               h.option.id === 'underfloor_heating' || h.option.id === 'solar_thermal'
             ).reduce((s, h) => s + h.cost, 0),
             icon: Thermometer,
@@ -564,32 +565,50 @@ export default function BreakdownScreen() {
           },
           {
             code: '430',
-            name: 'Ventilation / air conditioning',
-            cost: enabledHvac.filter(h => h.option.id === 'photovoltaic').reduce((s, h) => s + h.cost, 0),
+            name: getDin276Subgroup('430')?.label ?? 'Ventilation / Cooling',
+            cost: getCategoryCost('ventilation_cooling'),
             icon: Wind,
-            sublabel: 'Ventilation, PV systems',
-            visible: enabledHvac.some(h => h.option.id === 'photovoltaic'),
+            sublabel: 'Ventilation, cooling, ducts, fan-coils',
+            visible: true,
           },
           {
             code: '440',
-            name: 'Electrical installations',
-            cost: getCategoryCost('electrical'),
+            name: getDin276Subgroup('440')?.label ?? 'Electrical',
+            cost: getCategoryCost('electrical') + enabledHvac.filter(h => h.option.id === 'photovoltaic').reduce((s, h) => s + h.cost, 0),
             icon: Zap,
-            sublabel: 'Wiring, panels, sockets, lighting, smart home',
+            sublabel: enabledHvac.some(h => h.option.id === 'photovoltaic')
+              ? 'Wiring, panels, lighting, PV-ready systems'
+              : 'Wiring, panels, sockets, lighting',
+            visible: true,
+          },
+          {
+            code: '450',
+            name: getDin276Subgroup('450')?.label ?? 'Data / Security',
+            cost: getCategoryCost('data_security'),
+            icon: Shield,
+            sublabel: 'Data cabling, networking, alarm, access control',
+            visible: true,
+          },
+          {
+            code: '480',
+            name: getDin276Subgroup('480')?.label ?? 'Automation / Smart Home',
+            cost: getCategoryCost('automation'),
+            icon: LayoutGrid,
+            sublabel: 'Building automation, controls, smart-home integration',
             visible: true,
           },
         ],
       },
       {
         code: '500',
-        name: 'External Works',
+        name: getDin276Group('500')?.label ?? 'External Works and Open Spaces',
         subtotal: kg500Total,
         percentOfTotal: investmentTotal > 0 ? (kg500Total / investmentTotal) * 100 : 0,
         accentColor: '#6B8E23',
         subgroups: [
           {
             code: '510',
-            name: 'Terrain works',
+            name: getDin276Subgroup('510')?.label ?? 'Earthworks',
             cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.3) : 0,
             icon: LandPlot,
             sublabel: `Grading, retaining walls ${MIDDLE_DOT} ${siteCondition.name}`,
@@ -597,7 +616,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '520',
-            name: 'Paved surfaces',
+            name: getDin276Subgroup('520')?.label ?? 'Foundations and Substructure',
             cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.25) : 0,
             icon: Hammer,
             sublabel: 'Driveways, pathways, patios',
@@ -605,7 +624,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '530',
-            name: 'Planting',
+            name: getDin276Subgroup('530')?.label ?? 'Base Courses and Surface Layers',
             cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.25) : 0,
             icon: Flower2,
             sublabel: `${formatNumber(landscapingArea)} ${SQUARE_METER_UNIT} landscape area`,
@@ -613,7 +632,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '560',
-            name: 'Outdoor equipment',
+            name: getDin276Subgroup('560')?.label ?? 'Built-In Elements in External Works and Open Spaces',
             cost: poolCost + (landscapingCost > 0 ? landscapingCost - Math.round(landscapingCost * 0.3) - Math.round(landscapingCost * 0.25) - Math.round(landscapingCost * 0.25) : 0),
             icon: Waves,
             sublabel: includePool
@@ -623,7 +642,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '570',
-            name: 'Enclosures',
+            name: getDin276Subgroup('570')?.label ?? 'Green Areas',
             cost: 0,
             icon: Fence,
             sublabel: 'Fences, gates, boundary walls',

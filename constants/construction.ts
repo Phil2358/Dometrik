@@ -1,5 +1,7 @@
 ﻿import { formatCurrency as formatDisplayCurrency, formatNumber as formatDisplayNumber } from '@/utils/format';
 
+import { getDin276Group } from '@/constants/din276Groups';
+
 export interface Location {
   id: string;
   name: string;
@@ -18,6 +20,7 @@ export interface QualityLevel {
 export interface CostCategory {
   id: string;
   din276: string;
+  subgroupCode?: string;
   name: string;
   percentage: number;
   description: string;
@@ -79,9 +82,12 @@ export const COST_CATEGORIES: CostCategory[] = [
   { id: 'insulation', din276: 'KG 300', name: 'Insulation & Energy Envelope', percentage: 7, description: 'Thermal insulation (ETICS), energy systems, solar prep' },
   { id: 'windows', din276: 'KG 300', name: 'Windows, Doors & Facades', percentage: 10, description: 'Aluminium/PVC frames, double/triple glazing, exterior doors' },
   { id: 'interior', din276: 'KG 300', name: 'Interior Finishes', percentage: 15, description: 'Floor tiles/wood, wall finishes, ceilings, painting, doors' },
-  { id: 'hvac', din276: 'KG 400', name: 'HVAC Systems', percentage: 10, description: 'Heat pump, A/C, underfloor heating, ventilation, ducts' },
-  { id: 'electrical', din276: 'KG 400', name: 'Electrical Installation', percentage: 7, description: 'Wiring, panels, sockets, lighting, smart home, PV ready' },
-  { id: 'plumbing', din276: 'KG 400', name: 'Plumbing & Sanitary', percentage: 7, description: 'Water supply, drainage, bathroom fittings, solar thermal' },
+  { id: 'plumbing', din276: 'KG 400', subgroupCode: '410', name: 'Sanitary / Plumbing', percentage: 7, description: 'Water supply, drainage, sanitary pipework, bathroom fittings' },
+  { id: 'heating', din276: 'KG 400', subgroupCode: '420', name: 'Heating', percentage: 6, description: 'Heat pump, heat distribution, domestic hot water, solar thermal' },
+  { id: 'ventilation_cooling', din276: 'KG 400', subgroupCode: '430', name: 'Ventilation / Cooling', percentage: 4, description: 'Cooling, ventilation, ducts, fan-coils, air handling' },
+  { id: 'electrical', din276: 'KG 400', subgroupCode: '440', name: 'Electrical', percentage: 5, description: 'Wiring, panels, sockets, lighting, grounding, PV-ready infrastructure' },
+  { id: 'data_security', din276: 'KG 400', subgroupCode: '450', name: 'Data / Security', percentage: 1, description: 'Data cabling, networking, alarm, access control, security systems' },
+  { id: 'automation', din276: 'KG 400', subgroupCode: '480', name: 'Automation / Smart Home', percentage: 1, description: 'Building automation, controls, smart-home integration, system logic' },
   { id: 'furnishings', din276: 'KG 600', name: 'Built-in Furnishings', percentage: 9, description: 'Kitchen, wardrobes, built-in storage, bathroom vanities' },
 ];
 
@@ -471,11 +477,11 @@ export const CONTINGENCY_PERCENTAGES: Record<string, number> = {
 export const CONSTRUCTION_SUBTOTAL_DISCLAIMER = `The construction subtotal includes direct building construction costs (KG 300 + KG 400 + KG 600) with size correction applied.\nSite preparation (KG 200), external works (KG 500), and planning fees (KG 700) are calculated separately.`;
 
 export const DIN276_GROUPS = {
-  KG100: { code: 'KG 100', name: 'Site / Land Costs' },
-  KG200: { code: 'KG 200', name: 'Site Preparation & Utilities' },
-  KG300: { code: 'KG 300', name: 'Building Construction' },
-  KG400: { code: 'KG 400', name: 'Technical Systems' },
-  KG500: { code: 'KG 500', name: 'External Works' },
+  KG100: { code: 'KG 100', name: getDin276Group('100')?.label ?? 'Land' },
+  KG200: { code: 'KG 200', name: getDin276Group('200')?.label ?? 'Preparatory Measures' },
+  KG300: { code: 'KG 300', name: getDin276Group('300')?.label ?? 'Building - Construction Works' },
+  KG400: { code: 'KG 400', name: getDin276Group('400')?.label ?? 'Technical Systems' },
+  KG500: { code: 'KG 500', name: getDin276Group('500')?.label ?? 'External Works and Open Spaces' },
   KG600: { code: 'KG 600', name: 'Built-in Equipment' },
   KG700: { code: 'KG 700', name: 'Planning & Professional Fees' },
 } as const;
@@ -485,7 +491,7 @@ export const DISCLAIMER_TEXT = `This estimate is based on conventional construct
 The result is a preliminary cost estimation. Actual construction cost may vary depending on design, site conditions, contractor pricing, and market conditions.`;
 
 export const KG300_CATEGORY_IDS = ['concrete', 'masonry', 'roofing', 'insulation', 'windows', 'interior'] as const;
-export const KG400_CATEGORY_IDS = ['hvac', 'electrical', 'plumbing'] as const;
+export const KG400_CATEGORY_IDS = ['plumbing', 'heating', 'ventilation_cooling', 'electrical', 'data_security', 'automation'] as const;
 export const KG500_CATEGORY_IDS = [] as const;
 export const KG600_CATEGORY_IDS = ['furnishings'] as const;
 

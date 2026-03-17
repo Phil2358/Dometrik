@@ -32,7 +32,7 @@ export const DIN276_GROUPS: Din276Group[] = [
   },
   {
     code: '300',
-    label: 'Building – Construction Works',
+    label: 'Building - Construction Works',
     children: [
       { code: '310', label: 'Earthworks and Excavation' },
       { code: '320', label: 'Foundations and Substructure' },
@@ -47,16 +47,16 @@ export const DIN276_GROUPS: Din276Group[] = [
   },
   {
     code: '400',
-    label: 'Building – Technical Systems',
+    label: 'Technical Systems',
     children: [
-      { code: '410', label: 'Wastewater, Water, Gas and Sanitary Fixtures' },
-      { code: '420', label: 'Heat Supply Systems' },
-      { code: '430', label: 'Ventilation and Air-Handling Systems' },
-      { code: '440', label: 'Electrical Systems' },
-      { code: '450', label: 'Communication, Security and Information Systems' },
+      { code: '410', label: 'Sanitary / Plumbing' },
+      { code: '420', label: 'Heating' },
+      { code: '430', label: 'Ventilation / Cooling' },
+      { code: '440', label: 'Electrical' },
+      { code: '450', label: 'Data / Security' },
       { code: '460', label: 'Conveying Systems' },
       { code: '470', label: 'Kitchen Installation' },
-      { code: '480', label: 'Building and Systems Automation' },
+      { code: '480', label: 'Automation / Smart Home' },
       { code: '490', label: 'Other Technical Systems' },
     ],
   },
@@ -76,3 +76,15 @@ export const DIN276_GROUPS: Din276Group[] = [
     ],
   },
 ];
+
+export function getDin276Group(code: string): Din276Group | undefined {
+  return DIN276_GROUPS.find((group) => group.code === code);
+}
+
+export function getDin276Subgroup(code: string): Din276Subgroup | undefined {
+  for (const group of DIN276_GROUPS) {
+    const subgroup = group.children.find((child) => child.code === code);
+    if (subgroup) return subgroup;
+  }
+  return undefined;
+}
