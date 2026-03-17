@@ -88,7 +88,7 @@ export const COST_CATEGORIES: CostCategory[] = [
   { id: 'electrical', din276: 'KG 400', subgroupCode: '440', name: 'Electrical', percentage: 5, description: 'Wiring, panels, sockets, lighting, grounding, PV-ready infrastructure' },
   { id: 'data_security', din276: 'KG 400', subgroupCode: '450', name: 'Data / Security', percentage: 1, description: 'Data cabling, networking, alarm, access control, security systems' },
   { id: 'automation', din276: 'KG 400', subgroupCode: '480', name: 'Automation / Smart Home', percentage: 1, description: 'Building automation, controls, smart-home integration, system logic' },
-  { id: 'furnishings', din276: 'KG 600', name: 'Built-in Furnishings', percentage: 9, description: 'Kitchen, wardrobes, built-in storage, bathroom vanities' },
+  { id: 'furnishings', din276: 'KG 600', subgroupCode: '620', name: 'Built-in Furnishings', percentage: 9, description: 'Kitchen, wardrobes, built-in storage, bathroom vanities' },
 ];
 
 export interface BasementType {
@@ -482,7 +482,7 @@ export const DIN276_GROUPS = {
   KG300: { code: 'KG 300', name: getDin276Group('300')?.label ?? 'Building - Construction Works' },
   KG400: { code: 'KG 400', name: getDin276Group('400')?.label ?? 'Technical Systems' },
   KG500: { code: 'KG 500', name: getDin276Group('500')?.label ?? 'External Works and Open Spaces' },
-  KG600: { code: 'KG 600', name: 'Built-in Equipment' },
+  KG600: { code: 'KG 600', name: getDin276Group('600')?.label ?? 'Furnishings and Artworks' },
   KG700: { code: 'KG 700', name: 'Planning & Professional Fees' },
 } as const;
 

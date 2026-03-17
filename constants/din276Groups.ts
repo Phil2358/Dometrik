@@ -75,6 +75,17 @@ export const DIN276_GROUPS: Din276Group[] = [
       { code: '590', label: 'Other External Works' },
     ],
   },
+  {
+    code: '600',
+    label: 'Furnishings and Artworks',
+    children: [
+      { code: '610', label: 'General Furnishings' },
+      { code: '620', label: 'Special Furnishings' },
+      { code: '630', label: 'Information Technology Furnishings' },
+      { code: '640', label: 'Artistic Furnishings' },
+      { code: '690', label: 'Other Furnishings' },
+    ],
+  },
 ];
 
 export function getDin276Group(code: string): Din276Group | undefined {
