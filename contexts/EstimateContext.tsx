@@ -114,6 +114,20 @@ const KG300_BASE_FLEXIBLE_SHARES: Record<string, {
   },
 };
 
+const BASEMENT_SITE_CONDITION_FACTORS: Record<string, number> = {
+  flat_normal: 1.00,
+  flat_rocky: 1.08,
+  inclined_normal: 1.10,
+  inclined_rocky: 1.18,
+  inclined_sandy: 1.22,
+};
+
+const BASEMENT_GROUNDWATER_FACTORS: Record<string, number> = {
+  normal: 1.00,
+  moderate: 1.08,
+  high: 1.18,
+};
+
 function getAdjustedKg300Share(weightedBasementRatio: number): number {
   if (weightedBasementRatio <= 0) return BASE_GROUP_SHARE_KG300;
   if (weightedBasementRatio <= 0.15) return 0.655;
@@ -623,6 +637,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const correctedCostPerSqm = Math.round(baseCostPerSqm * sizeCorrectionFactor);
   const finalCostPerSqm = Math.round(correctedCostPerSqm * location.multiplier);
+  const premiumReferenceCorrectedCostPerSqm = Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * sizeCorrectionFactor);
+  const premiumReferenceFinalCostPerSqm = Math.round(premiumReferenceCorrectedCostPerSqm * location.multiplier);
   const benchmarkCorrectedCostPerSqm = Math.round(benchmarkBaseCostPerSqm * sizeCorrectionFactor);
   const benchmarkFinalCostPerSqm = Math.round(benchmarkCorrectedCostPerSqm * location.multiplier);
   const noBasementEffectiveArea = mainArea + terraceArea * 0.5 + balconyArea * 0.30;
@@ -630,6 +646,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const baseConstructionCost = effectiveArea * finalCostPerSqm;
   const benchmarkConstructionCost = effectiveArea * benchmarkFinalCostPerSqm;
   const noBasementConstructionCost = noBasementEffectiveArea * finalCostPerSqm;
+  const premiumReferenceConstructionCost = effectiveArea * premiumReferenceFinalCostPerSqm;
+  const premiumReferenceNoBasementConstructionCost = noBasementEffectiveArea * premiumReferenceFinalCostPerSqm;
   const weightedBasementRatio = weightedBasementArea / Math.max(mainArea, 1);
   const adjustedKg300Share = getAdjustedKg300Share(weightedBasementRatio);
   const adjustedKg400Share = KG300_PLUS_KG400_BASE_SHARE - adjustedKg300Share;
@@ -759,27 +777,54 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const kg200Total = siteExcavationCost + selectedUtilityConnectionCost + group240Cost + group250Cost;
 
-  const kg300Total = kg300Cost;
+  const baseKg300NonBasementReference = Math.round(noBasementConstructionCost * BASE_GROUP_SHARE_KG300);
+  const premiumReferenceBaseKg300NonBasement = Math.round(
+    premiumReferenceNoBasementConstructionCost * BASE_GROUP_SHARE_KG300
+  );
+  const premiumReferenceAdjustedKg300 = Math.round(
+    premiumReferenceConstructionCost * adjustedKg300Share
+  );
+  const baseBasementIncrement = Math.max(
+    0,
+    premiumReferenceAdjustedKg300 - premiumReferenceBaseKg300NonBasement
+  );
+  const basementSiteConditionFactor =
+    basementArea > 0
+      ? (BASEMENT_SITE_CONDITION_FACTORS[siteConditionId] ?? 1.00)
+      : 1.00;
+  const basementGroundwaterFactor =
+    basementArea > 0
+      ? (BASEMENT_GROUNDWATER_FACTORS[groundwaterConditionId] ?? 1.00)
+      : 1.00;
+  const adjustedBasementIncrement = basementArea > 0
+    ? Math.round(baseBasementIncrement * basementSiteConditionFactor * basementGroundwaterFactor)
+    : 0;
+  const basementIncrementAdjustment = adjustedBasementIncrement - baseBasementIncrement;
+  const kg300Total = kg300Cost + basementIncrementAdjustment;
 
   const kg300SubgroupCosts = useMemo<Kg300SubgroupCosts>(() => {
-    const baseKg300NonBasement = Math.round(noBasementConstructionCost * BASE_GROUP_SHARE_KG300);
-    const kg300BasementIncrement = Math.max(0, kg300Total - baseKg300NonBasement);
+    const baseKg300NonBasement = baseKg300NonBasementReference;
+    const premiumReferenceBasementIncrement = adjustedBasementIncrement;
+    const qualityScaledBasementIncrement = Math.max(0, kg300Total - baseKg300NonBasement);
+    const qualityDrivenBasementDelta = qualityScaledBasementIncrement - premiumReferenceBasementIncrement;
 
-    const baseSubgroup310Cost = Math.round(baseKg300NonBasement * 0.06);
-    const baseSubgroup320Cost = Math.round(baseKg300NonBasement * 0.12);
-    const baseSubgroup350Cost = Math.round(baseKg300NonBasement * 0.20);
+    const baseSubgroup310Cost = Math.round(premiumReferenceBaseKg300NonBasement * 0.06);
+    const baseSubgroup320Cost = Math.round(premiumReferenceBaseKg300NonBasement * 0.12);
+    const baseSubgroup350Cost = Math.round(premiumReferenceBaseKg300NonBasement * 0.20);
 
-    const subgroup310Increment = Math.round(kg300BasementIncrement * 0.30);
-    const subgroup320Increment = Math.round(kg300BasementIncrement * 0.35);
-    const subgroup350Increment = Math.round(kg300BasementIncrement * 0.20);
-    const subgroup330Increment = Math.round(kg300BasementIncrement * 0.10);
+    const subgroup310Increment = Math.round(premiumReferenceBasementIncrement * 0.30);
+    const subgroup320Increment = Math.round(premiumReferenceBasementIncrement * 0.35);
+    const subgroup350Increment = Math.round(premiumReferenceBasementIncrement * 0.20);
+    const subgroup330Increment = Math.round(premiumReferenceBasementIncrement * 0.10);
     const subgroup340Increment = Math.round(
-      kg300BasementIncrement
+      premiumReferenceBasementIncrement
       - subgroup310Increment
       - subgroup320Increment
       - subgroup350Increment
       - subgroup330Increment
     );
+    const subgroup330QualityDelta = Math.round(qualityDrivenBasementDelta * (2 / 3));
+    const subgroup340QualityDelta = qualityDrivenBasementDelta - subgroup330QualityDelta;
 
     const baseStructuralCore =
       baseSubgroup310Cost +
@@ -804,15 +849,20 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     return {
       subgroup310Cost: baseSubgroup310Cost + subgroup310Increment,
       subgroup320Cost: baseSubgroup320Cost + subgroup320Increment,
-      subgroup330Cost: subgroup330Cost + subgroup330Increment,
-      subgroup340Cost: subgroup340Cost + subgroup340Increment,
+      subgroup330Cost: subgroup330Cost + subgroup330Increment + subgroup330QualityDelta,
+      subgroup340Cost: subgroup340Cost + subgroup340Increment + subgroup340QualityDelta,
       subgroup350Cost: baseSubgroup350Cost + subgroup350Increment,
       subgroup360Cost,
       subgroup370Cost: 0,
       subgroup380Cost: 0,
       subgroup390Cost: subgroup390BaseCost,
     };
-  }, [noBasementConstructionCost, kg300Total, qualityId]);
+  }, [
+    adjustedBasementIncrement,
+    baseKg300NonBasementReference,
+    kg300Total,
+    qualityId,
+  ]);
 
   const poolSizeOption = useMemo(
     () => POOL_SIZE_OPTIONS.find((p) => p.id === poolSizeId) ?? POOL_SIZE_OPTIONS[1],

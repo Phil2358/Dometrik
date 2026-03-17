@@ -190,6 +190,12 @@ export const GROUNDWATER_CONDITIONS: GroundwaterCondition[] = [
     basementCostMultiplier: 1.00,
   },
   {
+    id: 'moderate',
+    name: 'Moderate groundwater',
+    description: 'Some waterproofing and drainage measures may be required',
+    basementCostMultiplier: 1.08,
+  },
+  {
     id: 'high',
     name: 'High groundwater / coastal site',
     description: 'Requires waterproofing, drainage, and groundwater control',
