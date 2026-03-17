@@ -118,6 +118,16 @@ const KG300_BASE_FLEXIBLE_SHARES: Record<string, {
   },
 };
 
+const KG300_ACCESSIBILITY_WEIGHTS = {
+  subgroup310: 0.60,
+  subgroup320: 1.00,
+  subgroup330: 0.45,
+  subgroup340: 0.60,
+  subgroup350: 0.60,
+  subgroup360: 0.25,
+  subgroup390: 0.20,
+} as const;
+
 const BASE_SITE_CONDITION_FACTORS_310: Record<string, number> = {
   flat_normal: 1.00,
   flat_rocky: 1.08,
@@ -692,6 +702,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kg200Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG200);
   const kg300Base = Math.round(baseConstructionCost * adjustedKg300Share);
   const kg400Base = Math.round(baseConstructionCost * adjustedKg400Share);
+  const accessibilityExecutionDelta = Math.max(0, siteAccessibility.sitePreparationFactor - 1);
+  const kg300AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.35;
+  const kg400AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.22;
+  const kg600AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.10;
 
   const deltaBathrooms = bathrooms - INTERIOR_BASELINE.bathrooms;
   const deltaWcs = wcs - INTERIOR_BASELINE.wcs;
@@ -702,14 +716,17 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
       if (category.din276 === 'KG 300') {
         categoryCost = Math.round(kg300Base * (category.percentage / 67));
+        categoryCost = Math.round(categoryCost * kg300AccessibilityMultiplier);
       }
 
       if (category.din276 === 'KG 400') {
         categoryCost = Math.round(kg400Base * (category.percentage / 24));
+        categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
       }
 
       if (category.din276 === 'KG 600') {
         categoryCost = Math.round(benchmarkConstructionCost * (category.percentage / 100));
+        categoryCost = Math.round(categoryCost * kg600AccessibilityMultiplier);
       }
 
       if (category.id === 'interior') {
@@ -739,7 +756,17 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
         costPerSqm: Math.round(categoryCost / (effectiveArea || 1)),
       };
     });
-  }, [kg300Base, kg400Base, benchmarkConstructionCost, effectiveArea, deltaBathrooms, deltaWcs]);
+  }, [
+    kg300Base,
+    kg400Base,
+    benchmarkConstructionCost,
+    effectiveArea,
+    deltaBathrooms,
+    deltaWcs,
+    kg300AccessibilityMultiplier,
+    kg400AccessibilityMultiplier,
+    kg600AccessibilityMultiplier,
+  ]);
 
   const constructionCost = useMemo(
     () => categoryCosts.reduce((sum, c) => sum + c.cost, 0),
@@ -904,18 +931,74 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       basementTypePremiumPool - basementTypePremium330 - basementTypePremium340
     );
 
+    const subgroup310BaseCost = baseSubgroup310Cost + subgroup310BasementStructural;
+    const subgroup320BaseCost = baseSubgroup320Cost + subgroup320BasementStructural;
+    const subgroup330BaseCost = subgroup330Cost + basementTypePremium330;
+    const subgroup340BaseCost = subgroup340Cost + basementTypePremium340;
+    const subgroup350BaseCost = baseSubgroup350Cost + subgroup350QualityCost + basementTypePremium350;
+    const subgroup360BaseCost = subgroup360Cost;
+    const subgroup390Cost = subgroup390BaseCost;
+
+    const subgroup310AccessibilityCost = Math.round(
+      subgroup310BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup310)
+    );
+    const subgroup320AccessibilityCost = Math.round(
+      subgroup320BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup320)
+    );
+    const subgroup330AccessibilityCost = Math.round(
+      subgroup330BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup330)
+    );
+    const subgroup340AccessibilityCost = Math.round(
+      subgroup340BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup340)
+    );
+    const subgroup350AccessibilityCost = Math.round(
+      subgroup350BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup350)
+    );
+    const subgroup360AccessibilityCost = Math.round(
+      subgroup360BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup360)
+    );
+    const subgroup390AccessibilityCost = Math.round(
+      subgroup390Cost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup390)
+    );
+    const rawKg300SubgroupTotal =
+      subgroup310AccessibilityCost +
+      subgroup320AccessibilityCost +
+      subgroup330AccessibilityCost +
+      subgroup340AccessibilityCost +
+      subgroup350AccessibilityCost +
+      subgroup360AccessibilityCost +
+      subgroup390AccessibilityCost;
+    const kg300NormalizationFactor = rawKg300SubgroupTotal > 0
+      ? kg300Total / rawKg300SubgroupTotal
+      : 1;
+    const normalizedSubgroup310Cost = Math.round(subgroup310AccessibilityCost * kg300NormalizationFactor);
+    const normalizedSubgroup320Cost = Math.round(subgroup320AccessibilityCost * kg300NormalizationFactor);
+    const normalizedSubgroup330Cost = Math.round(subgroup330AccessibilityCost * kg300NormalizationFactor);
+    const normalizedSubgroup340Cost = Math.round(subgroup340AccessibilityCost * kg300NormalizationFactor);
+    const normalizedSubgroup350Cost = Math.round(subgroup350AccessibilityCost * kg300NormalizationFactor);
+    const normalizedSubgroup360Cost = Math.round(subgroup360AccessibilityCost * kg300NormalizationFactor);
+    const normalizedSubgroup390Cost =
+      kg300Total
+      - normalizedSubgroup310Cost
+      - normalizedSubgroup320Cost
+      - normalizedSubgroup330Cost
+      - normalizedSubgroup340Cost
+      - normalizedSubgroup350Cost
+      - normalizedSubgroup360Cost;
+
     return {
-      subgroup310Cost: baseSubgroup310Cost + subgroup310BasementStructural,
-      subgroup320Cost: baseSubgroup320Cost + subgroup320BasementStructural,
-      subgroup330Cost: subgroup330Cost + basementTypePremium330,
-      subgroup340Cost: subgroup340Cost + basementTypePremium340,
-      subgroup350Cost: baseSubgroup350Cost + subgroup350QualityCost + basementTypePremium350,
-      subgroup360Cost,
+      subgroup310Cost: normalizedSubgroup310Cost,
+      subgroup320Cost: normalizedSubgroup320Cost,
+      subgroup330Cost: normalizedSubgroup330Cost,
+      subgroup340Cost: normalizedSubgroup340Cost,
+      subgroup350Cost: normalizedSubgroup350Cost,
+      subgroup360Cost: normalizedSubgroup360Cost,
       subgroup370Cost: 0,
       subgroup380Cost: 0,
-      subgroup390Cost: subgroup390BaseCost,
+      subgroup390Cost: normalizedSubgroup390Cost,
     };
   }, [
+    accessibilityExecutionDelta,
     adjustedBaseSubgroup310Cost,
     adjustedBaseSubgroup320Cost,
     baseStructuralAdjustment,
