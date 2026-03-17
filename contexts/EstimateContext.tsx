@@ -40,6 +40,11 @@ import {
   getPoolDepthFactor,
   getPlotSizeFactor,
   getUtilityConnectionGroupCosts,
+  KG600_KITCHEN_PACKAGE_BASE_COST,
+  KG600_WARDROBE_PACKAGE_BASE_COST,
+  KG600_GENERAL_FURNITURE_PACKAGE_BASE_COST,
+  KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST,
+  KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST,
 } from '@/constants/construction';
 import type { CostCategory } from '@/constants/construction';
 
@@ -78,6 +83,10 @@ export interface ScenarioConfig {
   landAcquisitionCostsMode: 'auto' | 'manual';
   bathrooms: number;
   wcs: number;
+  bedroomCount: number;
+  kitchenCount: number;
+  extraWardrobeCount: number;
+  includeGeneralFurniture: boolean;
   hvacSelections: Record<string, boolean>;
   utilityConnectionId: string;
   customUtilityCost: number;
@@ -211,6 +220,10 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const landAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? getAutoEstimatedLandAcquisitionCosts(landValue)
     : (config.landAcquisitionCosts ?? 0);
+  const bedroomCount = config.bedroomCount ?? 3;
+  const kitchenCount = config.kitchenCount ?? 1;
+  const extraWardrobeCount = config.extraWardrobeCount ?? 0;
+  const includeGeneralFurniture = config.includeGeneralFurniture ?? false;
 
   return {
     ...config,
@@ -223,6 +236,10 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     landValue,
     landAcquisitionCosts,
     landAcquisitionCostsMode,
+    bedroomCount,
+    kitchenCount,
+    extraWardrobeCount,
+    includeGeneralFurniture,
   };
 }
 
@@ -273,6 +290,10 @@ function createDefaultConfig(name: string): ScenarioConfig {
     landAcquisitionCostsMode: 'auto',
     bathrooms: 1,
     wcs: 1,
+    bedroomCount: 3,
+    kitchenCount: 1,
+    extraWardrobeCount: 0,
+    includeGeneralFurniture: false,
     hvacSelections: {
       underfloor_heating: false,
       solar_thermal: false,
@@ -349,6 +370,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [landAcquisitionCostsMode, setLandAcquisitionCostsMode] = useState<'auto' | 'manual'>('auto');
   const [bathrooms, setBathrooms] = useState<number>(1);
   const [wcs, setWcs] = useState<number>(1);
+  const [bedroomCount, setBedroomCount] = useState<number>(3);
+  const [kitchenCount, setKitchenCount] = useState<number>(1);
+  const [extraWardrobeCount, setExtraWardrobeCount] = useState<number>(0);
+  const [includeGeneralFurniture, setIncludeGeneralFurniture] = useState<boolean>(false);
   const [hvacSelections, setHvacSelections] = useState<Record<string, boolean>>({
     underfloor_heating: false,
     solar_thermal: false,
@@ -389,6 +414,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       landAcquisitionCostsMode,
       bathrooms,
       wcs,
+      bedroomCount,
+      kitchenCount,
+      extraWardrobeCount,
+      includeGeneralFurniture,
       hvacSelections: { ...hvacSelections },
       utilityConnectionId,
       customUtilityCost,
@@ -400,7 +429,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
-    bathrooms, wcs, hvacSelections, utilityConnectionId, customUtilityCost,
+    bathrooms, wcs, bedroomCount, kitchenCount, extraWardrobeCount, includeGeneralFurniture,
+    hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId,
   ]);
 
@@ -430,6 +460,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setLandAcquisitionCostsMode(normalizedConfig.landAcquisitionCostsMode);
     setBathrooms(config.bathrooms);
     setWcs(config.wcs);
+    setBedroomCount(config.bedroomCount ?? 3);
+    setKitchenCount(config.kitchenCount ?? 1);
+    setExtraWardrobeCount(config.extraWardrobeCount ?? 0);
+    setIncludeGeneralFurniture(config.includeGeneralFurniture ?? false);
     setHvacSelections({ ...config.hvacSelections });
     setUtilityConnectionId(config.utilityConnectionId);
     setCustomUtilityCost(config.customUtilityCost);
@@ -490,7 +524,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
-    bathrooms, wcs, hvacSelections, utilityConnectionId, customUtilityCost,
+    bathrooms, wcs, bedroomCount, kitchenCount, extraWardrobeCount, includeGeneralFurniture,
+    hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId, persistState,
   ]);
 
@@ -705,10 +740,30 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const accessibilityExecutionDelta = Math.max(0, siteAccessibility.sitePreparationFactor - 1);
   const kg300AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.35;
   const kg400AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.22;
-  const kg600AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.10;
 
   const deltaBathrooms = bathrooms - INTERIOR_BASELINE.bathrooms;
   const deltaWcs = wcs - INTERIOR_BASELINE.wcs;
+  const qualityPackageMultiplier = quality.benchmarkFactor;
+  const includedWardrobes = bedroomCount;
+  const totalWardrobeCount = bedroomCount + extraWardrobeCount;
+  const kitchenUnitCost = Math.round(KG600_KITCHEN_PACKAGE_BASE_COST * qualityPackageMultiplier);
+  const wardrobeUnitCost = Math.round(KG600_WARDROBE_PACKAGE_BASE_COST * qualityPackageMultiplier);
+  const generalFurniturePackageCost = includeGeneralFurniture
+    ? Math.round(KG600_GENERAL_FURNITURE_PACKAGE_BASE_COST * qualityPackageMultiplier)
+    : 0;
+  const extraBathroomFurnishingSliceCost = Math.max(0, deltaBathrooms)
+    * Math.round(KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier);
+  const extraWcFurnishingSliceCost = Math.max(0, deltaWcs)
+    * Math.round(KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier);
+  const kitchenPackageCost = kitchenCount * kitchenUnitCost;
+  const wardrobePackageCost = totalWardrobeCount * wardrobeUnitCost;
+  const bathroomWcFurnishingSliceCost = extraBathroomFurnishingSliceCost + extraWcFurnishingSliceCost;
+  const kg600SpecialFurnishingsCost = kitchenPackageCost + wardrobePackageCost + bathroomWcFurnishingSliceCost;
+  const kg600GeneralFurnishingsCost = generalFurniturePackageCost;
+  const kg600SubgroupCosts = {
+    subgroup610Cost: kg600GeneralFurnishingsCost,
+    subgroup620Cost: kg600SpecialFurnishingsCost,
+  };
 
   const categoryCosts = useMemo<CategoryCost[]>(() => {
     return COST_CATEGORIES.map((category) => {
@@ -725,28 +780,18 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       }
 
       if (category.din276 === 'KG 600') {
-        categoryCost = Math.round(benchmarkConstructionCost * (category.percentage / 100));
-        categoryCost = Math.round(categoryCost * kg600AccessibilityMultiplier);
-      }
-
-      if (category.id === 'interior') {
+        categoryCost = category.id === 'furnishings'
+          ? kg600GeneralFurnishingsCost + kg600SpecialFurnishingsCost
+          : 0;
+      } else if (category.id === 'interior') {
         const adj = 1
           + deltaBathrooms * INTERIOR_ADJUSTMENTS.bathroom.interior
           + deltaWcs * INTERIOR_ADJUSTMENTS.wc.interior;
         categoryCost = Math.round(categoryCost * adj);
-      }
-
-      if (category.id === 'plumbing') {
+      } else if (category.id === 'plumbing') {
         const adj = 1
           + deltaBathrooms * INTERIOR_ADJUSTMENTS.bathroom.plumbing
           + deltaWcs * INTERIOR_ADJUSTMENTS.wc.plumbing;
-        categoryCost = Math.round(categoryCost * adj);
-      }
-
-      if (category.id === 'furnishings') {
-        const adj = 1
-          + deltaBathrooms * INTERIOR_ADJUSTMENTS.bathroom.furnishings
-          + deltaWcs * INTERIOR_ADJUSTMENTS.wc.furnishings;
         categoryCost = Math.round(categoryCost * adj);
       }
 
@@ -765,7 +810,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     deltaWcs,
     kg300AccessibilityMultiplier,
     kg400AccessibilityMultiplier,
-    kg600AccessibilityMultiplier,
+    kg600GeneralFurnishingsCost,
+    kg600SpecialFurnishingsCost,
   ]);
 
   const constructionCost = useMemo(
@@ -1155,6 +1201,14 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setBathrooms,
     wcs,
     setWcs,
+    bedroomCount,
+    setBedroomCount,
+    kitchenCount,
+    setKitchenCount,
+    extraWardrobeCount,
+    setExtraWardrobeCount,
+    includeGeneralFurniture,
+    setIncludeGeneralFurniture,
     hvacSelections,
     toggleHvacOption,
     hvacCosts,
@@ -1235,6 +1289,13 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg400Total,
     kg500Total,
     kg600Cost,
+    kg600SubgroupCosts,
+    kitchenPackageCost,
+    wardrobePackageCost,
+    generalFurniturePackageCost,
+    bathroomWcFurnishingSliceCost,
+    includedWardrobes,
+    totalWardrobeCount,
     constructionSubtotal,
     contingencyPercent,
     contingencyCost,
@@ -1263,6 +1324,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landValue, setLandValue, landAcquisitionCosts, setLandAcquisitionCosts,
     landAcquisitionCostsMode, setLandAcquisitionCostsMode,
     bathrooms, setBathrooms, wcs, setWcs,
+    bedroomCount, setBedroomCount, kitchenCount, setKitchenCount,
+    extraWardrobeCount, setExtraWardrobeCount, includeGeneralFurniture, setIncludeGeneralFurniture,
     hvacSelections, toggleHvacOption, hvacCosts, totalHvacCost,
     customCostPerSqm, setCustomCostPerSqm, plotSize, setPlotSize,
     mainArea, setMainArea, terraceArea, setTerraceArea,
@@ -1285,6 +1348,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
     kg200Total, kg300Cost, kg300Total, kg300SubgroupCosts, kg400Cost, kg400Total, kg500Total, kg600Cost,
+    kg600SubgroupCosts, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
+    bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, contingencyPercent, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
     basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,

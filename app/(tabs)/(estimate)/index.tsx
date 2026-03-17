@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot } from 'lucide-react-native';
+import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot, Sofa } from 'lucide-react-native';
 import SliderInput from '@/components/SliderInput';
 import ScenarioBar from '@/components/ScenarioBar';
 import { useRouter } from 'expo-router';
@@ -272,6 +272,14 @@ export default function EstimateScreen() {
      setBathrooms,
     wcs,
     setWcs,
+    bedroomCount,
+    setBedroomCount,
+    kitchenCount,
+    setKitchenCount,
+    extraWardrobeCount,
+    setExtraWardrobeCount,
+    includeGeneralFurniture,
+    setIncludeGeneralFurniture,
     hvacSelections,
     toggleHvacOption,
     hvacCosts,
@@ -298,6 +306,12 @@ export default function EstimateScreen() {
     siteAccessibilityId,
     setSiteAccessibilityId,
     siteAccessibility,
+    kg600Cost,
+    kitchenPackageCost,
+    wardrobePackageCost,
+    generalFurniturePackageCost,
+    bathroomWcFurnishingSliceCost,
+    includedWardrobes,
     resetAllData,
   } = useEstimate();
 
@@ -987,6 +1001,66 @@ export default function EstimateScreen() {
           min={0}
           baseline={1}
         />
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Sofa size={16} color={Colors.accent} />
+        <Text style={styles.sectionTitle}>Furnishings</Text>
+      </View>
+      <View style={styles.card}>
+        <IntegerInputRow
+          label="Bedrooms"
+          value={bedroomCount}
+          onChangeValue={setBedroomCount}
+          min={1}
+        />
+        <View style={styles.divider} />
+        <IntegerInputRow
+          label="Kitchens"
+          value={kitchenCount}
+          onChangeValue={setKitchenCount}
+          min={1}
+          baseline={1}
+        />
+        <View style={styles.divider} />
+        <IntegerInputRow
+          label="Extra wardrobes"
+          value={extraWardrobeCount}
+          onChangeValue={setExtraWardrobeCount}
+          min={0}
+          baseline={includedWardrobes}
+        />
+        <View style={styles.divider} />
+        <View style={styles.optionRow}>
+          <View style={styles.optionInfo}>
+            <Text style={styles.optionLabel}>General furniture package</Text>
+            <Text style={styles.optionSubtext}>
+              {includeGeneralFurniture
+                ? `${formatCurrency(generalFurniturePackageCost)} ${MIDDLE_DOT} movable furniture package`
+                : 'Optional movable furniture package'}
+            </Text>
+          </View>
+          <Switch
+            value={includeGeneralFurniture}
+            onValueChange={(val) => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setIncludeGeneralFurniture(val);
+            }}
+            trackColor={{ false: Colors.border, true: Colors.accent }}
+            thumbColor={Colors.white}
+            testID="general-furniture-toggle"
+          />
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.effectiveRow}>
+          <Text style={styles.effectiveLabel}>KG600 Furnishings Total</Text>
+          <Text style={styles.effectiveValue}>{formatCurrency(kg600Cost)}</Text>
+        </View>
+        <Text style={styles.effectiveFormula}>
+          {`${formatCurrency(kitchenPackageCost)} kitchen${wardrobePackageCost > 0 ? ` + ${formatCurrency(wardrobePackageCost)} wardrobes` : ''}${generalFurniturePackageCost > 0 ? ` + ${formatCurrency(generalFurniturePackageCost)} furniture` : ''}${bathroomWcFurnishingSliceCost > 0 ? ` + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices` : ''}`}
+        </Text>
       </View>
 
       <View style={styles.sectionHeader}>

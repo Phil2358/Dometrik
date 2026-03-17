@@ -91,6 +91,12 @@ export const COST_CATEGORIES: CostCategory[] = [
   { id: 'furnishings', din276: 'KG 600', subgroupCode: '620', name: 'Built-in Furnishings', percentage: 9, description: 'Kitchen, wardrobes, built-in storage, bathroom vanities' },
 ];
 
+export const KG600_KITCHEN_PACKAGE_BASE_COST = 7500;
+export const KG600_WARDROBE_PACKAGE_BASE_COST = 1800;
+export const KG600_GENERAL_FURNITURE_PACKAGE_BASE_COST = 6000;
+export const KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST = 600;
+export const KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST = 300;
+
 export interface BasementType {
   id: string;
   name: string;
