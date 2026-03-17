@@ -163,13 +163,11 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     calculateKg300SubgroupCosts({
       kg300Total,
       effectiveArea,
-      mainArea: input.mainArea,
       storageBasementArea: input.storageBasementArea,
       parkingBasementArea: input.parkingBasementArea,
       habitableBasementArea: input.habitableBasementArea,
-      locationId: input.locationId,
       qualityId: input.qualityId,
-      sizeCorrectionFactor: buildingCost.sizeCorrectionFactor
+      selectedFinalCostPerSqm: buildingCost.correctedCostPerSqm
     })
 
 
