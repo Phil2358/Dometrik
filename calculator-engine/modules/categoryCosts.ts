@@ -49,20 +49,20 @@ export interface Kg300SubgroupCosts {
 const KG300_FLEXIBLE_SUBGROUP_SHARES: Record<string, Kg300SubgroupShareSet> = {
   standard: {
     subgroup330Share: 0.55,
-    subgroup340Share: 0.25,
-    subgroup360Share: 0.15,
+    subgroup340Share: 0.27,
+    subgroup360Share: 0.13,
     subgroup390Share: 0.05
   },
   premium: {
     subgroup330Share: 0.60,
-    subgroup340Share: 0.23,
-    subgroup360Share: 0.12,
+    subgroup340Share: 0.24,
+    subgroup360Share: 0.11,
     subgroup390Share: 0.05
   },
   luxury: {
-    subgroup330Share: 0.65,
-    subgroup340Share: 0.20,
-    subgroup360Share: 0.10,
+    subgroup330Share: 0.63,
+    subgroup340Share: 0.21,
+    subgroup360Share: 0.11,
     subgroup390Share: 0.05
   }
 }
@@ -140,20 +140,22 @@ export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg3
   const baseSubgroup320Cost = Math.round(baseKg300Reference * 0.12)
   const baseSubgroup350Cost = Math.round(baseKg300Reference * 0.20)
 
-  const subgroup310Increment = Math.round(kg300BasementIncrement * 0.35)
-  const subgroup320Increment = Math.round(kg300BasementIncrement * 0.45)
-  const subgroup350Increment =
+  const subgroup310Increment = Math.round(kg300BasementIncrement * 0.30)
+  const subgroup320Increment = Math.round(kg300BasementIncrement * 0.35)
+  const subgroup350Increment = Math.round(kg300BasementIncrement * 0.20)
+  const subgroup330Increment = Math.round(kg300BasementIncrement * 0.10)
+  const subgroup340Increment =
     Math.round(
       kg300BasementIncrement
       - subgroup310Increment
       - subgroup320Increment
+      - subgroup350Increment
+      - subgroup330Increment
     )
 
-  const subgroup310Cost = baseSubgroup310Cost + subgroup310Increment
-  const subgroup320Cost = baseSubgroup320Cost + subgroup320Increment
-  const subgroup350Cost = baseSubgroup350Cost + subgroup350Increment
-  const fixedCore = subgroup310Cost + subgroup320Cost + subgroup350Cost
-  const flexibleKG300 = Math.max(0, input.kg300Total - fixedCore)
+  const baseKg300 = Math.max(0, input.kg300Total - kg300BasementIncrement)
+  const baseStructuralCore = baseSubgroup310Cost + baseSubgroup320Cost + baseSubgroup350Cost
+  const flexibleKG300 = Math.max(0, baseKg300 - baseStructuralCore)
 
   const flexibleShares =
     KG300_FLEXIBLE_SUBGROUP_SHARES[input.qualityId] ??
@@ -171,11 +173,11 @@ export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg3
     )
 
   return {
-    subgroup310Cost,
-    subgroup320Cost,
-    subgroup330Cost,
-    subgroup340Cost,
-    subgroup350Cost,
+    subgroup310Cost: baseSubgroup310Cost + subgroup310Increment,
+    subgroup320Cost: baseSubgroup320Cost + subgroup320Increment,
+    subgroup330Cost: subgroup330Cost + subgroup330Increment,
+    subgroup340Cost: subgroup340Cost + subgroup340Increment,
+    subgroup350Cost: baseSubgroup350Cost + subgroup350Increment,
     subgroup360Cost,
     subgroup370Cost: 0,
     subgroup380Cost: 0,

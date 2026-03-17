@@ -96,20 +96,20 @@ const KG300_BASE_FLEXIBLE_SHARES: Record<string, {
 }> = {
   standard: {
     subgroup330Share: 0.55,
-    subgroup340Share: 0.25,
-    subgroup360Share: 0.15,
+    subgroup340Share: 0.27,
+    subgroup360Share: 0.13,
     subgroup390Share: 0.05,
   },
   premium: {
     subgroup330Share: 0.60,
-    subgroup340Share: 0.23,
-    subgroup360Share: 0.12,
+    subgroup340Share: 0.24,
+    subgroup360Share: 0.11,
     subgroup390Share: 0.05,
   },
   luxury: {
-    subgroup330Share: 0.65,
-    subgroup340Share: 0.20,
-    subgroup360Share: 0.10,
+    subgroup330Share: 0.63,
+    subgroup340Share: 0.21,
+    subgroup360Share: 0.11,
     subgroup390Share: 0.05,
   },
 };
@@ -766,27 +766,29 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     const baseKg300Reference = Math.round(premiumReferenceConstructionCost * BASE_GROUP_SHARE_KG300);
     const adjustedKg300Reference = Math.round(premiumReferenceConstructionCost * adjustedKg300Share);
     const kg300BasementIncrement = Math.max(0, adjustedKg300Reference - baseKg300Reference);
+    const baseKg300 = Math.max(0, kg300Total - kg300BasementIncrement);
 
     const baseSubgroup310Cost = Math.round(baseKg300Reference * 0.06);
     const baseSubgroup320Cost = Math.round(baseKg300Reference * 0.12);
     const baseSubgroup350Cost = Math.round(baseKg300Reference * 0.20);
 
-    const subgroup310Increment = Math.round(kg300BasementIncrement * 0.35);
-    const subgroup320Increment = Math.round(kg300BasementIncrement * 0.45);
-    const subgroup350Increment = Math.round(
+    const subgroup310Increment = Math.round(kg300BasementIncrement * 0.30);
+    const subgroup320Increment = Math.round(kg300BasementIncrement * 0.35);
+    const subgroup350Increment = Math.round(kg300BasementIncrement * 0.20);
+    const subgroup330Increment = Math.round(kg300BasementIncrement * 0.10);
+    const subgroup340Increment = Math.round(
       kg300BasementIncrement
       - subgroup310Increment
       - subgroup320Increment
+      - subgroup350Increment
+      - subgroup330Increment
     );
 
-    const fixedStructuralCore =
+    const baseStructuralCore =
       baseSubgroup310Cost +
       baseSubgroup320Cost +
-      baseSubgroup350Cost +
-      subgroup310Increment +
-      subgroup320Increment +
-      subgroup350Increment;
-    const baseFlexibleKg300 = Math.max(0, kg300Total - fixedStructuralCore);
+      baseSubgroup350Cost;
+    const baseFlexibleKg300 = Math.max(0, baseKg300 - baseStructuralCore);
 
     const flexibleShares =
       KG300_BASE_FLEXIBLE_SHARES[qualityId] ??
@@ -805,8 +807,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     return {
       subgroup310Cost: baseSubgroup310Cost + subgroup310Increment,
       subgroup320Cost: baseSubgroup320Cost + subgroup320Increment,
-      subgroup330Cost,
-      subgroup340Cost,
+      subgroup330Cost: subgroup330Cost + subgroup330Increment,
+      subgroup340Cost: subgroup340Cost + subgroup340Increment,
       subgroup350Cost: baseSubgroup350Cost + subgroup350Increment,
       subgroup360Cost,
       subgroup370Cost: 0,
