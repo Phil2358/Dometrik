@@ -132,8 +132,8 @@ const BASE_SITE_CONDITION_FACTORS_320: Record<string, number> = {
 
 const BASE_GROUNDWATER_FACTORS_310: Record<string, number> = {
   normal: 1.00,
-  moderate: 1.03,
-  high: 1.08,
+  moderate: 1.02,
+  high: 1.05,
 };
 
 const BASE_GROUNDWATER_FACTORS_320: Record<string, number> = {
@@ -152,15 +152,22 @@ const BASEMENT_SITE_CONDITION_FACTORS: Record<string, number> = {
 
 const BASEMENT_GROUNDWATER_FACTORS: Record<string, number> = {
   normal: 1.00,
+  moderate: 1.04,
+  high: 1.10,
+};
+
+const BASEMENT_GROUNDWATER_FACTORS_320: Record<string, number> = {
+  normal: 1.00,
   moderate: 1.08,
   high: 1.18,
 };
 
 function getAdjustedKg300Share(weightedBasementRatio: number): number {
   if (weightedBasementRatio <= 0) return BASE_GROUP_SHARE_KG300;
-  if (weightedBasementRatio <= 0.15) return 0.655;
-  if (weightedBasementRatio <= 0.30) return 0.67;
-  return 0.685;
+  if (weightedBasementRatio <= 0.15) return 0.645;
+  if (weightedBasementRatio <= 0.30) return 0.65;
+  if (weightedBasementRatio <= 0.50) return 0.66;
+  return 0.675;
 }
 
 function getAutoEstimatedLandAcquisitionCosts(landValue: number): number {
@@ -816,7 +823,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     0,
     premiumReferenceAdjustedKg300 - premiumReferenceBaseKg300NonBasement
   );
-  const rawBaseSubgroup310Cost = Math.round(premiumReferenceBaseKg300NonBasement * 0.06);
+  const rawBaseSubgroup310Cost = Math.round(premiumReferenceBaseKg300NonBasement * 0.02);
   const rawBaseSubgroup320Cost = Math.round(premiumReferenceBaseKg300NonBasement * 0.12);
   const baseSiteFactor310 = BASE_SITE_CONDITION_FACTORS_310[siteConditionId] ?? 1.00;
   const baseSiteFactor320 = BASE_SITE_CONDITION_FACTORS_320[siteConditionId] ?? 1.00;
@@ -835,17 +842,24 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     basementArea > 0
       ? (BASEMENT_SITE_CONDITION_FACTORS[siteConditionId] ?? 1.00)
       : 1.00;
-  const basementGroundwaterFactor =
+  const basementGroundwaterFactor310 =
     basementArea > 0
       ? (BASEMENT_GROUNDWATER_FACTORS[groundwaterConditionId] ?? 1.00)
       : 1.00;
-  const basementFactor = basementArea > 0
-    ? basementSiteConditionFactor * basementGroundwaterFactor
+  const basementGroundwaterFactor320 =
+    basementArea > 0
+      ? (BASEMENT_GROUNDWATER_FACTORS_320[groundwaterConditionId] ?? 1.00)
+      : 1.00;
+  const basementFactor310 = basementArea > 0
+    ? basementSiteConditionFactor * basementGroundwaterFactor310
     : 1.00;
-  const rawSubgroup310Increment = Math.round(premiumReferenceBasementIncrement * 0.30);
-  const rawSubgroup320Increment = Math.round(premiumReferenceBasementIncrement * 0.35);
-  const adjustedSubgroup310Increment = Math.round(rawSubgroup310Increment * basementFactor);
-  const adjustedSubgroup320Increment = Math.round(rawSubgroup320Increment * basementFactor);
+  const basementFactor320 = basementArea > 0
+    ? basementSiteConditionFactor * basementGroundwaterFactor320
+    : 1.00;
+  const rawSubgroup310Increment = Math.round(premiumReferenceBasementIncrement * 0.10);
+  const rawSubgroup320Increment = Math.round(premiumReferenceBasementIncrement * 0.45);
+  const adjustedSubgroup310Increment = Math.round(rawSubgroup310Increment * basementFactor310);
+  const adjustedSubgroup320Increment = Math.round(rawSubgroup320Increment * basementFactor320);
   const basementIncrementAdjustment =
     (adjustedSubgroup310Increment - rawSubgroup310Increment) +
     (adjustedSubgroup320Increment - rawSubgroup320Increment);
@@ -865,8 +879,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
     const subgroup310Increment = adjustedSubgroup310Increment;
     const subgroup320Increment = adjustedSubgroup320Increment;
-    const subgroup350Increment = Math.round(premiumReferenceBasementIncrement * 0.20);
-    const subgroup330Increment = Math.round(premiumReferenceBasementIncrement * 0.10);
+    const subgroup350Increment = Math.round(premiumReferenceBasementIncrement * 0.15);
+    const subgroup330Increment = Math.round(premiumReferenceBasementIncrement * 0.20);
     const subgroup340Increment = Math.round(
       premiumReferenceBasementIncrement
       - rawSubgroup310Increment
