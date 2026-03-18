@@ -140,8 +140,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
 
   const categoryCosts =
     calculateCategoryCosts({
-      kg300Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg300Share(weightedBasementRatio)),
-      kg400Base: 0
+      kg300Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg300Share(weightedBasementRatio))
     })
 
 

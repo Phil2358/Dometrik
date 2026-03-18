@@ -1,19 +1,13 @@
 import {
   BASEMENT_TYPES,
-  BASE_GROUP_SHARE_KG400,
   BASE_GROUP_SHARE_KG300,
   COST_CATEGORIES,
   KG300_CATEGORY_IDS,
-  KG400_CATEGORY_IDS,
   KG600_CATEGORY_IDS
 } from "../../constants/construction"
 
 interface CategoryCostsInput {
   kg300Base: number
-  kg400Base: number
-  kg400AdjustmentsByCategory?: Partial<Record<string, number>>
-  kg400BaseByCategory?: Partial<Record<string, number>>
-  kg400FixedCostByCategory?: Partial<Record<string, number>>
 }
 
 interface Kg300SubgroupShareSet {
@@ -66,8 +60,6 @@ const KG300_FLEXIBLE_SUBGROUP_SHARES: Record<string, Kg300SubgroupShareSet> = {
   }
 }
 
-const KG300_PLUS_KG400_BASE_SHARE = BASE_GROUP_SHARE_KG300 + BASE_GROUP_SHARE_KG400
-
 export function calculateWeightedBasementArea(input: {
   storageBasementArea?: number
   parkingBasementArea?: number
@@ -93,10 +85,6 @@ export function getAdjustedKg300Share(weightedBasementRatio: number): number {
   if (weightedBasementRatio <= 0.15) return 0.655
   if (weightedBasementRatio <= 0.30) return 0.67
   return 0.685
-}
-
-export function getAdjustedKg400Share(weightedBasementRatio: number): number {
-  return KG300_PLUS_KG400_BASE_SHARE - getAdjustedKg300Share(weightedBasementRatio)
 }
 
 export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg300SubgroupCosts {
@@ -164,34 +152,21 @@ export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg3
 }
 
 export function calculateCategoryCosts(input: CategoryCostsInput) {
-
+  // KG400 source of truth lives in kg400Costs.ts.
+  // This helper only owns the benchmark-driven KG300/KG600 category skeleton.
   const categoryCosts = COST_CATEGORIES.map(category => {
-    const fixedKg400CategoryCost =
-      category.din276 === 'KG 400'
-        ? input.kg400FixedCostByCategory?.[category.id]
-        : undefined
     const groupBase =
       category.din276 === 'KG 300'
         ? input.kg300Base
-        : category.din276 === 'KG 400'
-          ? (input.kg400BaseByCategory?.[category.id] ?? input.kg400Base)
-          : 0
+        : 0
 
     const groupPercentage =
       category.din276 === 'KG 300'
         ? category.percentage / 67
-        : category.din276 === 'KG 400'
-          ? category.percentage / 24
-          : 0
+        : 0
 
     let cost =
-      fixedKg400CategoryCost !== undefined
-        ? fixedKg400CategoryCost
-        : groupPercentage * groupBase
-
-    if (category.din276 === 'KG 400' && fixedKg400CategoryCost === undefined) {
-      cost += input.kg400AdjustmentsByCategory?.[category.id] ?? 0
-    }
+      groupPercentage * groupBase
 
     return {
       id: category.id,
@@ -207,10 +182,6 @@ export function calculateCategoryCosts(input: CategoryCostsInput) {
     .filter(c => KG300_CATEGORY_IDS.includes(c.id as any))
     .reduce((sum, c) => sum + c.cost, 0)
 
-  const kg400Total = categoryCosts
-    .filter(c => KG400_CATEGORY_IDS.includes(c.id as any))
-    .reduce((sum, c) => sum + c.cost, 0)
-
   const kg600Total = categoryCosts
     .filter(c => KG600_CATEGORY_IDS.includes(c.id as any))
     .reduce((sum, c) => sum + c.cost, 0)
@@ -218,7 +189,7 @@ export function calculateCategoryCosts(input: CategoryCostsInput) {
   return {
     categoryCosts,
     kg300Total,
-    kg400Total,
+    kg400Total: 0,
     kg600Total
   }
 
