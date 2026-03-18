@@ -45,7 +45,8 @@ import {
   KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT,
   KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST,
   KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST,
-  type Kg400PackageLevel,
+  type AutomationPackageLevel,
+  type DataSecurityPackageLevel,
   type Kg400PackageSelection,
   getKitchenAreaFactor,
   getResidentialProgramBaseline,
@@ -67,6 +68,7 @@ export interface ScenarioConfig {
   locationId: string;
   qualityId: string;
   customCostPerSqm: number | null;
+  effectiveArea?: number;
   plotSize: number;
   mainArea: number;
   terraceArea: number;
@@ -106,8 +108,8 @@ export interface ScenarioConfig {
   dataSecurityManualQuote?: number | null;
   automationPackageSelection?: Kg400PackageSelection;
   automationManualQuote?: number | null;
-  dataSecurityPackageLevel?: Kg400PackageLevel;
-  automationPackageLevel?: Kg400PackageLevel;
+  dataSecurityPackageLevel?: DataSecurityPackageLevel;
+  automationPackageLevel?: AutomationPackageLevel;
   hvacSelections: Record<string, boolean>;
   utilityConnectionId: string;
   customUtilityCost: number;
@@ -247,8 +249,56 @@ function getProgramBaselineLivingArea(config: Partial<ScenarioConfig>): number {
   return config.mainArea ?? 0;
 }
 
+function normalizeDataSecurityPackageLevel(
+  level: ScenarioConfig['dataSecurityPackageLevel'] | 'basic' | 'advanced' | 'essential' | undefined,
+  selection: ScenarioConfig['dataSecurityPackageSelection'],
+): DataSecurityPackageLevel {
+  switch (level) {
+    case 'essential':
+      return 'essential';
+    case 'connected':
+    case 'basic':
+      return 'connected';
+    case 'integrated':
+    case 'advanced':
+      return 'integrated';
+    case 'custom':
+      return 'custom';
+    default:
+      return selection === 'yes' ? 'connected' : 'essential';
+  }
+}
+
+function normalizeAutomationPackageLevel(
+  level: ScenarioConfig['automationPackageLevel'] | 'basic' | 'advanced' | undefined,
+  selection: ScenarioConfig['automationPackageSelection'],
+): AutomationPackageLevel {
+  switch (level) {
+    case 'none':
+      return 'none';
+    case 'connected':
+    case 'basic':
+      return 'connected';
+    case 'integrated':
+    case 'advanced':
+      return 'integrated';
+    case 'custom':
+      return 'custom';
+    default:
+      return selection === 'yes' ? 'connected' : 'none';
+  }
+}
+
 function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
+  const effectiveArea = getProgramDefaultEffectiveArea({
+    mainArea: config.mainArea,
+    terraceArea: config.terraceArea,
+    balconyArea: config.balconyArea,
+    storageBasementArea: config.storageBasementArea ?? 0,
+    parkingBasementArea: config.parkingBasementArea ?? 0,
+    habitableBasementArea: config.habitableBasementArea ?? 0,
+  });
   const plotSize = config.plotSize ?? 4000;
   const legacyBasementArea = config.basementArea ?? 0;
   const legacyBasementTypeId = config.basementTypeId ?? 'storage';
@@ -316,19 +366,24 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const generalFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
     ? (config.generalFurnitureBaseAmount ?? suggestedGeneralFurnitureBaseAmount)
     : suggestedGeneralFurnitureBaseAmount;
-  const dataSecurityPackageLevel = config.dataSecurityPackageLevel
-    ?? (config.dataSecurityPackageSelection === 'yes' ? 'basic' : 'none');
+  const dataSecurityPackageLevel = normalizeDataSecurityPackageLevel(
+    config.dataSecurityPackageLevel,
+    config.dataSecurityPackageSelection,
+  );
   const dataSecurityPackageSelection = config.dataSecurityPackageSelection
-    ?? (dataSecurityPackageLevel !== 'none' ? 'yes' : 'no');
+    ?? (dataSecurityPackageLevel !== 'essential' ? 'yes' : 'no');
   const dataSecurityManualQuote = config.dataSecurityManualQuote ?? null;
-  const automationPackageLevel = config.automationPackageLevel
-    ?? (config.automationPackageSelection === 'yes' ? 'basic' : 'none');
+  const automationPackageLevel = normalizeAutomationPackageLevel(
+    config.automationPackageLevel,
+    config.automationPackageSelection,
+  );
   const automationPackageSelection = config.automationPackageSelection
     ?? (automationPackageLevel !== 'none' ? 'yes' : 'no');
   const automationManualQuote = config.automationManualQuote ?? null;
 
   return {
     ...config,
+    effectiveArea: config.effectiveArea ?? effectiveArea,
     plotSize,
     basementArea,
     basementTypeId: basementArea > 0 ? legacyBasementTypeId : 'storage',
@@ -394,6 +449,7 @@ function createDefaultConfig(name: string): ScenarioConfig {
     locationId: 'corfu',
     qualityId: 'premium',
     customCostPerSqm: null,
+    effectiveArea: defaultEffectiveArea,
     plotSize: 4000,
     mainArea: 150,
     terraceArea: 30,
@@ -433,6 +489,8 @@ function createDefaultConfig(name: string): ScenarioConfig {
     dataSecurityManualQuote: null,
     automationPackageSelection: 'no',
     automationManualQuote: null,
+    dataSecurityPackageLevel: 'essential',
+    automationPackageLevel: 'none',
     hvacSelections: {
       underfloor_heating: false,
       solar_thermal: false,
@@ -529,10 +587,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     getSuggestedGeneralFurnitureBaseAmount(initialProgramDefaultEffectiveArea, initialResidentialProgramBaseline.bedrooms)
   );
   const [generalFurnitureBaseAmountCustomized, setGeneralFurnitureBaseAmountCustomized] = useState<boolean>(false);
-  const [dataSecurityPackageLevel, setDataSecurityPackageLevel] = useState<Kg400PackageLevel>('none');
+  const [dataSecurityPackageLevel, setDataSecurityPackageLevel] = useState<DataSecurityPackageLevel>('essential');
   const [dataSecurityPackageSelection, setDataSecurityPackageSelection] = useState<Kg400PackageSelection>('no');
   const [dataSecurityManualQuote, setDataSecurityManualQuote] = useState<number | null>(null);
-  const [automationPackageLevel, setAutomationPackageLevel] = useState<Kg400PackageLevel>('none');
+  const [automationPackageLevel, setAutomationPackageLevel] = useState<AutomationPackageLevel>('none');
   const [automationPackageSelection, setAutomationPackageSelection] = useState<Kg400PackageSelection>('no');
   const [automationManualQuote, setAutomationManualQuote] = useState<number | null>(null);
   const [hvacSelections, setHvacSelections] = useState<Record<string, boolean>>({
@@ -568,6 +626,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       locationId,
       qualityId,
       customCostPerSqm,
+      effectiveArea,
       plotSize,
       mainArea,
       terraceArea,
@@ -606,7 +665,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       generalFurnitureBaseAmount,
       generalFurnitureBaseAmountCustomized,
       dataSecurityPackageLevel,
-      dataSecurityPackageSelection: dataSecurityPackageLevel !== 'none' ? 'yes' : 'no',
+      dataSecurityPackageSelection: dataSecurityPackageLevel !== 'essential' ? 'yes' : 'no',
       dataSecurityManualQuote,
       automationPackageLevel,
       automationPackageSelection: automationPackageLevel !== 'none' ? 'yes' : 'no',
@@ -664,7 +723,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setCustomKitchenUnitCost(normalizedConfig.customKitchenUnitCost);
     setGeneralFurnitureBaseAmountState(normalizedConfig.generalFurnitureBaseAmount);
     setGeneralFurnitureBaseAmountCustomized(normalizedConfig.generalFurnitureBaseAmountCustomized ?? false);
-    setDataSecurityPackageLevel(normalizedConfig.dataSecurityPackageLevel ?? 'none');
+    setDataSecurityPackageLevel(normalizedConfig.dataSecurityPackageLevel ?? 'essential');
     setDataSecurityPackageSelection(normalizedConfig.dataSecurityPackageSelection ?? 'no');
     setDataSecurityManualQuote(normalizedConfig.dataSecurityManualQuote ?? null);
     setAutomationPackageLevel(normalizedConfig.automationPackageLevel ?? 'none');
@@ -696,10 +755,14 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const persistState = useCallback(() => {
     if (!hydratedRef.current) return;
     const snapshot = snapshotCurrentState();
-    const updated = scenariosRef.current.map((s, i) =>
-      i === activeIndexRef.current ? { ...s, ...snapshot } : s
-    );
-    scheduleSave(updated, activeIndexRef.current);
+    setScenarios((prev) => {
+      const updated = prev.map((s, i) =>
+        i === activeIndexRef.current ? normalizeScenarioConfig({ ...s, ...snapshot }) : s
+      );
+      scenariosRef.current = updated;
+      scheduleSave(updated, activeIndexRef.current);
+      return updated;
+    });
   }, [snapshotCurrentState, scheduleSave]);
 
   useEffect(() => {
@@ -724,7 +787,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   }, [landValue, landAcquisitionCostsMode]);
 
   useEffect(() => {
-    setDataSecurityPackageSelection(dataSecurityPackageLevel !== 'none' ? 'yes' : 'no');
+    setDataSecurityPackageSelection(dataSecurityPackageLevel !== 'essential' ? 'yes' : 'no');
   }, [dataSecurityPackageLevel]);
 
   useEffect(() => {
@@ -734,7 +797,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   useEffect(() => {
     persistState();
   }, [
-    locationId, qualityId, customCostPerSqm, plotSize, mainArea, terraceArea, balconyArea,
+    locationId, qualityId, customCostPerSqm, effectiveArea, plotSize, mainArea, terraceArea, balconyArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
@@ -959,8 +1022,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       bedroomDelta,
       bathroomDelta,
       wcDelta,
+      dataSecurityPackageLevel,
       dataSecurityPackageSelection,
       dataSecurityManualQuote,
+      automationPackageLevel,
       automationPackageSelection,
       automationManualQuote,
       habitableBasementArea,
@@ -975,8 +1040,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       bedroomDelta,
       bathroomDelta,
       wcDelta,
+      dataSecurityPackageLevel,
       dataSecurityPackageSelection,
       dataSecurityManualQuote,
+      automationPackageLevel,
       automationPackageSelection,
       automationManualQuote,
       habitableBasementArea,

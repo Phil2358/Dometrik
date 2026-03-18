@@ -60,37 +60,47 @@ import { formatCurrency, formatDecimal, formatNumber } from '@/utils/format';
 
 const DATA_SECURITY_LEVEL_OPTIONS = [
   {
-    id: 'none',
+    id: 'essential',
     label: 'Essential',
-    description: 'Basic data provision and core security preparation included in the base benchmark.',
+    description: 'Basic cabling and core networking provision included in the benchmark.',
   },
   {
-    id: 'basic',
+    id: 'connected',
     label: 'Connected',
     description: 'Structured cabling, alarm provision, video entry, and selected connected security features.',
   },
   {
-    id: 'advanced',
+    id: 'integrated',
     label: 'Integrated',
     description: 'More comprehensive digital infrastructure, surveillance, access control, and coordinated system integration.',
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    description: 'Use a custom allowance for this subsystem instead of the predefined package levels.',
   },
 ] as const;
 
 const AUTOMATION_LEVEL_OPTIONS = [
   {
     id: 'none',
-    label: 'No automation',
-    description: 'Standard electrical installation without smart-home automation.',
+    label: 'None',
+    description: 'Only the benchmark-included non-automation baseline is included.',
   },
   {
-    id: 'basic',
+    id: 'connected',
     label: 'Connected',
     description: 'Selected smart controls such as lighting, shutters, climate, or app-based control in limited scope.',
   },
   {
-    id: 'advanced',
+    id: 'integrated',
     label: 'Integrated',
     description: 'Broader smart-home coordination with centralized control, scenes, and multi-system automation.',
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    description: 'Use a custom allowance for this subsystem instead of the predefined package levels.',
   },
 ] as const;
 
@@ -425,14 +435,12 @@ export default function EstimateScreen() {
     setDataSecurityManualQuote,
     dataSecurityDefaultPackageCost,
     dataSecurityAppliedPackageCost,
-    dataSecurityManualOverrideActive,
     automationPackageLevel,
     setAutomationPackageLevel,
     automationManualQuote,
     setAutomationManualQuote,
     automationDefaultPackageCost,
     automationAppliedPackageCost,
-    automationManualOverrideActive,
     hvacSelections,
     toggleHvacOption,
     hvacCosts,
@@ -1243,7 +1251,7 @@ export default function EstimateScreen() {
       <View style={styles.card}>
         <Text style={styles.poolSubsectionTitle}>Digital Infrastructure & Security</Text>
         <Text style={styles.optionSubtext}>
-          Essential level is included in the base benchmark (0% adjustment).
+          Essential provision is already benchmark-included. Connected and Integrated add uplift above that baseline. Custom uses your entered amount.
         </Text>
         {DATA_SECURITY_LEVEL_OPTIONS.map((option, index) => {
           const isSelected = dataSecurityPackageLevel === option.id;
@@ -1275,11 +1283,11 @@ export default function EstimateScreen() {
           );
         })}
 
-        {dataSecurityPackageLevel !== 'none' && (
+        {dataSecurityPackageLevel === 'custom' ? (
           <>
             <View style={styles.divider} />
             <Text style={styles.optionSubtext}>
-              {`Default allowance for the selected upgrade level: ${formatCurrency(dataSecurityDefaultPackageCost)}.`}
+              Enter a custom uplift above the benchmark-included baseline for Digital Infrastructure & Security.
             </Text>
             <View style={styles.costInputRow}>
               <TextInput
@@ -1289,28 +1297,33 @@ export default function EstimateScreen() {
                   setDataSecurityManualQuote(parseOptionalCurrencyInput(text));
                 }}
                 keyboardType="numeric"
-                placeholder={formatNumber(dataSecurityDefaultPackageCost)}
+                placeholder="0"
                 placeholderTextColor={Colors.textTertiary}
                 testID="data-security-quote-input"
               />
               <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
             </View>
             <Text style={styles.optionSubtext}>
-              Supplier quote override (optional)
+              Custom uplift above baseline
             </Text>
             <Text style={styles.optionSubtext}>
-              {dataSecurityManualOverrideActive
-                ? `Using supplier quote ${formatCurrency(dataSecurityAppliedPackageCost)} ${MIDDLE_DOT} default estimate ${formatCurrency(dataSecurityDefaultPackageCost)}`
-                : `Using default estimate ${formatCurrency(dataSecurityAppliedPackageCost)}`}
+              {`Total subgroup amount with custom uplift: ${formatCurrency(dataSecurityAppliedPackageCost)}`}
             </Text>
           </>
-        )}
+        ) : dataSecurityPackageLevel !== 'essential' ? (
+          <>
+            <View style={styles.divider} />
+            <Text style={styles.optionSubtext}>
+              {`Total subgroup amount for selected level: ${formatCurrency(dataSecurityDefaultPackageCost)}.`}
+            </Text>
+          </>
+        ) : null}
       </View>
 
       <View style={styles.card}>
         <Text style={styles.poolSubsectionTitle}>Smart Control & Automation</Text>
         <Text style={styles.optionSubtext}>
-          No automation applies the base assumption (0% adjustment).
+          None adds no cost. Connected and Integrated apply fixed uplifts. Custom uses your entered amount.
         </Text>
         {AUTOMATION_LEVEL_OPTIONS.map((option, index) => {
           const isSelected = automationPackageLevel === option.id;
@@ -1342,11 +1355,11 @@ export default function EstimateScreen() {
           );
         })}
 
-        {automationPackageLevel !== 'none' && (
+        {automationPackageLevel === 'custom' ? (
           <>
             <View style={styles.divider} />
             <Text style={styles.optionSubtext}>
-              {`Default allowance for the selected automation level: ${formatCurrency(automationDefaultPackageCost)}.`}
+              Enter a custom amount for Smart Control & Automation.
             </Text>
             <View style={styles.costInputRow}>
               <TextInput
@@ -1356,22 +1369,27 @@ export default function EstimateScreen() {
                   setAutomationManualQuote(parseOptionalCurrencyInput(text));
                 }}
                 keyboardType="numeric"
-                placeholder={formatNumber(automationDefaultPackageCost)}
+                placeholder="0"
                 placeholderTextColor={Colors.textTertiary}
                 testID="automation-quote-input"
               />
               <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
             </View>
             <Text style={styles.optionSubtext}>
-              Supplier quote override (optional)
+              Custom amount used in the calculation
             </Text>
             <Text style={styles.optionSubtext}>
-              {automationManualOverrideActive
-                ? `Using supplier quote ${formatCurrency(automationAppliedPackageCost)} ${MIDDLE_DOT} default estimate ${formatCurrency(automationDefaultPackageCost)}`
-                : `Using default estimate ${formatCurrency(automationAppliedPackageCost)}`}
+              {`Total subgroup amount with custom input: ${formatCurrency(automationAppliedPackageCost)}`}
             </Text>
           </>
-        )}
+        ) : automationPackageLevel !== 'none' ? (
+          <>
+            <View style={styles.divider} />
+            <Text style={styles.optionSubtext}>
+              {`Fixed uplift amount for selected level: ${formatCurrency(automationDefaultPackageCost)}.`}
+            </Text>
+          </>
+        ) : null}
       </View>
 
       <View style={styles.sectionHeader}>

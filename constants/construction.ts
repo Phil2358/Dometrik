@@ -100,7 +100,9 @@ export const KG400_BEDROOM_DELTA_BASE_COST = 1200;
 export const KG400_BATHROOM_DELTA_BASE_COST = 4500;
 export const KG400_WC_DELTA_BASE_COST = 2500;
 export const KG400_DATA_SECURITY_BASELINE_COST_PER_SQM = 6;
-export type Kg400PackageLevel = 'none' | 'basic' | 'advanced';
+export type SmartSystemsPackageLevel = 'none' | 'connected' | 'integrated' | 'custom';
+export type DataSecurityPackageLevel = 'essential' | 'connected' | 'integrated' | 'custom';
+export type AutomationPackageLevel = SmartSystemsPackageLevel;
 export type Kg400PackageSelection = 'no' | 'yes';
 
 export const KG400_PACKAGE_SELECTION_OPTIONS: Array<{
@@ -111,8 +113,19 @@ export const KG400_PACKAGE_SELECTION_OPTIONS: Array<{
   { id: 'yes', name: 'Yes' },
 ];
 
-export const KG400_DATA_SECURITY_PACKAGE_BASE_COST = 3000;
-export const KG400_AUTOMATION_PACKAGE_BASE_COST = 5500;
+export const KG400_DATA_SECURITY_UPLIFT_PER_SQM: Record<DataSecurityPackageLevel, number> = {
+  essential: 0,
+  connected: 3.33,
+  integrated: 6.5,
+  custom: 0,
+};
+export const KG400_DATA_SECURITY_BASELINE_SHARE_PERCENT = 0.75;
+export const KG400_AUTOMATION_UPLIFT_PER_SQM: Record<AutomationPackageLevel, number> = {
+  none: 0,
+  connected: 50.0,
+  integrated: 75.0,
+  custom: 0,
+};
 
 export const KG400_OPTION_PACKAGE_QUALITY_FACTORS: Record<string, number> = {
   standard: 1.00,

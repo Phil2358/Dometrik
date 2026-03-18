@@ -13,6 +13,8 @@ import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
 import { calculatePermitCosts } from "./modules/permitCosts"
 import {
+  type AutomationPackageLevel,
+  type DataSecurityPackageLevel,
   type Kg400PackageSelection,
   getResidentialProgramBaseline,
   SITE_ACCESSIBILITY_OPTIONS,
@@ -53,8 +55,10 @@ interface ProjectCalculationInput {
   bedroomCount?: number
   bathrooms?: number
   wcs?: number
+  dataSecurityPackageLevel?: DataSecurityPackageLevel
   dataSecurityPackageSelection?: Kg400PackageSelection
   dataSecurityManualQuote?: number | null
+  automationPackageLevel?: AutomationPackageLevel
   automationPackageSelection?: Kg400PackageSelection
   automationManualQuote?: number | null
   hvacSelections: Record<string, boolean>
@@ -133,8 +137,10 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
       bathroomDelta: bathrooms - residentialProgramBaseline.bathrooms,
       wcDelta: wcs - residentialProgramBaseline.wcs,
+      dataSecurityPackageLevel: input.dataSecurityPackageLevel,
       dataSecurityPackageSelection: input.dataSecurityPackageSelection,
       dataSecurityManualQuote: input.dataSecurityManualQuote,
+      automationPackageLevel: input.automationPackageLevel,
       automationPackageSelection: input.automationPackageSelection,
       automationManualQuote: input.automationManualQuote,
       habitableBasementArea: input.habitableBasementArea,

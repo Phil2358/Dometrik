@@ -1,12 +1,13 @@
 import {
+  type AutomationPackageLevel,
   BASE_GROUP_SHARE_KG400,
   COST_CATEGORIES,
-  getKg400OptionalPackageAreaFactor,
-  KG400_AUTOMATION_PACKAGE_BASE_COST,
+  type DataSecurityPackageLevel,
+  KG400_AUTOMATION_UPLIFT_PER_SQM,
   KG400_BATHROOM_DELTA_BASE_COST,
   KG400_BEDROOM_DELTA_BASE_COST,
-  KG400_DATA_SECURITY_BASELINE_COST_PER_SQM,
-  KG400_DATA_SECURITY_PACKAGE_BASE_COST,
+  KG400_DATA_SECURITY_BASELINE_SHARE_PERCENT,
+  KG400_DATA_SECURITY_UPLIFT_PER_SQM,
   KG400_OPTION_PACKAGE_QUALITY_FACTORS,
   type Kg400PackageSelection,
   KG400_WC_DELTA_BASE_COST,
@@ -21,8 +22,10 @@ interface Kg400CostsInput {
   bedroomDelta: number
   bathroomDelta: number
   wcDelta: number
+  dataSecurityPackageLevel?: DataSecurityPackageLevel
   dataSecurityPackageSelection?: Kg400PackageSelection
   dataSecurityManualQuote?: number | null
+  automationPackageLevel?: AutomationPackageLevel
   automationPackageSelection?: Kg400PackageSelection
   automationManualQuote?: number | null
   habitableBasementArea?: number
@@ -47,7 +50,7 @@ interface Kg400CostsResult {
 }
 
 const KG400_ACCESSIBILITY_WEIGHT = 0.22
-const KG400_PERCENTAGE_DENOMINATOR = 24
+const KG400_CATEGORY_PERCENTAGE_DENOMINATOR = 24
 
 function getKg400CategoryPercentage(categoryId: string): number {
   return COST_CATEGORIES.find((category) => category.id === categoryId)?.percentage ?? 0
@@ -86,37 +89,35 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       hvacSelections: input.hvacSelections,
     })
 
-  // 450 = small main-area-based baseline for minimal weak-current/security infrastructure.
-  const optionalPackageAreaFactor = getKg400OptionalPackageAreaFactor(input.mainArea)
-  const dataSecurityPackageEnabled = (input.dataSecurityPackageSelection ?? "no") === "yes"
-  const dataSecurityDefaultPackageCost = dataSecurityPackageEnabled
-    ? Math.round(
-      KG400_DATA_SECURITY_PACKAGE_BASE_COST
-      * qualityPackageMultiplier
-      * optionalPackageAreaFactor
-    )
-    : 0
+  const dataSecurityPackageLevel =
+    input.dataSecurityPackageLevel
+    ?? ((input.dataSecurityPackageSelection ?? "no") === "yes" ? "connected" : "essential")
+  const dataSecurityUpliftPerSqm =
+    KG400_DATA_SECURITY_UPLIFT_PER_SQM[dataSecurityPackageLevel]
   const dataSecurityManualQuote = input.dataSecurityManualQuote ?? null
-  const dataSecurityOptionalExtrasCost =
-    dataSecurityPackageEnabled && dataSecurityManualQuote !== null && dataSecurityManualQuote > 0
-      ? dataSecurityManualQuote
-      : dataSecurityDefaultPackageCost
-  const dataSecurityBaselineCost =
-    Math.round(Math.max(0, input.mainArea) * KG400_DATA_SECURITY_BASELINE_COST_PER_SQM)
-  // 480 = automation only via explicit optional package / extras.
-  const automationPackageEnabled = (input.automationPackageSelection ?? "no") === "yes"
-  const automationDefaultPackageCost = automationPackageEnabled
-    ? Math.round(
-      KG400_AUTOMATION_PACKAGE_BASE_COST
-      * qualityPackageMultiplier
-      * optionalPackageAreaFactor
-    )
-    : 0
+  const dataSecurityBaselineCost = Math.round(
+    mainAreaKg400Envelope * (KG400_DATA_SECURITY_BASELINE_SHARE_PERCENT / 100)
+  )
+  const dataSecurityDefaultPackageCost = Math.round(
+    Math.max(0, input.mainArea) * dataSecurityUpliftPerSqm
+  )
+  const dataSecurityExtraCost = dataSecurityPackageLevel === "custom"
+    ? Math.max(0, dataSecurityManualQuote ?? 0)
+    : dataSecurityDefaultPackageCost
+  const dataSecurityCategoryCost = dataSecurityBaselineCost + dataSecurityExtraCost
+  const automationPackageLevel =
+    input.automationPackageLevel
+    ?? ((input.automationPackageSelection ?? "no") === "yes" ? "connected" : "none")
+  const automationUpliftPerSqm =
+    KG400_AUTOMATION_UPLIFT_PER_SQM[automationPackageLevel]
+  const automationDefaultPackageCost = Math.round(
+    Math.max(0, input.mainArea) * automationUpliftPerSqm
+  )
   const automationManualQuote = input.automationManualQuote ?? null
-  const automationCategoryCost =
-    automationPackageEnabled && automationManualQuote !== null && automationManualQuote > 0
-      ? automationManualQuote
-      : automationDefaultPackageCost
+  const automationExtraCost = automationPackageLevel === "custom"
+    ? Math.max(0, automationManualQuote ?? 0)
+    : automationDefaultPackageCost
+  const automationCategoryCost = automationExtraCost
 
   const categoryCostsById: Record<string, number> = {
     plumbing: Math.max(
@@ -124,7 +125,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       Math.round(
         Math.round(
           mainAreaKg400Envelope
-          * (getKg400CategoryPercentage("plumbing") / KG400_PERCENTAGE_DENOMINATOR)
+          * (getKg400CategoryPercentage("plumbing") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       ) + kg400BathroomPlumbingAdjustment + kg400WcPlumbingAdjustment
     ),
@@ -133,7 +134,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       Math.round(
         Math.round(
           mainAreaKg400Envelope
-          * (getKg400CategoryPercentage("heating") / KG400_PERCENTAGE_DENOMINATOR)
+          * (getKg400CategoryPercentage("heating") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       ) + kg400BathroomHeatingAdjustment + (hvacCosts.adjustmentsByCategory.heating ?? 0)
     ),
@@ -142,7 +143,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       Math.round(
         Math.round(
           mainAreaKg400Envelope
-          * (getKg400CategoryPercentage("ventilation_cooling") / KG400_PERCENTAGE_DENOMINATOR)
+          * (getKg400CategoryPercentage("ventilation_cooling") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       ) + kg400BedroomVentilationAdjustment
     ),
@@ -151,7 +152,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       Math.round(
         Math.round(
           mainAreaKg400Envelope
-          * (getKg400CategoryPercentage("electrical") / KG400_PERCENTAGE_DENOMINATOR)
+          * (getKg400CategoryPercentage("electrical") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       )
       + kg400BedroomElectricalAdjustment
@@ -161,7 +162,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     ),
     data_security: Math.max(
       0,
-      dataSecurityBaselineCost + dataSecurityOptionalExtrasCost
+      dataSecurityCategoryCost
     ),
     automation: Math.max(0, automationCategoryCost),
   }
@@ -173,14 +174,14 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     hvacExtrasCost: hvacCosts.hvacExtrasCost,
     packageCosts: {
       dataSecurity: {
-        defaultCost: dataSecurityDefaultPackageCost,
-        appliedCost: dataSecurityOptionalExtrasCost,
-        manualOverrideActive: dataSecurityPackageEnabled && dataSecurityManualQuote !== null && dataSecurityManualQuote > 0,
+        defaultCost: dataSecurityBaselineCost + dataSecurityDefaultPackageCost,
+        appliedCost: dataSecurityCategoryCost,
+        manualOverrideActive: dataSecurityPackageLevel === "custom",
       },
       automation: {
         defaultCost: automationDefaultPackageCost,
         appliedCost: automationCategoryCost,
-        manualOverrideActive: automationPackageEnabled && automationManualQuote !== null && automationManualQuote > 0,
+        manualOverrideActive: automationPackageLevel === "custom",
       },
     },
   }

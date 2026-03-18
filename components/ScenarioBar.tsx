@@ -14,23 +14,6 @@ import * as Haptics from 'expo-haptics';
 import { Copy, Pencil, X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useEstimate } from '@/contexts/EstimateContext';
-import { formatNumber } from '@/utils/format';
-
-function getScenarioEffectiveArea(scenario: {
-  mainArea: number;
-  terraceArea: number;
-  balconyArea: number;
-  storageBasementArea?: number;
-  parkingBasementArea?: number;
-  habitableBasementArea?: number;
-}): number {
-  return scenario.mainArea
-    + scenario.terraceArea * 0.5
-    + scenario.balconyArea * 0.3
-    + (scenario.storageBasementArea ?? 0) * 0.5
-    + (scenario.parkingBasementArea ?? 0) * 0.65
-    + (scenario.habitableBasementArea ?? 0) * 0.85;
-}
 
 function getScenarioQualityMeta(scenario: { qualityId: string; customCostPerSqm: number | null }) {
   if (scenario.customCostPerSqm !== null) {
@@ -135,7 +118,6 @@ export default function ScenarioBar() {
           const isActive = index === activeScenarioIndex;
           const isEditing = editingIndex === index;
           const isOnlyScenario = scenarios.length <= 1;
-          const effectiveArea = getScenarioEffectiveArea(scenario);
           const qualityMeta = getScenarioQualityMeta(scenario);
 
           return (
@@ -171,9 +153,6 @@ export default function ScenarioBar() {
                         <View style={[s.qualityBadgeDot, { backgroundColor: qualityMeta.tone }]} />
                         <Text style={[s.qualityBadgeText, { color: qualityMeta.tone }]}>{qualityMeta.label}</Text>
                       </View>
-                      <Text style={[s.areaMeta, isActive && s.areaMetaActive]}>
-                        {`${formatNumber(effectiveArea)} m² EA`}
-                      </Text>
                     </View>
                   </View>
                 )}
@@ -340,14 +319,6 @@ const s = StyleSheet.create({
   qualityBadgeText: {
     fontSize: 10,
     fontWeight: '700' as const,
-  },
-  areaMeta: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    fontWeight: '600' as const,
-  },
-  areaMetaActive: {
-    color: Colors.accent,
   },
   tabActions: {
     flexDirection: 'row' as const,
