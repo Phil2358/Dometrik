@@ -3,6 +3,9 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Kg300SubgroupCosts } from '@/calculator-engine/modules/categoryCosts';
 import { calculateKg400Costs } from '@/calculator-engine/modules/kg400Costs';
+import { calculatePoolCosts } from '@/calculator-engine/modules/poolCosts';
+import { calculateLandscapingCosts } from '@/calculator-engine/modules/landscapingCosts';
+import { calculatePermitCosts } from '@/calculator-engine/modules/permitCosts';
 import {
   LOCATIONS,
   QUALITY_LEVELS,
@@ -10,19 +13,13 @@ import {
   DEFAULT_CONTRACTOR_PERCENTAGE,
   SITE_CONDITIONS,
   BASEMENT_TYPES,
-  LANDSCAPING_BASE_COST_PER_SQM,
   INTERIOR_ADJUSTMENTS,
   INTERIOR_BASELINE,
   HVAC_OPTIONS,
   POOL_SIZE_OPTIONS,
   POOL_QUALITY_OPTIONS,
   POOL_TYPE_OPTIONS,
-  POOL_TERRAIN_MULTIPLIERS,
-  POOL_MINIMUM_COST,
   DEFAULT_POOL_DEPTH,
-  PERMIT_DESIGN_BASELINE_FEE,
-  PERMIT_DESIGN_BASELINE_AREA_MAX,
-  PERMIT_DESIGN_QUALITY_MULTIPLIERS,
   UTILITY_CONNECTION_OPTIONS,
   CONTINGENCY_PERCENTAGES,
   GROUNDWATER_CONDITIONS,
@@ -36,8 +33,6 @@ import {
   clampSitePreparationMultiplier,
   getSizeCorrectionFactor,
   getBasementExcavationCost,
-  getLandscapingSizeAdjustment,
-  getPoolDepthFactor,
   getPlotSizeFactor,
   getUtilityConnectionGroupCosts,
   KG600_KITCHEN_PACKAGE_BASE_COST,
@@ -326,7 +321,6 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     ? getAutoEstimatedLandAcquisitionCosts(landValue)
     : (config.landAcquisitionCosts ?? 0);
   const vatPercent = Math.max(0, config.vatPercent ?? 24);
-  const efkaInsuranceRatePerSqm = Math.max(0, config.efkaInsuranceRatePerSqm ?? 0);
   const efkaInsuranceManualCost = config.efkaInsuranceManualCost === null || config.efkaInsuranceManualCost === undefined
     ? null
     : Math.max(0, config.efkaInsuranceManualCost);
@@ -400,7 +394,6 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     ...config,
     effectiveArea: config.effectiveArea ?? effectiveArea,
     vatPercent,
-    efkaInsuranceRatePerSqm,
     efkaInsuranceManualCost,
     manualContingencyPercent,
     manualContingencyCost,
@@ -471,7 +464,6 @@ function createDefaultConfig(name: string): ScenarioConfig {
     customCostPerSqm: null,
     effectiveArea: defaultEffectiveArea,
     vatPercent: 24,
-    efkaInsuranceRatePerSqm: 0,
     efkaInsuranceManualCost: null,
     manualContingencyPercent: null,
     manualContingencyCost: null,
@@ -595,7 +587,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [poolTypeId, setPoolTypeId] = useState<string>('skimmer');
   const [contractorPercent, setContractorPercent] = useState<number>(DEFAULT_CONTRACTOR_PERCENTAGE);
   const [vatPercent, setVatPercent] = useState<number>(24);
-  const [efkaInsuranceRatePerSqm, setEfkaInsuranceRatePerSqm] = useState<number>(0);
   const [efkaInsuranceManualCost, setEfkaInsuranceManualCost] = useState<number | null>(null);
   const [manualContingencyPercent, setManualContingencyPercent] = useState<number | null>(null);
   const [manualContingencyCost, setManualContingencyCost] = useState<number | null>(null);
@@ -674,7 +665,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       poolTypeId,
       contractorPercent,
       vatPercent,
-      efkaInsuranceRatePerSqm,
       efkaInsuranceManualCost,
       manualContingencyPercent,
       manualContingencyCost,
@@ -743,7 +733,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setPoolTypeId(config.poolTypeId);
     setContractorPercent(config.contractorPercent);
     setVatPercent(normalizedConfig.vatPercent ?? 24);
-    setEfkaInsuranceRatePerSqm(normalizedConfig.efkaInsuranceRatePerSqm ?? 0);
     setEfkaInsuranceManualCost(normalizedConfig.efkaInsuranceManualCost ?? null);
     setManualContingencyPercent(normalizedConfig.manualContingencyPercent ?? null);
     setManualContingencyCost(normalizedConfig.manualContingencyCost ?? null);
@@ -839,7 +828,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   }, [
     locationId, qualityId, customCostPerSqm, effectiveArea, plotSize, mainArea, terraceArea, balconyArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
-    poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, vatPercent, efkaInsuranceRatePerSqm,
+    poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, vatPercent,
     efkaInsuranceManualCost, manualContingencyPercent, manualContingencyCost, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, kitchenCount, customKitchenUnitCost, generalFurnitureBaseAmount,
@@ -1466,23 +1455,34 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const poolArea = poolSizeId === 'custom' ? poolCustomArea : poolSizeOption.area;
   const poolDepth = poolSizeId === 'custom' ? poolCustomDepth : DEFAULT_POOL_DEPTH;
 
-  const poolCost = useMemo(() => {
-    if (!includePool) return 0;
-    const baseCost = poolQualityOption.baseCostPerSqm;
-    const depthFactor = getPoolDepthFactor(poolDepth);
-    const typeFactor = poolTypeOption.multiplier;
-    const terrainFactor = POOL_TERRAIN_MULTIPLIERS[siteConditionId] ?? 1.00;
-    const calculated = poolArea * baseCost * depthFactor * typeFactor * terrainFactor;
-    return Math.round(Math.max(calculated, POOL_MINIMUM_COST));
-  }, [includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption, siteConditionId]);
+  const poolEngineResult = useMemo(() => calculatePoolCosts({
+    includePool,
+    poolSizeId,
+    poolCustomArea,
+    poolDepth,
+    poolQualityId,
+    poolTypeId,
+    siteConditionId,
+  }), [
+    includePool,
+    poolSizeId,
+    poolCustomArea,
+    poolDepth,
+    poolQualityId,
+    poolTypeId,
+    siteConditionId,
+  ]);
 
-  const landscapingCost = useMemo(() => {
-    if (landscapingArea <= 0) return 0;
-    const baseCost = landscapingArea * LANDSCAPING_BASE_COST_PER_SQM;
-    const sizeAdj = 1 + getLandscapingSizeAdjustment(landscapingArea);
-    const siteAdj = siteCondition.terrainMultiplier;
-    return Math.round(baseCost * sizeAdj * siteAdj);
-  }, [landscapingArea, siteCondition]);
+  const landscapingEngineResult = useMemo(() => calculateLandscapingCosts({
+    landscapingArea,
+    siteConditionId,
+  }), [
+    landscapingArea,
+    siteConditionId,
+  ]);
+
+  const poolCost = poolEngineResult.poolCost;
+  const landscapingCost = landscapingEngineResult.landscapingCost;
 
   const toggleHvacOption = useCallback((id: string) => {
     setHvacSelections((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -1517,13 +1517,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [mainBuildingArea, balconyArea, weightedBasementArea],
   );
 
-  const permitDesignFee = useMemo(() => {
-    const areaFactor = permitDesignEffectiveArea > PERMIT_DESIGN_BASELINE_AREA_MAX
-      ? permitDesignEffectiveArea / PERMIT_DESIGN_BASELINE_AREA_MAX
-      : 1.0;
-    const qualityFactor = PERMIT_DESIGN_QUALITY_MULTIPLIERS[qualityId] ?? 1.0;
-    return Math.round(PERMIT_DESIGN_BASELINE_FEE * areaFactor * qualityFactor);
-  }, [permitDesignEffectiveArea, qualityId]);
+  const permitEngineResult = useMemo(() => calculatePermitCosts({
+    effectiveArea: permitDesignEffectiveArea,
+    qualityId,
+  }), [permitDesignEffectiveArea, qualityId]);
+
+  const permitDesignFee = permitEngineResult.permitFee;
 
   const kg400Total = kg400EngineResult.kg400Total;
 
@@ -1678,8 +1677,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setContractorPercent,
     vatPercent,
     setVatPercent,
-    efkaInsuranceRatePerSqm,
-    setEfkaInsuranceRatePerSqm,
     efkaInsuranceManualCost,
     setEfkaInsuranceManualCost,
     manualContingencyPercent,
@@ -1796,7 +1793,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolArea, poolDepth,
     contractorPercent, setContractorPercent,
     vatPercent, setVatPercent,
-    efkaInsuranceRatePerSqm, setEfkaInsuranceRatePerSqm,
     efkaInsuranceManualCost, setEfkaInsuranceManualCost,
     manualContingencyPercent, setManualContingencyPercent,
     manualContingencyCost, setManualContingencyCost,

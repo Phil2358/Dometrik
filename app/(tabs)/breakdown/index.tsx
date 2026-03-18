@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Linking,
   Platform,
   ActivityIndicator,
   LayoutAnimation,
@@ -30,7 +29,6 @@ import {
   Waves,
   Info,
   Flower2,
-  ExternalLink,
   PenTool,
   Plug,
   ShieldAlert,
@@ -57,8 +55,6 @@ import type { UserMode } from '@/contexts/UserModeContext';
 import {
   DISCLAIMER_TEXT,
   CONSTRUCTION_SUBTOTAL_DISCLAIMER,
-  PERMIT_DESIGN_CONTACT_URL,
-  PERMIT_DESIGN_CONTACT_LABEL,
   getSizeCorrectionLabel,
 } from '@/constants/construction';
 import { getDin276Group, getDin276Subgroup } from '@/constants/din276Groups';
@@ -93,6 +89,8 @@ const MULTIPLY_SYMBOL = '\u00D7';
 const MIDDLE_DOT = '\u00B7';
 const EN_DASH = '\u2013';
 const SQUARE_METER_UNIT = 'm\u00B2';
+const EFKA_REFERENCE_COST = 19000;
+const EFKA_REFERENCE_AREA = 130;
 
 function CollapsibleGroup({ group }: { group: DinGroup }) {
   const [expanded, setExpanded] = useState<boolean>(true);
@@ -337,6 +335,8 @@ export default function BreakdownScreen() {
     categoryCosts,
     contractorCost,
     contractorPercent,
+    vatPercent,
+    efkaInsuranceManualCost,
     poolCost,
     includePool,
     poolArea,
@@ -376,13 +376,24 @@ export default function BreakdownScreen() {
     habitableBasementArea,
   );
   const group100Total = landValue + displayedLandAcquisitionCosts;
-  const investmentTotal = totalCost + group100Total;
+  const efkaInsuranceAutoCost = Math.round(effectiveArea * (EFKA_REFERENCE_COST / EFKA_REFERENCE_AREA));
+  const efkaInsuranceAmount = efkaInsuranceManualCost ?? efkaInsuranceAutoCost;
+  const investmentTotal = totalCost + group100Total + efkaInsuranceAmount;
+  const vatAmount = Math.round(investmentTotal * (vatPercent / 100));
+  const totalInclVat = investmentTotal + vatAmount;
 
   const getCategoryCost = useCallback((id: string): number => {
     return categoryCosts.find((c) => c.category.id === id)?.cost ?? 0;
   }, [categoryCosts]);
 
   const dinGroups = useMemo<DinGroup[]>(() => {
+    const landscapingEarthworksCost = landscapingCost > 0 ? Math.round(landscapingCost * 0.20) : 0;
+    const landscapingSurfaceCost = landscapingCost > 0 ? Math.round(landscapingCost * 0.30) : 0;
+    const landscapingBuiltInCost = landscapingCost > 0 ? Math.round(landscapingCost * 0.20) : 0;
+    const landscapingGreenCost = landscapingCost > 0
+      ? landscapingCost - landscapingEarthworksCost - landscapingSurfaceCost - landscapingBuiltInCost
+      : 0;
+
     const groups: DinGroup[] = [
       {
         code: '100',
@@ -613,44 +624,42 @@ export default function BreakdownScreen() {
           {
             code: '510',
             name: getDin276Subgroup('510')?.label ?? 'Earthworks',
-            cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.3) : 0,
+            cost: landscapingEarthworksCost,
             icon: LandPlot,
             sublabel: `Grading, retaining walls ${MIDDLE_DOT} ${siteCondition.name}`,
             visible: landscapingCost > 0,
           },
           {
-            code: '520',
-            name: getDin276Subgroup('520')?.label ?? 'Foundations and Substructure',
-            cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.25) : 0,
+            code: '530',
+            name: getDin276Subgroup('530')?.label ?? 'Base Courses and Surface Layers',
+            cost: landscapingSurfaceCost,
             icon: Hammer,
             sublabel: 'Driveways, pathways, patios',
             visible: landscapingCost > 0,
           },
           {
-            code: '530',
-            name: getDin276Subgroup('530')?.label ?? 'Base Courses and Surface Layers',
-            cost: landscapingCost > 0 ? Math.round(landscapingCost * 0.25) : 0,
+            code: '560',
+            name: getDin276Subgroup('560')?.label ?? 'Built-In Elements in External Works and Open Spaces',
+            cost: landscapingBuiltInCost,
+            icon: Fence,
+            sublabel: 'Irrigation, outdoor lighting, boundary elements',
+            visible: landscapingCost > 0,
+          },
+          {
+            code: '570',
+            name: getDin276Subgroup('570')?.label ?? 'Green Areas',
+            cost: landscapingGreenCost,
             icon: Flower2,
             sublabel: `${formatNumber(landscapingArea)} ${SQUARE_METER_UNIT} landscape area`,
             visible: landscapingCost > 0,
           },
           {
-            code: '560',
-            name: getDin276Subgroup('560')?.label ?? 'Built-In Elements in External Works and Open Spaces',
-            cost: poolCost + (landscapingCost > 0 ? landscapingCost - Math.round(landscapingCost * 0.3) - Math.round(landscapingCost * 0.25) - Math.round(landscapingCost * 0.25) : 0),
+            code: '580',
+            name: getDin276Subgroup('580')?.label ?? 'Water Features',
+            cost: poolCost,
             icon: Waves,
-            sublabel: includePool
-              ? `Pool ${formatNumber(poolArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${poolQualityOption.name} ${MIDDLE_DOT} ${poolTypeOption.name}`
-              : 'Irrigation, outdoor lighting',
-            visible: includePool || landscapingCost > 0,
-          },
-          {
-            code: '570',
-            name: getDin276Subgroup('570')?.label ?? 'Green Areas',
-            cost: 0,
-            icon: Fence,
-            sublabel: 'Fences, gates, boundary walls',
-            visible: false,
+            sublabel: `Pool ${formatNumber(poolArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${poolQualityOption.name} ${MIDDLE_DOT} ${poolTypeOption.name}`,
+            visible: includePool && poolCost > 0,
           },
         ],
       },
@@ -683,14 +692,14 @@ export default function BreakdownScreen() {
       },
       {
         code: '700',
-        name: 'Planning & Professional Fees',
+        name: getDin276Group('700')?.label ?? 'Planning & Professional Fees',
         subtotal: permitDesignFee,
         percentOfTotal: investmentTotal > 0 ? (permitDesignFee / investmentTotal) * 100 : 0,
         accentColor: '#D4782F',
         subgroups: [
           {
             code: '710',
-            name: 'Architectural services',
+            name: getDin276Subgroup('710')?.label ?? 'Architectural Services',
             cost: Math.round(permitDesignFee * 0.50),
             icon: PenTool,
             sublabel: 'Design, documentation, site supervision',
@@ -698,7 +707,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '720',
-            name: 'Engineering services',
+            name: getDin276Subgroup('720')?.label ?? 'Engineering Services',
             cost: Math.round(permitDesignFee * 0.30),
             icon: FileText,
             sublabel: 'Structural, MEP engineering',
@@ -706,7 +715,7 @@ export default function BreakdownScreen() {
           },
           {
             code: '750',
-            name: 'Permits and approvals',
+            name: getDin276Subgroup('750')?.label ?? 'Permits and Approvals',
             cost: permitDesignFee - Math.round(permitDesignFee * 0.50) - Math.round(permitDesignFee * 0.30),
             icon: ClipboardCheck,
             sublabel: 'Building permit, surveys, compliance',
@@ -854,16 +863,6 @@ export default function BreakdownScreen() {
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.permitDesignLink}
-        onPress={() => Linking.openURL(PERMIT_DESIGN_CONTACT_URL)}
-        activeOpacity={0.7}
-        testID="breakdown-permit-design-link"
-      >
-        <Text style={styles.permitDesignLinkText}>{PERMIT_DESIGN_CONTACT_LABEL}</Text>
-        <ExternalLink size={13} color={Colors.accent} />
-      </TouchableOpacity>
-
       <View style={styles.grandTotalCard}>
         <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>Total Project Cost</Text>
@@ -871,22 +870,22 @@ export default function BreakdownScreen() {
         </View>
         <View style={styles.grandTotalBreakdown}>
           <Text style={styles.grandTotalBreakdownText}>
-            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
+            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + e-EFKA ${formatCurrency(efkaInsuranceAmount)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
           </Text>
         </View>
       </View>
 
       <View style={styles.vatCard}>
         <View style={styles.vatRow}>
-          <Text style={styles.vatLabel}>+ VAT (24 %)</Text>
-          <Text style={styles.vatValue}>{formatCurrency(Math.round(totalCost * 0.24))}</Text>
+          <Text style={styles.vatLabel}>{`+ VAT (${formatPercent(vatPercent, vatPercent % 1 === 0 ? 0 : 1)})`}</Text>
+          <Text style={styles.vatValue}>{formatCurrency(vatAmount)}</Text>
         </View>
         <View style={styles.vatDivider} />
         <View style={styles.vatRow}>
           <Text style={styles.vatTotalLabel}>Total incl. VAT</Text>
-          <Text style={styles.vatTotalValue}>{formatCurrency(Math.round(totalCost * 1.24))}</Text>
+          <Text style={styles.vatTotalValue}>{formatCurrency(totalInclVat)}</Text>
         </View>
-        <Text style={styles.vatNote}>VAT calculated using the current Greek construction VAT rate (24%).</Text>
+        <Text style={styles.vatNote}>{`VAT calculated from the current pre-VAT project total using the selected ${formatPercent(vatPercent, vatPercent % 1 === 0 ? 0 : 1)} rate.`}</Text>
       </View>
 
       <View style={styles.disclaimer}>
@@ -1196,25 +1195,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.borderLight,
     marginVertical: 10,
-  },
-  permitDesignLink: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    alignSelf: 'flex-start' as const,
-    marginTop: 12,
-    marginLeft: 16,
-    gap: 5,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.accentBg,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-  },
-  permitDesignLinkText: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: Colors.accent,
   },
   grandTotalCard: {
     marginHorizontal: 16,

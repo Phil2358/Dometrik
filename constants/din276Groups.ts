@@ -86,6 +86,15 @@ export const DIN276_GROUPS: Din276Group[] = [
       { code: '690', label: 'Other Furnishings' },
     ],
   },
+  {
+    code: '700',
+    label: 'Planning & Professional Fees',
+    children: [
+      { code: '710', label: 'Architectural Services' },
+      { code: '720', label: 'Engineering Services' },
+      { code: '750', label: 'Permits and Approvals' },
+    ],
+  },
 ];
 
 export function getDin276Group(code: string): Din276Group | undefined {

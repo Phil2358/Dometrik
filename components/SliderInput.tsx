@@ -25,6 +25,7 @@ interface SliderInputProps {
   step?: number;
   suffix?: string;
   testID?: string;
+  editable?: boolean;
 }
 
 const THUMB_SIZE = 24;
@@ -41,6 +42,7 @@ export default function SliderInput({
   step = 1,
   suffix,
   testID,
+  editable = true,
 }: SliderInputProps) {
   const trackLayoutRef = useRef({ x: 0, y: 0, width: 0 });
   const trackViewRef = useRef<View>(null);
@@ -173,6 +175,7 @@ export default function SliderInput({
 
   const handleTextChange = useCallback(
     (text: string) => {
+      if (!editable) return;
       if (suffix === '%') {
         const cleaned = text.replace(/[^0-9.]/g, '');
         const val = parseFloat(cleaned);
@@ -183,7 +186,7 @@ export default function SliderInput({
         onChangeValue(val);
       }
     },
-    [onChangeValue, suffix],
+    [editable, onChangeValue, suffix],
   );
 
   return (
@@ -202,28 +205,30 @@ export default function SliderInput({
         </View>
         <View style={sliderStyles.inputWrap}>
           <TextInput
-            style={sliderStyles.input}
+            style={[sliderStyles.input, !editable && sliderStyles.inputDisabled]}
             value={displayValue > 0 ? (suffix === '%' ? displayValue.toFixed(1) : String(displayValue)) : ''}
             onChangeText={handleTextChange}
             keyboardType={suffix === '%' ? 'decimal-pad' : 'numeric'}
+            editable={editable}
             placeholder="0"
             placeholderTextColor={Colors.textTertiary}
             testID={testID ? `${testID}-input` : undefined}
           />
-          <Text style={sliderStyles.unit}>{suffix ?? 'm²'}</Text>
+          <Text style={[sliderStyles.unit, !editable && sliderStyles.unitDisabled]}>{suffix ?? 'm²'}</Text>
         </View>
       </View>
 
       <View
         ref={trackViewRef}
-        style={sliderStyles.sliderArea}
+        style={[sliderStyles.sliderArea, !editable && sliderStyles.sliderAreaDisabled]}
         onLayout={onTrackLayout}
-        {...panResponder.panHandlers}
+        {...(editable ? panResponder.panHandlers : {})}
       >
-        <View style={sliderStyles.track}>
+        <View style={[sliderStyles.track, !editable && sliderStyles.trackDisabled]}>
           <View
             style={[
               sliderStyles.trackFill,
+              !editable && sliderStyles.trackFillDisabled,
               { width: `${(fraction * 100).toFixed(1)}%` as unknown as number },
             ]}
           />
@@ -235,6 +240,7 @@ export default function SliderInput({
               left: `${(fraction * 100).toFixed(1)}%` as unknown as number,
               transform: [{ scale: thumbScale }, { translateX: -THUMB_SIZE / 2 }],
             },
+            !editable && sliderStyles.thumbDisabled,
             isDragging && sliderStyles.thumbActive,
           ]}
         />
@@ -306,10 +312,16 @@ const sliderStyles = StyleSheet.create({
     textAlign: 'right' as const,
     padding: 0,
   },
+  inputDisabled: {
+    color: Colors.textSecondary,
+  },
   unit: {
     fontSize: 13,
     color: Colors.textSecondary,
     marginLeft: 4,
+  },
+  unitDisabled: {
+    color: Colors.textTertiary,
   },
   sliderArea: {
     height: 40,
@@ -317,16 +329,25 @@ const sliderStyles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: THUMB_SIZE / 2,
   },
+  sliderAreaDisabled: {
+    opacity: 0.75,
+  },
   track: {
     height: TRACK_HEIGHT,
     backgroundColor: Colors.borderLight,
     borderRadius: TRACK_HEIGHT / 2,
     overflow: 'hidden',
   },
+  trackDisabled: {
+    backgroundColor: Colors.border,
+  },
   trackFill: {
     height: TRACK_HEIGHT,
     backgroundColor: Colors.accent,
     borderRadius: TRACK_HEIGHT / 2,
+  },
+  trackFillDisabled: {
+    backgroundColor: Colors.textTertiary,
   },
   thumb: {
     position: 'absolute',
@@ -348,6 +369,11 @@ const sliderStyles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 5,
+  },
+  thumbDisabled: {
+    borderColor: Colors.textTertiary,
+    shadowOpacity: 0.05,
+    elevation: 1,
   },
   rangeLabels: {
     flexDirection: 'row',

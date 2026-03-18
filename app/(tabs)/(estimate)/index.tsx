@@ -2007,9 +2007,20 @@ export default function EstimateScreen() {
           <Text style={styles.optionSubtext}>
             Quality-based reserve for construction variability on the KG 300{EN_DASH}600 subtotal.
           </Text>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Contingency Rate</Text>
-          </View>
+          <SliderInput
+            label="Recommended rate"
+            subtitle={`Reference rate for ${feesQualityLabel} quality`}
+            value={Math.round(contingencyPercent * 1000) / 10}
+            onChangeValue={() => {}}
+            min={0}
+            max={20}
+            step={0.5}
+            suffix="%"
+            editable={false}
+            testID="slider-contingency-reference"
+          />
+          <View style={styles.divider} />
+          <Text style={styles.cardTitle}>Applied rate</Text>
           <OverrideValueField
             value={formatEditableDecimal(displayedContingencyPercent, 1)}
             onChangeText={(text) => {
@@ -2019,8 +2030,8 @@ export default function EstimateScreen() {
             editable={contingencyManualOverride}
             unit=" %"
             helperText={contingencyManualOverride
-              ? `Automatic reference: ${formatEditableDecimal(contingencyPercent * 100, 1)}% for ${feesQualityLabel}.`
-              : `Automatically based on ${feesQualityLabel} quality.`}
+              ? `Reference rate: ${formatEditableDecimal(contingencyPercent * 100, 1)}% for ${feesQualityLabel}.`
+              : ''}
             onToggle={() => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -2038,7 +2049,7 @@ export default function EstimateScreen() {
             keyboardType="decimal-pad"
           />
           <Text style={styles.effectiveFormula}>
-            {`${contingencyManualOverride ? 'Derived' : 'Recommended'} contingency cost: ${formatCurrency(contingencyCost)}`}
+            {`Contingency cost: ${formatCurrency(contingencyCost)}`}
           </Text>
         </View>
       </View>
