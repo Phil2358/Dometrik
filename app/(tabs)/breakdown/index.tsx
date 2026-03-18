@@ -558,11 +558,11 @@ export default function BreakdownScreen() {
           {
             code: '420',
             name: getDin276Subgroup('420')?.label ?? 'Heating',
-            cost: getCategoryCost('heating') + enabledHvac.filter(h =>
-              h.option.id === 'underfloor_heating' || h.option.id === 'solar_thermal'
-            ).reduce((s, h) => s + h.cost, 0),
+            cost: getCategoryCost('heating'),
             icon: Thermometer,
-            sublabel: enabledHvac.some(h => h.option.id === 'underfloor_heating')
+            sublabel: enabledHvac.some(h =>
+              h.option.id === 'underfloor_heating' || h.option.id === 'solar_thermal'
+            )
               ? 'Heat pump, underfloor heating, solar thermal'
               : 'Heat pump + fan-coils or VRV',
             visible: true,
@@ -578,7 +578,7 @@ export default function BreakdownScreen() {
           {
             code: '440',
             name: getDin276Subgroup('440')?.label ?? 'Electrical',
-            cost: getCategoryCost('electrical') + enabledHvac.filter(h => h.option.id === 'photovoltaic').reduce((s, h) => s + h.cost, 0),
+            cost: getCategoryCost('electrical'),
             icon: Zap,
             sublabel: enabledHvac.some(h => h.option.id === 'photovoltaic')
               ? 'Wiring, panels, lighting, PV-ready systems'

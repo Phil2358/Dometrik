@@ -105,10 +105,25 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
   // Category costs (DIN276 groups)
   // -----------------------------------------
 
+  const hvacCosts =
+    calculateHvacExtras({
+      effectiveArea,
+      mainArea: input.mainArea,
+      habitableBasementArea: input.habitableBasementArea,
+      qualityId: input.qualityId,
+      hvacSelections: input.hvacSelections
+    })
+
+
+  // -----------------------------------------
+  // Category costs (DIN276 groups)
+  // -----------------------------------------
+
   const categoryCosts =
     calculateCategoryCosts({
       kg300Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg300Share(weightedBasementRatio)),
-      kg400Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg400Share(weightedBasementRatio))
+      kg400Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg400Share(weightedBasementRatio)),
+      kg400AdjustmentsByCategory: hvacCosts.adjustmentsByCategory
     })
 
 
@@ -172,17 +187,6 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
 
 
   // -----------------------------------------
-  // HVAC extras
-  // -----------------------------------------
-
-  const hvacCosts =
-    calculateHvacExtras({
-      effectiveArea,
-      hvacSelections: input.hvacSelections
-    })
-
-
-  // -----------------------------------------
   // Pool
   // -----------------------------------------
 
@@ -217,7 +221,6 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       categoryCosts.kg300Total
     + categoryCosts.kg400Total
     + siteCosts.kg200Total
-    + hvacCosts.hvacExtrasCost
     + poolCosts.poolCost
     + landscapingCosts.landscapingCost
     + permitCosts.permitFee
