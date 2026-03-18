@@ -375,8 +375,8 @@ export function getSizeCorrectionLabel(livingArea: number): string {
   if (livingArea < 120) return '+10%';
   if (livingArea < 160) return '+5%';
   if (livingArea < 220) return 'base';
-  if (livingArea < 300) return 'âˆ’5%';
-  return 'âˆ’10%';
+  if (livingArea < 300) return '-5%';
+  return '-10%';
 }
 
 export function getBasementExcavationCost(
@@ -494,7 +494,7 @@ export const CONTRACTOR_MIN_PERCENTAGE = 0;
 export const CONTRACTOR_MAX_PERCENTAGE = 35;
 export const CONTRACTOR_STEP = 0.5;
 
-export const UTILITY_CONNECTION_TOOLTIP_EXTENDED = `Covers electricity, water supply, sewage/drainage, and telecommunications connections to public infrastructure networks. Classified under KG 200 â€“ Site Preparation.`;
+export const UTILITY_CONNECTION_TOOLTIP_EXTENDED = `Covers electricity, water supply, sewage/drainage, and telecommunications connections to public infrastructure networks. Classified under KG 200 - Site Preparation.`;
 
 export interface UtilityConnectionOption {
   id: string;
@@ -574,7 +574,7 @@ export const DIN276_GROUPS = {
   KG700: { code: 'KG 700', name: 'Planning & Professional Fees' },
 } as const;
 
-export const DISCLAIMER_TEXT = `This estimate is based on conventional construction assumptions (reinforced concrete structure, masonry walls with thermoblocks, and external thermal insulation system â€“ ETICS).
+export const DISCLAIMER_TEXT = `This estimate is based on conventional construction assumptions (reinforced concrete structure, masonry walls with thermoblocks, and external thermal insulation system - ETICS).
 
 The result is a preliminary cost estimation. Actual construction cost may vary depending on design, site conditions, contractor pricing, and market conditions.`;
 
@@ -648,11 +648,11 @@ export const PERMIT_DESIGN_CONTACT_URL = 'https://philippdoukakis.com';
 export const PERMIT_DESIGN_CONTACT_LABEL = 'Ask for detailed offer';
 
 export const SIZE_CORRECTION_TABLE = [
-  { range: '< 120 mÂ²', correction: '+10%' },
-  { range: '120 â€“ 160 mÂ²', correction: '+5%' },
-  { range: '160 â€“ 220 mÂ²', correction: 'base (no correction)' },
-  { range: '220 â€“ 300 mÂ²', correction: 'âˆ’5%' },
-  { range: '> 300 mÂ²', correction: 'âˆ’10%' },
+  { range: '< 120 m\u00B2', correction: '+10%' },
+  { range: '120 - 160 m\u00B2', correction: '+5%' },
+  { range: '160 - 220 m\u00B2', correction: 'base (no correction)' },
+  { range: '220 - 300 m\u00B2', correction: '-5%' },
+  { range: '> 300 m\u00B2', correction: '-10%' },
 ] as const;
 
 export const formatNumber = (num: number): string => {

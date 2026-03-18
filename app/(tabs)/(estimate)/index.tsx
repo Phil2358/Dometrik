@@ -480,7 +480,9 @@ export default function EstimateScreen() {
 
   const isLargeProject = permitDesignEffectiveArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
   const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
-  const displaySizeCorrectionLabel = sanitizeEstimateText(sizeCorrectionLabel === 'Base' ? '0%' : sizeCorrectionLabel);
+  const displaySizeCorrectionLabel = sizeCorrectionLabel.toLowerCase() === 'base'
+    ? '0%'
+    : sanitizeEstimateText(sizeCorrectionLabel);
   const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? landValue * 0.06
     : landAcquisitionCosts;
@@ -673,12 +675,16 @@ export default function EstimateScreen() {
             step={5}
             testID="slider-balcony-area"
           />
-          <View style={styles.divider} />
-          <HighlightSummaryRow
-            label="Effective area"
-            value={`${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
-            subtitle={`The weighted project area used to apply the benchmark construction cost. ${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${storageBasementArea > 0 ? ` + (${formatNumber(storageBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})` : ''}${parkingBasementArea > 0 ? ` + (${formatNumber(parkingBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.65, 2)})` : ''}${habitableBasementArea > 0 ? ` + (${formatNumber(habitableBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.85, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
-          />
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Effective Area</Text>
+          <View style={styles.finalBenchmarkRow}>
+            <Text style={styles.finalBenchmarkValue}>{formatNumber(effectiveArea)}</Text>
+            <Text style={styles.finalBenchmarkUnit}>{` ${SQUARE_METER_UNIT}`}</Text>
+          </View>
+          <Text style={styles.effectiveFormula}>
+            {`The weighted project area used to apply the benchmark construction cost. ${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${storageBasementArea > 0 ? ` + (${formatNumber(storageBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})` : ''}${parkingBasementArea > 0 ? ` + (${formatNumber(parkingBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.65, 2)})` : ''}${habitableBasementArea > 0 ? ` + (${formatNumber(habitableBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.85, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
+          </Text>
         </View>
       </View>
 
@@ -1187,12 +1193,14 @@ export default function EstimateScreen() {
                       color={isSelected ? Colors.accent : Colors.primary}
                     />
                   </View>
-                  <Text style={[styles.siteCondName, isSelected && styles.siteCondNameSelected]}>
-                    {cond.name}
-                  </Text>
-                  <Text style={[styles.siteCondDesc, isSelected && styles.siteCondDescSelected]}>
-                    {cond.description}
-                  </Text>
+                  <View style={styles.siteCondTextWrap}>
+                    <Text style={[styles.siteCondName, isSelected && styles.siteCondNameSelected]}>
+                      {cond.name}
+                    </Text>
+                    <Text style={[styles.siteCondDesc, isSelected && styles.siteCondDescSelected]}>
+                      {cond.description}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -1625,7 +1633,16 @@ export default function EstimateScreen() {
       onToggle={() => setShowBenchmarkGroup((prev) => !prev)}
     >
       <View style={styles.groupSection}>
-        <Text style={styles.groupSectionTitle}>Quality Benchmark Selection</Text>
+        <View style={styles.groupSectionHeader}>
+          <Text style={styles.groupSectionHeaderTitle}>Quality Benchmark Selection</Text>
+          <TouchableOpacity
+            onPress={() => setShowCostBasisInfo(!showCostBasisInfo)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="cost-basis-info-btn"
+          >
+            <Info size={15} color={Colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
         {showCostBasisInfo && (
           <View style={styles.costBasisCard}>
             <Text style={styles.costBasisTitle}>{COST_BASIS_TITLE}</Text>
@@ -1636,16 +1653,6 @@ export default function EstimateScreen() {
           </View>
         )}
         <View style={styles.card}>
-          <View style={styles.groupInlineHeader}>
-            <Text style={styles.cardTitle}>Quality Benchmark Selection</Text>
-            <TouchableOpacity
-              onPress={() => setShowCostBasisInfo(!showCostBasisInfo)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              testID="cost-basis-info-btn"
-            >
-              <Info size={15} color={Colors.textTertiary} />
-            </TouchableOpacity>
-          </View>
           <View style={styles.qualityRow}>
             {qualityBenchmarkOptions.map((option, index) => {
               const isSelected = option.id === 'custom'
@@ -1880,6 +1887,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 40,
+    paddingHorizontal: 16,
+    alignItems: 'center' as const,
   },
   sectionHeader: {
     flexDirection: 'row' as const,
@@ -1896,8 +1905,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   groupWrap: {
-    marginHorizontal: 16,
     marginTop: 20,
+    width: '100%' as const,
+    maxWidth: 1040,
+    alignSelf: 'center' as const,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -1917,6 +1928,7 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
     paddingRight: 12,
+    minWidth: 0,
   },
   groupIconWrap: {
     width: 30,
@@ -1930,12 +1942,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800' as const,
     color: Colors.text,
+    lineHeight: 22,
+    flexShrink: 1,
   },
   groupBody: {
-    paddingBottom: 6,
+    paddingBottom: 10,
   },
   groupSection: {
-    marginTop: 4,
+    marginTop: 8,
   },
   groupSectionTitle: {
     fontSize: 14,
@@ -1944,12 +1958,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
+    lineHeight: 20,
   },
   groupSectionSubtitle: {
     fontSize: 12,
     color: Colors.textTertiary,
     marginHorizontal: 16,
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 18,
   },
   groupSectionHeader: {
     flexDirection: 'row' as const,
@@ -1965,9 +1981,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700' as const,
     color: Colors.text,
+    lineHeight: 20,
   },
   groupNestedBlock: {
-    marginTop: 2,
+    marginTop: 8,
   },
   groupInlineHeader: {
     flexDirection: 'row' as const,
@@ -1975,13 +1992,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between' as const,
     marginHorizontal: 16,
     marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 8,
     gap: 8,
   },
   groupInlineTitle: {
     fontSize: 13,
     fontWeight: '700' as const,
     color: Colors.textSecondary,
+    lineHeight: 18,
+    flex: 1,
   },
   inlineSubsectionLabel: {
     fontSize: 13,
@@ -2013,6 +2032,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800' as const,
     color: Colors.accent,
+    flexShrink: 1,
+    textAlign: 'right' as const,
   },
   summaryHighlightSubtext: {
     fontSize: 11,
@@ -2064,8 +2085,9 @@ const styles = StyleSheet.create({
   qualityCard: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    alignItems: 'flex-start' as const,
     paddingVertical: 6,
+    gap: 10,
   },
   qualityCardSelected: {
     backgroundColor: Colors.accentBg,
@@ -2078,6 +2100,7 @@ const styles = StyleSheet.create({
   },
   qualityCardValue: {
     alignItems: 'flex-end' as const,
+    flexShrink: 1,
   },
   qualityName: {
     fontSize: 14,
@@ -2124,12 +2147,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    gap: 8,
     marginBottom: 12,
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '700' as const,
     color: Colors.text,
+    lineHeight: 20,
+    flexShrink: 1,
   },
   resetLink: {
     fontSize: 13,
@@ -2143,6 +2170,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
+    minHeight: 48,
   },
   euroSign: {
     fontSize: 18,
@@ -2178,8 +2206,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
+    flexWrap: 'wrap' as const,
     marginTop: 10,
-    paddingHorizontal: 4,
+    paddingHorizontal: 0,
     gap: 12,
   },
   adjustmentText: {
@@ -2193,6 +2222,8 @@ const styles = StyleSheet.create({
   sizeCorrectionValue: {
     fontSize: 12,
     fontWeight: '700' as const,
+    flexShrink: 1,
+    textAlign: 'right' as const,
   },
   sizeCorrectionUp: {
     color: Colors.warning,
@@ -2204,6 +2235,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: 'row' as const,
     alignItems: 'flex-end' as const,
+    flexWrap: 'wrap' as const,
   },
   finalBenchmarkValue: {
     fontSize: 28,
@@ -2224,10 +2256,10 @@ const styles = StyleSheet.create({
   effectiveRow: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    alignItems: 'flex-start' as const,
     paddingVertical: 4,
     flexWrap: 'wrap' as const,
-    gap: 4,
+    gap: 8,
   },
   effectiveLabel: {
     fontSize: 14,
@@ -2239,23 +2271,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800' as const,
     color: Colors.primary,
+    flexShrink: 1,
+    textAlign: 'right' as const,
   },
   effectiveFormula: {
     fontSize: 11,
     color: Colors.textTertiary,
     marginTop: 4,
-    textAlign: 'center' as const,
+    lineHeight: 16,
+    textAlign: 'left' as const,
   },
   optionRow: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    alignItems: 'flex-start' as const,
     flexWrap: 'wrap' as const,
     gap: 8,
   },
   optionInfo: {
     flex: 1,
-    minWidth: 150,
+    minWidth: 0,
   },
   optionLabel: {
     fontSize: 14,
@@ -2266,11 +2301,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textTertiary,
     marginTop: 3,
+    lineHeight: 17,
   },
   disclaimer: {
     flexDirection: 'row' as const,
     alignItems: 'flex-start' as const,
-    paddingHorizontal: 20,
+    width: '100%' as const,
+    maxWidth: 1040,
+    alignSelf: 'center' as const,
+    paddingHorizontal: 4,
     marginTop: 20,
     gap: 8,
   },
@@ -2307,7 +2346,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    alignItems: 'flex-start' as const,
     gap: 12,
   },
   siteCondCardSelected: {
@@ -2325,11 +2364,15 @@ const styles = StyleSheet.create({
   siteCondIconWrapSelected: {
     backgroundColor: 'rgba(212, 120, 47, 0.12)',
   },
+  siteCondTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
   siteCondName: {
     fontSize: 13,
     fontWeight: '700' as const,
     color: Colors.text,
-    flex: 1,
+    lineHeight: 18,
   },
   siteCondNameSelected: {
     color: Colors.accent,
@@ -2338,7 +2381,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textTertiary,
     marginTop: 2,
-    flex: 1,
+    lineHeight: 16,
   },
   siteCondDescSelected: {
     color: Colors.accent,
@@ -2472,10 +2515,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    marginHorizontal: 16,
+    width: '100%' as const,
+    maxWidth: 1040,
+    alignSelf: 'center' as const,
     marginTop: 20,
     gap: 8,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     backgroundColor: Colors.card,
     borderRadius: 14,
     borderWidth: 1.5,
@@ -2601,7 +2647,8 @@ const styles = StyleSheet.create({
   integerRow: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    alignItems: 'flex-start' as const,
+    flexWrap: 'wrap' as const,
     paddingVertical: 4,
     gap: 8,
   },
@@ -2633,6 +2680,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 12,
+    alignSelf: 'flex-start' as const,
   },
   integerBtn: {
     width: 36,
@@ -2676,7 +2724,7 @@ const styles = StyleSheet.create({
   },
   poolSizeBtn: {
     flex: 1,
-    minWidth: '45%' as unknown as number,
+    minWidth: 140,
     backgroundColor: Colors.inputBg,
     borderRadius: 10,
     paddingVertical: 10,
@@ -2707,11 +2755,13 @@ const styles = StyleSheet.create({
   },
   poolCustomRow: {
     flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
     gap: 12,
     marginTop: 10,
   },
   poolCustomField: {
     flex: 1,
+    minWidth: 150,
   },
   poolCustomLabel: {
     fontSize: 12,
