@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Shield, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot, Sofa } from 'lucide-react-native';
+import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Shield, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot, Sofa, ChevronDown, ChevronUp } from 'lucide-react-native';
 import SliderInput from '@/components/SliderInput';
 import ScenarioBar from '@/components/ScenarioBar';
 import { useRouter } from 'expo-router';
@@ -54,10 +54,45 @@ import {
   CONTRACTOR_MIN_PERCENTAGE,
   CONTRACTOR_MAX_PERCENTAGE,
   CONTRACTOR_STEP,
-  KG400_PACKAGE_SELECTION_OPTIONS,
   getSizeCorrectionLabel,
 } from '@/constants/construction';
 import { formatCurrency, formatDecimal, formatNumber } from '@/utils/format';
+
+const DATA_SECURITY_LEVEL_OPTIONS = [
+  {
+    id: 'none',
+    label: 'Essential',
+    description: 'Basic data provision and core security preparation included in the base benchmark.',
+  },
+  {
+    id: 'basic',
+    label: 'Connected',
+    description: 'Structured cabling, alarm provision, video entry, and selected connected security features.',
+  },
+  {
+    id: 'advanced',
+    label: 'Integrated',
+    description: 'More comprehensive digital infrastructure, surveillance, access control, and coordinated system integration.',
+  },
+] as const;
+
+const AUTOMATION_LEVEL_OPTIONS = [
+  {
+    id: 'none',
+    label: 'No automation',
+    description: 'Standard electrical installation without smart-home automation.',
+  },
+  {
+    id: 'basic',
+    label: 'Connected',
+    description: 'Selected smart controls such as lighting, shutters, climate, or app-based control in limited scope.',
+  },
+  {
+    id: 'advanced',
+    label: 'Integrated',
+    description: 'Broader smart-home coordination with centralized control, scenes, and multi-system automation.',
+  },
+] as const;
 
 function sanitizeEstimateText(value: string): string {
   return value
@@ -263,6 +298,63 @@ function parseOptionalCurrencyInput(text: string): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+function CollapsibleGroup({
+  title,
+  icon,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.groupWrap}>
+      <TouchableOpacity
+        style={styles.groupHeader}
+        activeOpacity={0.85}
+        onPress={onToggle}
+      >
+        <View style={styles.groupHeaderLeft}>
+          <View style={styles.groupIconWrap}>{icon}</View>
+          <Text style={styles.groupTitle}>{title}</Text>
+        </View>
+        {expanded ? (
+          <ChevronUp size={18} color={Colors.textSecondary} />
+        ) : (
+          <ChevronDown size={18} color={Colors.textSecondary} />
+        )}
+      </TouchableOpacity>
+      {expanded ? <View style={styles.groupBody}>{children}</View> : null}
+    </View>
+  );
+}
+
+function HighlightSummaryRow({
+  label,
+  value,
+  subtitle,
+}: {
+  label: string;
+  value: string;
+  subtitle?: string;
+}) {
+  return (
+    <View style={styles.summaryHighlightCard}>
+      <View style={styles.summaryHighlightHeader}>
+        <Text style={styles.summaryHighlightLabel}>{label}</Text>
+        <Text style={styles.summaryHighlightValue}>{value}</Text>
+      </View>
+      {subtitle ? (
+        <Text style={styles.summaryHighlightSubtext}>{subtitle}</Text>
+      ) : null}
+    </View>
+  );
+}
+
 export default function EstimateScreen() {
   const router = useRouter();
   const {
@@ -327,15 +419,15 @@ export default function EstimateScreen() {
     setCustomKitchenUnitCost,
     generalFurnitureBaseAmount,
     setGeneralFurnitureBaseAmount,
-    dataSecurityPackageSelection,
-    setDataSecurityPackageSelection,
+    dataSecurityPackageLevel,
+    setDataSecurityPackageLevel,
     dataSecurityManualQuote,
     setDataSecurityManualQuote,
     dataSecurityDefaultPackageCost,
     dataSecurityAppliedPackageCost,
     dataSecurityManualOverrideActive,
-    automationPackageSelection,
-    setAutomationPackageSelection,
+    automationPackageLevel,
+    setAutomationPackageLevel,
     automationManualQuote,
     setAutomationManualQuote,
     automationDefaultPackageCost,
@@ -345,6 +437,7 @@ export default function EstimateScreen() {
     toggleHvacOption,
     hvacCosts,
     totalHvacCost,
+    location,
     quality,
     effectiveArea,
     baseCostPerSqm,
@@ -352,6 +445,7 @@ export default function EstimateScreen() {
     setPlotSize,
     sizeCorrectionFactor,
     correctedCostPerSqm,
+    finalCostPerSqm,
     contractorCost,
     poolCost,
     permitDesignFee,
@@ -403,6 +497,39 @@ export default function EstimateScreen() {
     singular: 'WC',
     plural: 'WCs',
   });
+  const qualityBenchmarkOptions: Array<{
+    id: 'standard' | 'premium' | 'luxury' | 'custom';
+    title: string;
+    descriptor: string;
+    benchmarkLabel: string;
+  }> = [
+    {
+      id: 'standard',
+      title: 'Economy',
+      descriptor: 'Cost-conscious residential benchmark',
+      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'standard')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
+    },
+    {
+      id: 'premium',
+      title: 'Mid-Range',
+      descriptor: 'Balanced residential benchmark',
+      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'premium')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
+    },
+    {
+      id: 'luxury',
+      title: 'Luxury',
+      descriptor: 'High-spec residential benchmark',
+      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'luxury')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
+    },
+    {
+      id: 'custom',
+      title: 'Custom',
+      descriptor: 'Manual benchmark input',
+      benchmarkLabel: customCostPerSqm !== null
+        ? `${formatCurrency(customCostPerSqm)} /${SQUARE_METER_UNIT}`
+        : 'Enter your own benchmark',
+    },
+  ];
 
   const handleLocationSelect = useCallback(
     (id: string) => {
@@ -442,6 +569,9 @@ export default function EstimateScreen() {
   const [showUtilityInfo, setShowUtilityInfo] = React.useState<boolean>(false);
   const [showGroundwaterInfo, setShowGroundwaterInfo] = React.useState<boolean>(false);
   const [showAccessibilityInfo, setShowAccessibilityInfo] = React.useState<boolean>(false);
+  const [showBuildingInteriorGroup, setShowBuildingInteriorGroup] = React.useState<boolean>(true);
+  const [showPlotExternalGroup, setShowPlotExternalGroup] = React.useState<boolean>(true);
+  const [showFeesGroup, setShowFeesGroup] = React.useState<boolean>(true);
 
   return (
     <View style={styles.outerContainer}>
@@ -610,82 +740,122 @@ export default function EstimateScreen() {
           <Text style={styles.costBasisText}>{sanitizeEstimateText(COST_BASIS_SCOPE_TEXT)}</Text>
         </View>
       )}
-      <View style={styles.qualityRow}>
-        {QUALITY_LEVELS.map((q) => {
-          const isSelected = qualityId === q.id;
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Quality Benchmark Selection</Text>
+        <View style={styles.qualityRow}>
+        {qualityBenchmarkOptions.map((option, index) => {
+          const isSelected = option.id === 'custom'
+            ? customCostPerSqm !== null
+            : customCostPerSqm === null && qualityId === option.id;
           return (
-            <TouchableOpacity
-              key={q.id}
-              activeOpacity={0.7}
-              style={[styles.qualityCard, isSelected && styles.qualityCardSelected]}
-              onPress={() => handleQualitySelect(q.id)}
-              testID={`quality-${q.id}`}
-            >
-              <Text style={[styles.qualityName, isSelected && styles.qualityNameSelected]}>
-                {q.name}
-              </Text>
-              <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
-                {formatCurrency(q.baseCostPerSqm)}
-              </Text>
-              <Text style={[styles.qualityUnit, isSelected && styles.qualityUnitSelected]}>
-                {` /${SQUARE_METER_UNIT}`}
-              </Text>
-            </TouchableOpacity>
+            <React.Fragment key={option.id}>
+              {index > 0 && <View style={styles.divider} />}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.qualityCard, isSelected && styles.qualityCardSelected]}
+                onPress={() => {
+                  if (option.id === 'custom') {
+                    setCustomCostPerSqm(customCostPerSqm ?? quality.baseCostPerSqm);
+                    return;
+                  }
+                  handleQualitySelect(option.id);
+                }}
+                testID={`quality-${option.id}`}
+              >
+                <View style={styles.qualityCardText}>
+                  <Text style={[styles.qualityName, isSelected && styles.qualityNameSelected]}>
+                    {option.title}
+                  </Text>
+                  <Text style={styles.qualityDescriptor}>{option.descriptor}</Text>
+                </View>
+                <View style={styles.qualityCardValue}>
+                  <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
+                    {option.benchmarkLabel}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </React.Fragment>
           );
         })}
+        </View>
+
+        {customCostPerSqm !== null && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{`Custom Benchmark per ${SQUARE_METER_UNIT}`}</Text>
+              <TouchableOpacity onPress={() => setCustomCostPerSqm(null)}>
+                <Text style={styles.resetLink}>Reset</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.costInputRow}>
+              <TextInput
+                style={styles.costInput}
+                value={formatNumber(baseCostPerSqm)}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9]/g, '');
+                  const num = parseInt(cleaned, 10);
+                  if (isNaN(num) || num <= 0) {
+                    setCustomCostPerSqm(null);
+                  } else {
+                    setCustomCostPerSqm(num);
+                  }
+                }}
+                keyboardType="numeric"
+                testID="cost-per-sqm-input"
+              />
+              <Text style={styles.costInputUnit}>{` ${EURO_SYMBOL} /${SQUARE_METER_UNIT}`}</Text>
+            </View>
+          </>
+        )}
       </View>
 
       <View style={styles.costBasisNote}>
         <Info size={12} color={Colors.textTertiary} />
         <Text style={styles.costBasisNoteText}>
-          Base construction costs represent direct building construction costs (KG 300 + 400 + 600). Contractor overhead, professional fees, and VAT are calculated separately.
+          The selected benchmark mainly applies to KG300, KG400, and KG600. Some parts of KG200 are also benchmark-linked, while other items are calculated separately.
         </Text>
       </View>
 
       <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{`Base Cost per ${SQUARE_METER_UNIT}`}</Text>
-          {customCostPerSqm !== null && (
-            <TouchableOpacity onPress={() => setCustomCostPerSqm(null)}>
-              <Text style={styles.resetLink}>Reset</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.costInputRow}>
-          <TextInput
-            style={styles.costInput}
-            value={formatNumber(baseCostPerSqm)}
-            onChangeText={(text) => {
-              const cleaned = text.replace(/[^0-9]/g, '');
-              const num = parseInt(cleaned, 10);
-              if (isNaN(num) || num <= 0) {
-                setCustomCostPerSqm(null);
-              } else {
-                setCustomCostPerSqm(num);
-              }
-            }}
-            keyboardType="numeric"
-            testID="cost-per-sqm-input"
-          />
-          <Text style={styles.costInputUnit}>{` ${EURO_SYMBOL} /${SQUARE_METER_UNIT} (base)`}</Text>
-        </View>
-        {sizeCorrectionFactor !== 1.0 && (
-          <View style={styles.sizeCorrectionRow}>
-            <Text style={styles.sizeCorrectionLabel}>Size correction</Text>
-            <Text style={[
-              styles.sizeCorrectionValue,
-              sizeCorrectionFactor > 1 ? styles.sizeCorrectionUp : styles.sizeCorrectionDown,
-            ]}>
-              {`${displaySizeCorrectionLabel} ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} /${SQUARE_METER_UNIT}`}
+        <Text style={styles.cardTitle}>Automatic Adjustments</Text>
+        <View style={styles.sizeCorrectionRow}>
+          <View style={styles.adjustmentText}>
+            <Text style={styles.sizeCorrectionLabel}>Automatic building size correction</Text>
+            <Text style={styles.optionSubtext}>
+              Smaller projects usually cost more per m², while larger projects benefit from scale.
             </Text>
           </View>
-        )}
-        <View style={styles.costHintRow}>
-          <Info size={13} color={Colors.textTertiary} />
-          <Text style={styles.costHint}>
-            Adjust freely. Quality presets: Standard {formatCurrency(1200)} {MIDDLE_DOT} Premium {formatCurrency(1500)} {MIDDLE_DOT} Luxury {formatCurrency(2000)}. Size correction applies automatically.
+          <Text style={[
+            styles.sizeCorrectionValue,
+            sizeCorrectionFactor > 1 ? styles.sizeCorrectionUp : styles.sizeCorrectionDown,
+          ]}>
+            {`${displaySizeCorrectionLabel} ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} /${SQUARE_METER_UNIT}`}
           </Text>
         </View>
+        <View style={styles.divider} />
+        <View style={styles.sizeCorrectionRow}>
+          <View style={styles.adjustmentText}>
+            <Text style={styles.sizeCorrectionLabel}>Location adjustment</Text>
+            <Text style={styles.optionSubtext}>
+              Regional benchmark adjustment based on the selected project location.
+            </Text>
+          </View>
+          <Text style={styles.sizeCorrectionValue}>
+            {`${MULTIPLY_SYMBOL}${formatDecimal(location.multiplier, 2)} ${ARROW_SYMBOL} ${formatCurrency(finalCostPerSqm)} /${SQUARE_METER_UNIT}`}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>{`Adjusted Benchmark Cost per ${SQUARE_METER_UNIT}`}</Text>
+        <View style={styles.finalBenchmarkRow}>
+          <Text style={styles.finalBenchmarkValue}>{formatCurrency(finalCostPerSqm)}</Text>
+          <Text style={styles.finalBenchmarkUnit}>{` /${SQUARE_METER_UNIT}`}</Text>
+        </View>
+        <Text style={styles.effectiveFormula}>
+          {`${formatCurrency(baseCostPerSqm)} base benchmark ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} after size correction ${ARROW_SYMBOL} ${formatCurrency(finalCostPerSqm)} after location adjustment`}
+        </Text>
       </View>
 
       <View style={styles.sectionHeader}>
@@ -694,8 +864,8 @@ export default function EstimateScreen() {
       </View>
       <View style={styles.card}>
         <SliderInput
-          label="Living Area"
-          subtitle="Full interior floor area measured to outer face of structural walls"
+          label="Living Area (above ground)"
+          subtitle="Total above-ground house area, including walls, measured to the outer face of the exterior structural walls. Basement area is entered separately."
           value={mainArea}
           onChangeValue={setMainArea}
           min={80}
@@ -732,6 +902,9 @@ export default function EstimateScreen() {
           <Text style={styles.effectiveLabel}>Effective Area</Text>
           <Text style={styles.effectiveValue}>{`${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}</Text>
         </View>
+        <Text style={styles.optionSubtext}>
+          The weighted project area used to apply the benchmark construction cost. It combines the main living area with other relevant spaces using adjustment factors.
+        </Text>
         <Text style={styles.effectiveFormula}>
           {`${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${storageBasementArea > 0 ? ` + (${formatNumber(storageBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})` : ''}${parkingBasementArea > 0 ? ` + (${formatNumber(parkingBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.65, 2)})` : ''}${habitableBasementArea > 0 ? ` + (${formatNumber(habitableBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.85, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
         </Text>
@@ -768,7 +941,7 @@ export default function EstimateScreen() {
         <View style={styles.divider} />
         <SliderInput
           label="Habitable Basement Area"
-          subtitle="Guest rooms, recreation, living-quality basement space"
+          subtitle="Basement floor area used as habitable interior space. Storage and parking basement areas are treated separately if applicable."
           value={habitableBasementArea}
           onChangeValue={setHabitableBasementArea}
           min={0}
@@ -1068,9 +1241,12 @@ export default function EstimateScreen() {
         <Text style={styles.sectionTitle}>Data, Security & Automation</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.poolSubsectionTitle}>450 Data / Security Package</Text>
-        {KG400_PACKAGE_SELECTION_OPTIONS.map((option, index) => {
-          const isSelected = dataSecurityPackageSelection === option.id;
+        <Text style={styles.poolSubsectionTitle}>Digital Infrastructure & Security</Text>
+        <Text style={styles.optionSubtext}>
+          Essential level is included in the base benchmark (0% adjustment).
+        </Text>
+        {DATA_SECURITY_LEVEL_OPTIONS.map((option, index) => {
+          const isSelected = dataSecurityPackageLevel === option.id;
           return (
             <React.Fragment key={option.id}>
               {index > 0 && <View style={styles.divider} />}
@@ -1081,19 +1257,15 @@ export default function EstimateScreen() {
                   if (Platform.OS !== 'web') {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }
-                  setDataSecurityPackageSelection(option.id);
+                  setDataSecurityPackageLevel(option.id);
                 }}
                 testID={`data-security-package-${option.id}`}
               >
                 <View style={styles.optionInfo}>
                   <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>
-                    {option.name}
+                    {option.label}
                   </Text>
-                  <Text style={styles.optionSubtext}>
-                    {option.id === 'yes'
-                      ? 'Adds a practical alarm/intercom/data-security package'
-                      : 'Only the small automatic weak-current baseline remains'}
-                  </Text>
+                  <Text style={styles.optionSubtext}>{option.description}</Text>
                 </View>
                 <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
                   {isSelected && <View style={styles.radioInner} />}
@@ -1103,11 +1275,11 @@ export default function EstimateScreen() {
           );
         })}
 
-        {dataSecurityPackageSelection === 'yes' && (
+        {dataSecurityPackageLevel !== 'none' && (
           <>
             <View style={styles.divider} />
             <Text style={styles.optionSubtext}>
-              {`Assumed package: alarm, intercom, and a modest data/security upgrade. Default estimate ${formatCurrency(dataSecurityDefaultPackageCost)}.`}
+              {`Default allowance for the selected upgrade level: ${formatCurrency(dataSecurityDefaultPackageCost)}.`}
             </Text>
             <View style={styles.costInputRow}>
               <TextInput
@@ -1136,9 +1308,12 @@ export default function EstimateScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.poolSubsectionTitle}>480 Smart Home / Automation</Text>
-        {KG400_PACKAGE_SELECTION_OPTIONS.map((option, index) => {
-          const isSelected = automationPackageSelection === option.id;
+        <Text style={styles.poolSubsectionTitle}>Smart Control & Automation</Text>
+        <Text style={styles.optionSubtext}>
+          No automation applies the base assumption (0% adjustment).
+        </Text>
+        {AUTOMATION_LEVEL_OPTIONS.map((option, index) => {
+          const isSelected = automationPackageLevel === option.id;
           return (
             <React.Fragment key={option.id}>
               {index > 0 && <View style={styles.divider} />}
@@ -1149,19 +1324,15 @@ export default function EstimateScreen() {
                   if (Platform.OS !== 'web') {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }
-                  setAutomationPackageSelection(option.id);
+                  setAutomationPackageLevel(option.id);
                 }}
                 testID={`automation-package-${option.id}`}
               >
                 <View style={styles.optionInfo}>
                   <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>
-                    {option.name}
+                    {option.label}
                   </Text>
-                  <Text style={styles.optionSubtext}>
-                    {option.id === 'yes'
-                      ? 'Adds a simple smart-home automation package'
-                      : 'No smart-home automation package'}
-                  </Text>
+                  <Text style={styles.optionSubtext}>{option.description}</Text>
                 </View>
                 <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
                   {isSelected && <View style={styles.radioInner} />}
@@ -1171,11 +1342,11 @@ export default function EstimateScreen() {
           );
         })}
 
-        {automationPackageSelection === 'yes' && (
+        {automationPackageLevel !== 'none' && (
           <>
             <View style={styles.divider} />
             <Text style={styles.optionSubtext}>
-              {`Assumed package: core smart controls and integration. Default estimate ${formatCurrency(automationDefaultPackageCost)}.`}
+              {`Default allowance for the selected automation level: ${formatCurrency(automationDefaultPackageCost)}.`}
             </Text>
             <View style={styles.costInputRow}>
               <TextInput
@@ -1734,36 +1905,43 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
   qualityRow: {
-    flexDirection: 'row' as const,
-    paddingHorizontal: 16,
+    flexDirection: 'column' as const,
     gap: 10,
   },
   qualityCard: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
+    paddingVertical: 6,
   },
   qualityCardSelected: {
-    borderColor: Colors.accent,
     backgroundColor: Colors.accentBg,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+  },
+  qualityCardText: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  qualityCardValue: {
+    alignItems: 'flex-end' as const,
   },
   qualityName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700' as const,
     color: Colors.text,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   qualityNameSelected: {
     color: Colors.accent,
   },
+  qualityDescriptor: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
   qualityPrice: {
-    fontSize: 20,
-    fontWeight: '800' as const,
+    fontSize: 14,
+    fontWeight: '700' as const,
     color: Colors.text,
   },
   qualityPriceSelected: {
@@ -1846,9 +2024,13 @@ const styles = StyleSheet.create({
   sizeCorrectionRow: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    alignItems: 'flex-start' as const,
     marginTop: 10,
     paddingHorizontal: 4,
+    gap: 12,
+  },
+  adjustmentText: {
+    flex: 1,
   },
   sizeCorrectionLabel: {
     fontSize: 12,
@@ -1864,6 +2046,22 @@ const styles = StyleSheet.create({
   },
   sizeCorrectionDown: {
     color: Colors.success,
+  },
+  finalBenchmarkRow: {
+    marginTop: 12,
+    flexDirection: 'row' as const,
+    alignItems: 'flex-end' as const,
+  },
+  finalBenchmarkValue: {
+    fontSize: 28,
+    fontWeight: '800' as const,
+    color: Colors.accent,
+  },
+  finalBenchmarkUnit: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginLeft: 6,
+    marginBottom: 3,
   },
   divider: {
     height: 1,

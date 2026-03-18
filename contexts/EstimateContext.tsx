@@ -45,6 +45,7 @@ import {
   KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT,
   KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST,
   KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST,
+  type Kg400PackageLevel,
   type Kg400PackageSelection,
   getKitchenAreaFactor,
   getResidentialProgramBaseline,
@@ -105,8 +106,8 @@ export interface ScenarioConfig {
   dataSecurityManualQuote?: number | null;
   automationPackageSelection?: Kg400PackageSelection;
   automationManualQuote?: number | null;
-  dataSecurityPackageLevel?: 'none' | 'basic' | 'advanced';
-  automationPackageLevel?: 'none' | 'basic' | 'advanced';
+  dataSecurityPackageLevel?: Kg400PackageLevel;
+  automationPackageLevel?: Kg400PackageLevel;
   hvacSelections: Record<string, boolean>;
   utilityConnectionId: string;
   customUtilityCost: number;
@@ -315,11 +316,15 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const generalFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
     ? (config.generalFurnitureBaseAmount ?? suggestedGeneralFurnitureBaseAmount)
     : suggestedGeneralFurnitureBaseAmount;
+  const dataSecurityPackageLevel = config.dataSecurityPackageLevel
+    ?? (config.dataSecurityPackageSelection === 'yes' ? 'basic' : 'none');
   const dataSecurityPackageSelection = config.dataSecurityPackageSelection
-    ?? (config.dataSecurityPackageLevel && config.dataSecurityPackageLevel !== 'none' ? 'yes' : 'no');
+    ?? (dataSecurityPackageLevel !== 'none' ? 'yes' : 'no');
   const dataSecurityManualQuote = config.dataSecurityManualQuote ?? null;
+  const automationPackageLevel = config.automationPackageLevel
+    ?? (config.automationPackageSelection === 'yes' ? 'basic' : 'none');
   const automationPackageSelection = config.automationPackageSelection
-    ?? (config.automationPackageLevel && config.automationPackageLevel !== 'none' ? 'yes' : 'no');
+    ?? (automationPackageLevel !== 'none' ? 'yes' : 'no');
   const automationManualQuote = config.automationManualQuote ?? null;
 
   return {
@@ -347,8 +352,10 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     customKitchenUnitCost,
     generalFurnitureBaseAmount,
     generalFurnitureBaseAmountCustomized,
+    dataSecurityPackageLevel,
     dataSecurityPackageSelection,
     dataSecurityManualQuote,
+    automationPackageLevel,
     automationPackageSelection,
     automationManualQuote,
   };
@@ -522,8 +529,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     getSuggestedGeneralFurnitureBaseAmount(initialProgramDefaultEffectiveArea, initialResidentialProgramBaseline.bedrooms)
   );
   const [generalFurnitureBaseAmountCustomized, setGeneralFurnitureBaseAmountCustomized] = useState<boolean>(false);
+  const [dataSecurityPackageLevel, setDataSecurityPackageLevel] = useState<Kg400PackageLevel>('none');
   const [dataSecurityPackageSelection, setDataSecurityPackageSelection] = useState<Kg400PackageSelection>('no');
   const [dataSecurityManualQuote, setDataSecurityManualQuote] = useState<number | null>(null);
+  const [automationPackageLevel, setAutomationPackageLevel] = useState<Kg400PackageLevel>('none');
   const [automationPackageSelection, setAutomationPackageSelection] = useState<Kg400PackageSelection>('no');
   const [automationManualQuote, setAutomationManualQuote] = useState<number | null>(null);
   const [hvacSelections, setHvacSelections] = useState<Record<string, boolean>>({
@@ -596,9 +605,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       customKitchenUnitCost,
       generalFurnitureBaseAmount,
       generalFurnitureBaseAmountCustomized,
-      dataSecurityPackageSelection,
+      dataSecurityPackageLevel,
+      dataSecurityPackageSelection: dataSecurityPackageLevel !== 'none' ? 'yes' : 'no',
       dataSecurityManualQuote,
-      automationPackageSelection,
+      automationPackageLevel,
+      automationPackageSelection: automationPackageLevel !== 'none' ? 'yes' : 'no',
       automationManualQuote,
       hvacSelections: { ...hvacSelections },
       utilityConnectionId,
@@ -613,7 +624,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, bathroomsMode, bathroomsManualValue, wcsMode, wcsManualValue, bedroomCountMode, bedroomCountManualValue,
     kitchenCount, kitchenCountCustomized, customKitchenUnitCost, generalFurnitureBaseAmount, generalFurnitureBaseAmountCustomized,
-    dataSecurityPackageSelection, dataSecurityManualQuote, automationPackageSelection, automationManualQuote,
+    dataSecurityPackageLevel, dataSecurityManualQuote, automationPackageLevel, automationManualQuote,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId,
   ]);
@@ -653,8 +664,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setCustomKitchenUnitCost(normalizedConfig.customKitchenUnitCost);
     setGeneralFurnitureBaseAmountState(normalizedConfig.generalFurnitureBaseAmount);
     setGeneralFurnitureBaseAmountCustomized(normalizedConfig.generalFurnitureBaseAmountCustomized ?? false);
+    setDataSecurityPackageLevel(normalizedConfig.dataSecurityPackageLevel ?? 'none');
     setDataSecurityPackageSelection(normalizedConfig.dataSecurityPackageSelection ?? 'no');
     setDataSecurityManualQuote(normalizedConfig.dataSecurityManualQuote ?? null);
+    setAutomationPackageLevel(normalizedConfig.automationPackageLevel ?? 'none');
     setAutomationPackageSelection(normalizedConfig.automationPackageSelection ?? 'no');
     setAutomationManualQuote(normalizedConfig.automationManualQuote ?? null);
     setHvacSelections({ ...config.hvacSelections });
@@ -711,6 +724,14 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   }, [landValue, landAcquisitionCostsMode]);
 
   useEffect(() => {
+    setDataSecurityPackageSelection(dataSecurityPackageLevel !== 'none' ? 'yes' : 'no');
+  }, [dataSecurityPackageLevel]);
+
+  useEffect(() => {
+    setAutomationPackageSelection(automationPackageLevel !== 'none' ? 'yes' : 'no');
+  }, [automationPackageLevel]);
+
+  useEffect(() => {
     persistState();
   }, [
     locationId, qualityId, customCostPerSqm, plotSize, mainArea, terraceArea, balconyArea,
@@ -718,7 +739,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, kitchenCount, customKitchenUnitCost, generalFurnitureBaseAmount,
-    dataSecurityPackageSelection, dataSecurityManualQuote, automationPackageSelection, automationManualQuote,
+    dataSecurityPackageLevel, dataSecurityManualQuote, automationPackageLevel, automationManualQuote,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId, persistState,
   ]);
@@ -1470,6 +1491,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setCustomKitchenUnitCost,
     generalFurnitureBaseAmount,
     setGeneralFurnitureBaseAmount,
+    dataSecurityPackageLevel,
+    setDataSecurityPackageLevel,
     dataSecurityPackageSelection,
     setDataSecurityPackageSelection,
     dataSecurityManualQuote,
@@ -1477,6 +1500,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     dataSecurityDefaultPackageCost,
     dataSecurityAppliedPackageCost,
     dataSecurityManualOverrideActive,
+    automationPackageLevel,
+    setAutomationPackageLevel,
     automationPackageSelection,
     setAutomationPackageSelection,
     automationManualQuote,
@@ -1609,9 +1634,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     bathrooms, setBathrooms, wcs, setWcs,
     bedroomCount, setBedroomCount, kitchenCount, setKitchenCount,
     customKitchenUnitCost, setCustomKitchenUnitCost, generalFurnitureBaseAmount, setGeneralFurnitureBaseAmount,
+    dataSecurityPackageLevel, setDataSecurityPackageLevel,
     dataSecurityPackageSelection, setDataSecurityPackageSelection,
     dataSecurityManualQuote, setDataSecurityManualQuote,
     dataSecurityDefaultPackageCost, dataSecurityAppliedPackageCost, dataSecurityManualOverrideActive,
+    automationPackageLevel, setAutomationPackageLevel,
     automationPackageSelection, setAutomationPackageSelection,
     automationManualQuote, setAutomationManualQuote,
     automationDefaultPackageCost, automationAppliedPackageCost, automationManualOverrideActive,

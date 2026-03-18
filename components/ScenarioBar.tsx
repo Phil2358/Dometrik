@@ -14,6 +14,40 @@ import * as Haptics from 'expo-haptics';
 import { Copy, Pencil, X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useEstimate } from '@/contexts/EstimateContext';
+import { formatNumber } from '@/utils/format';
+
+function getScenarioEffectiveArea(scenario: {
+  mainArea: number;
+  terraceArea: number;
+  balconyArea: number;
+  storageBasementArea?: number;
+  parkingBasementArea?: number;
+  habitableBasementArea?: number;
+}): number {
+  return scenario.mainArea
+    + scenario.terraceArea * 0.5
+    + scenario.balconyArea * 0.3
+    + (scenario.storageBasementArea ?? 0) * 0.5
+    + (scenario.parkingBasementArea ?? 0) * 0.65
+    + (scenario.habitableBasementArea ?? 0) * 0.85;
+}
+
+function getScenarioQualityMeta(scenario: { qualityId: string; customCostPerSqm: number | null }) {
+  if (scenario.customCostPerSqm !== null) {
+    return { label: 'Custom', tone: Colors.accent };
+  }
+
+  switch (scenario.qualityId) {
+    case 'standard':
+      return { label: 'Economy', tone: Colors.success };
+    case 'premium':
+      return { label: 'Mid-Range', tone: Colors.accent };
+    case 'luxury':
+      return { label: 'Luxury', tone: Colors.warning };
+    default:
+      return { label: 'Benchmark', tone: Colors.textTertiary };
+  }
+}
 
 export default function ScenarioBar() {
   const {
@@ -101,6 +135,8 @@ export default function ScenarioBar() {
           const isActive = index === activeScenarioIndex;
           const isEditing = editingIndex === index;
           const isOnlyScenario = scenarios.length <= 1;
+          const effectiveArea = getScenarioEffectiveArea(scenario);
+          const qualityMeta = getScenarioQualityMeta(scenario);
 
           return (
             <View key={scenario.id} style={[s.tab, isActive && s.tabActive]}>
@@ -123,12 +159,23 @@ export default function ScenarioBar() {
                     testID={`scenario-rename-input-${index}`}
                   />
                 ) : (
-                  <Text
-                    style={[s.tabName, isActive && s.tabNameActive]}
-                    numberOfLines={1}
-                  >
-                    {scenario.name}
-                  </Text>
+                  <View style={s.tabContent}>
+                    <Text
+                      style={[s.tabName, isActive && s.tabNameActive]}
+                      numberOfLines={1}
+                    >
+                      {scenario.name}
+                    </Text>
+                    <View style={s.tabMetaRow}>
+                      <View style={[s.qualityBadge, { borderColor: qualityMeta.tone, backgroundColor: `${qualityMeta.tone}14` }]}>
+                        <View style={[s.qualityBadgeDot, { backgroundColor: qualityMeta.tone }]} />
+                        <Text style={[s.qualityBadgeText, { color: qualityMeta.tone }]}>{qualityMeta.label}</Text>
+                      </View>
+                      <Text style={[s.areaMeta, isActive && s.areaMetaActive]}>
+                        {`${formatNumber(effectiveArea)} m² EA`}
+                      </Text>
+                    </View>
+                  </View>
                 )}
               </TouchableOpacity>
 
@@ -251,6 +298,9 @@ const s = StyleSheet.create({
     justifyContent: 'center' as const,
     paddingRight: 4,
   },
+  tabContent: {
+    gap: 4,
+  },
   tabName: {
     fontSize: 14,
     fontWeight: '600' as const,
@@ -266,6 +316,38 @@ const s = StyleSheet.create({
     color: Colors.accent,
     padding: 0,
     minWidth: 90,
+  },
+  tabMetaRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    flexWrap: 'wrap' as const,
+  },
+  qualityBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    gap: 5,
+  },
+  qualityBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  qualityBadgeText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+  },
+  areaMeta: {
+    fontSize: 11,
+    color: Colors.textTertiary,
+    fontWeight: '600' as const,
+  },
+  areaMetaActive: {
+    color: Colors.accent,
   },
   tabActions: {
     flexDirection: 'row' as const,

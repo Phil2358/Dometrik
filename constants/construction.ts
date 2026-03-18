@@ -100,6 +100,7 @@ export const KG400_BEDROOM_DELTA_BASE_COST = 1200;
 export const KG400_BATHROOM_DELTA_BASE_COST = 4500;
 export const KG400_WC_DELTA_BASE_COST = 2500;
 export const KG400_DATA_SECURITY_BASELINE_COST_PER_SQM = 6;
+export type Kg400PackageLevel = 'none' | 'basic' | 'advanced';
 export type Kg400PackageSelection = 'no' | 'yes';
 
 export const KG400_PACKAGE_SELECTION_OPTIONS: Array<{
@@ -468,13 +469,12 @@ export const POOL_TOOLTIP = `Pool cost depends on size, depth, construction type
 
 export const COST_BASIS_TITLE = `Direct Construction Cost`;
 
-export const COST_BASIS_TEXT = `Base construction costs represent direct building construction costs only (KG 300 + KG 400 + KG 600).
-This includes: reinforced concrete structure, masonry walls, ETICS insulation, roof construction, standard windows, basic HVAC system (heat pump + fan-coils or VRV), standard electrical and plumbing installations, standard interior finishes, and basic bathroom fixtures.
-Regional cost differences are reflected through the location adjustment factor.`;
+export const COST_BASIS_TEXT = `This benchmark defines the core construction cost level of the project. It mainly drives KG 300, KG 400, and KG 600, while some preliminary works may also be benchmark-linked.
+Other project-specific items are calculated separately. Regional cost differences are reflected through the location adjustment factor.`;
 
 export const COST_BASIS_SCOPE_TITLE = `Separately Calculated`;
 
-export const COST_BASIS_SCOPE_TEXT = `Site preparation & utilities (KG 200), external works (KG 500), planning & professional fees (KG 700), contractor overhead & profit, and VAT are not included in the base construction cost and are calculated separately.`;
+export const COST_BASIS_SCOPE_TEXT = `Project-specific items are calculated separately from the base benchmark, including KG 200 subgroups 220–250, external works (KG 500), planning and professional fees (KG 700), contractor overhead & profit, and VAT.`;
 
 export const DEFAULT_CONTRACTOR_PERCENTAGE = 12;
 export const CONTRACTOR_MIN_PERCENTAGE = 0;
