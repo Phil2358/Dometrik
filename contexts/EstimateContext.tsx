@@ -897,7 +897,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kg400EngineResult = useMemo(
     () => calculateKg400Costs({
       mainArea,
-      effectiveArea,
       finalCostPerSqm,
       qualityId,
       siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,

@@ -122,7 +122,6 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
   const kg400Costs =
     calculateKg400Costs({
       mainArea: input.mainArea,
-      effectiveArea,
       finalCostPerSqm: buildingCost.correctedCostPerSqm,
       qualityId: input.qualityId,
       siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,

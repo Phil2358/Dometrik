@@ -12,7 +12,6 @@ import { calculateHvacExtras } from "./hvacExtras"
 
 interface Kg400CostsInput {
   mainArea: number
-  effectiveArea: number
   finalCostPerSqm: number
   qualityId: string
   siteAccessibilityFactor: number
@@ -44,9 +43,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     1 + Math.max(0, input.siteAccessibilityFactor - 1) * KG400_ACCESSIBILITY_WEIGHT
 
   const mainAreaConstructionCost = input.mainArea * input.finalCostPerSqm
-  const effectiveAreaConstructionCost = input.effectiveArea * input.finalCostPerSqm
   const mainAreaKg400Envelope = Math.round(mainAreaConstructionCost * BASE_GROUP_SHARE_KG400)
-  const effectiveAreaKg400Envelope = Math.round(effectiveAreaConstructionCost * BASE_GROUP_SHARE_KG400)
 
   const kg400BedroomDeltaCost =
     Math.round(input.bedroomDelta * KG400_BEDROOM_DELTA_BASE_COST * qualityPackageMultiplier)
@@ -66,7 +63,6 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
 
   const hvacCosts =
     calculateHvacExtras({
-      effectiveArea: input.effectiveArea,
       mainArea: input.mainArea,
       habitableBasementArea: input.habitableBasementArea,
       qualityId: input.qualityId,
@@ -96,7 +92,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       0,
       Math.round(
         Math.round(
-          effectiveAreaKg400Envelope
+          mainAreaKg400Envelope
           * (getKg400CategoryPercentage("heating") / KG400_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       ) + kg400BathroomHeatingAdjustment + (hvacCosts.adjustmentsByCategory.heating ?? 0)
@@ -105,7 +101,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       0,
       Math.round(
         Math.round(
-          effectiveAreaKg400Envelope
+          mainAreaKg400Envelope
           * (getKg400CategoryPercentage("ventilation_cooling") / KG400_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       ) + kg400BedroomVentilationAdjustment
@@ -114,7 +110,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       0,
       Math.round(
         Math.round(
-          effectiveAreaKg400Envelope
+          mainAreaKg400Envelope
           * (getKg400CategoryPercentage("electrical") / KG400_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       )

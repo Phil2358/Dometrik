@@ -1,5 +1,4 @@
 interface HvacExtrasInput {
-  effectiveArea: number
   mainArea: number
   habitableBasementArea?: number
   qualityId: string
@@ -26,6 +25,8 @@ export function calculateHvacExtras(input: HvacExtrasInput) {
 
   const heatedInternalArea =
     Math.max(0, input.mainArea + (input.habitableBasementArea ?? 0))
+  const kg400ProgramArea =
+    Math.max(0, input.mainArea)
 
   const underfloorHeatingBaseCost =
     Math.max(9000, heatedInternalArea * 85)
@@ -35,9 +36,9 @@ export function calculateHvacExtras(input: HvacExtrasInput) {
       : 0
 
   const solarThermalBaseCost =
-    input.effectiveArea <= 120
+    kg400ProgramArea <= 120
       ? 2500
-      : input.effectiveArea <= 220
+      : kg400ProgramArea <= 220
         ? 3500
         : 4500
   const solarThermalCostCap =
@@ -55,9 +56,9 @@ export function calculateHvacExtras(input: HvacExtrasInput) {
       : 0
 
   const photovoltaicBaseCost =
-    input.effectiveArea <= 120
+    kg400ProgramArea <= 120
       ? 6000
-      : input.effectiveArea <= 220
+      : kg400ProgramArea <= 220
         ? 9000
         : 11500
   const photovoltaicCostCap =
