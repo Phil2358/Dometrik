@@ -13,6 +13,10 @@ import { calculateHvacExtras } from "./modules/hvacExtras"
 import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
 import { calculatePermitCosts } from "./modules/permitCosts"
+import {
+  KG400_AUTOMATION_PACKAGE_COSTS,
+  KG400_DATA_SECURITY_BASELINE_ALLOWANCE
+} from "../constants/construction"
 
 interface ProjectCalculationInput {
 
@@ -114,6 +118,13 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       hvacSelections: input.hvacSelections
     })
 
+  // 450 keeps only a minimal weak-current baseline unless future explicit extras are selected.
+  const dataSecurityOptionalExtrasCost = 0
+  // 480 is automation only via explicit optional packages; default is no package selected.
+  const automationPackageId: keyof typeof KG400_AUTOMATION_PACKAGE_COSTS = "none"
+  const automationPackageCost =
+    KG400_AUTOMATION_PACKAGE_COSTS[automationPackageId]
+
 
   // -----------------------------------------
   // Category costs (DIN276 groups)
@@ -129,6 +140,10 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
           * buildingCost.correctedCostPerSqm
           * getAdjustedKg400Share(weightedBasementRatio)
         )
+      },
+      kg400FixedCostByCategory: {
+        data_security: KG400_DATA_SECURITY_BASELINE_ALLOWANCE + dataSecurityOptionalExtrasCost,
+        automation: automationPackageCost
       },
       kg400AdjustmentsByCategory: hvacCosts.adjustmentsByCategory
     })

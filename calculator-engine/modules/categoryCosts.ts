@@ -13,6 +13,7 @@ interface CategoryCostsInput {
   kg400Base: number
   kg400AdjustmentsByCategory?: Partial<Record<string, number>>
   kg400BaseByCategory?: Partial<Record<string, number>>
+  kg400FixedCostByCategory?: Partial<Record<string, number>>
 }
 
 interface Kg300SubgroupShareSet {
@@ -165,6 +166,10 @@ export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg3
 export function calculateCategoryCosts(input: CategoryCostsInput) {
 
   const categoryCosts = COST_CATEGORIES.map(category => {
+    const fixedKg400CategoryCost =
+      category.din276 === 'KG 400'
+        ? input.kg400FixedCostByCategory?.[category.id]
+        : undefined
     const groupBase =
       category.din276 === 'KG 300'
         ? input.kg300Base
@@ -180,9 +185,11 @@ export function calculateCategoryCosts(input: CategoryCostsInput) {
           : 0
 
     let cost =
-      groupPercentage * groupBase
+      fixedKg400CategoryCost !== undefined
+        ? fixedKg400CategoryCost
+        : groupPercentage * groupBase
 
-    if (category.din276 === 'KG 400') {
+    if (category.din276 === 'KG 400' && fixedKg400CategoryCost === undefined) {
       cost += input.kg400AdjustmentsByCategory?.[category.id] ?? 0
     }
 

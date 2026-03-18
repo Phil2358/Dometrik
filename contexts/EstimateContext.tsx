@@ -48,6 +48,8 @@ import {
   KG400_BEDROOM_DELTA_BASE_COST,
   KG400_BATHROOM_DELTA_BASE_COST,
   KG400_WC_DELTA_BASE_COST,
+  KG400_DATA_SECURITY_BASELINE_ALLOWANCE,
+  KG400_AUTOMATION_PACKAGE_COSTS,
   getKitchenAreaFactor,
   getResidentialProgramBaseline,
   getSuggestedGeneralFurnitureBaseAmount,
@@ -921,24 +923,27 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kg400WcDeltaCost = Math.round(wcDelta * KG400_WC_DELTA_BASE_COST * qualityPackageMultiplier);
   const kg400BedroomVentilationAdjustment = Math.round(kg400BedroomDeltaCost * 0.45);
   const kg400BedroomElectricalAdjustment = Math.round(kg400BedroomDeltaCost * 0.35);
-  const kg400BedroomDataAdjustment =
-    kg400BedroomDeltaCost - kg400BedroomVentilationAdjustment - kg400BedroomElectricalAdjustment;
   const kg400BathroomPlumbingAdjustment = Math.round(kg400BathroomDeltaCost * 0.75);
   const kg400BathroomHeatingAdjustment = Math.round(kg400BathroomDeltaCost * 0.15);
   const kg400BathroomElectricalAdjustment =
     kg400BathroomDeltaCost - kg400BathroomPlumbingAdjustment - kg400BathroomHeatingAdjustment;
   const kg400WcPlumbingAdjustment = Math.round(kg400WcDeltaCost * 0.70);
   const kg400WcElectricalAdjustment = Math.round(kg400WcDeltaCost * 0.20);
-  const kg400WcDataAdjustment =
-    kg400WcDeltaCost - kg400WcPlumbingAdjustment - kg400WcElectricalAdjustment;
   const kg400ProgramAdjustmentsByCategory: Record<string, number> = {
     plumbing: kg400BathroomPlumbingAdjustment + kg400WcPlumbingAdjustment,
     heating: kg400BathroomHeatingAdjustment,
     ventilation_cooling: kg400BedroomVentilationAdjustment,
     electrical: kg400BedroomElectricalAdjustment + kg400BathroomElectricalAdjustment + kg400WcElectricalAdjustment,
-    data_security: kg400BedroomDataAdjustment + kg400WcDataAdjustment,
+    data_security: 0,
     automation: 0,
   };
+  // 450 = minimal baseline weak-current allowance + optional extras.
+  const dataSecurityOptionalExtrasCost = 0;
+  const dataSecurityCategoryCost =
+    KG400_DATA_SECURITY_BASELINE_ALLOWANCE + dataSecurityOptionalExtrasCost;
+  // 480 = automation only via explicit optional package / extras.
+  const automationPackageId: keyof typeof KG400_AUTOMATION_PACKAGE_COSTS = 'none';
+  const automationCategoryCost = KG400_AUTOMATION_PACKAGE_COSTS[automationPackageId];
   const includedWardrobes = bedroomCount;
   const totalWardrobeCount = bedroomCount;
   const heatedInternalArea = Math.max(0, mainArea + habitableBasementArea);
@@ -1049,16 +1054,27 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       }
 
       if (category.din276 === 'KG 400') {
-        categoryCost = category.id === 'plumbing'
-          ? Math.round(mainAreaConstructionCost * adjustedKg400Share * (category.percentage / 24))
-          : Math.round(kg400Base * (category.percentage / 24));
-        categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
-        categoryCost = Math.max(
-          0,
-          categoryCost
-          + (kg400ProgramAdjustmentsByCategory[category.id] ?? 0)
-          + (hvacOptionAdjustmentsByCategory[category.id] ?? 0),
-        );
+        if (category.id === 'plumbing') {
+          categoryCost = Math.round(mainAreaConstructionCost * adjustedKg400Share * (category.percentage / 24));
+          categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
+          categoryCost = Math.max(
+            0,
+            categoryCost + (kg400ProgramAdjustmentsByCategory[category.id] ?? 0),
+          );
+        } else if (category.id === 'data_security') {
+          categoryCost = Math.max(0, dataSecurityCategoryCost);
+        } else if (category.id === 'automation') {
+          categoryCost = Math.max(0, automationCategoryCost);
+        } else {
+          categoryCost = Math.round(kg400Base * (category.percentage / 24));
+          categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
+          categoryCost = Math.max(
+            0,
+            categoryCost
+            + (kg400ProgramAdjustmentsByCategory[category.id] ?? 0)
+            + (hvacOptionAdjustmentsByCategory[category.id] ?? 0),
+          );
+        }
       }
 
       if (category.din276 === 'KG 600') {
@@ -1091,6 +1107,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg400AccessibilityMultiplier,
     kg400ProgramAdjustmentsByCategory,
     hvacOptionAdjustmentsByCategory,
+    dataSecurityCategoryCost,
+    automationCategoryCost,
     kg600GeneralFurnishingsCost,
     kg600SpecialFurnishingsCost,
   ]);
