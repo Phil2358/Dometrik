@@ -163,14 +163,18 @@ function IntegerInputRow({
   value,
   onChangeValue,
   min = 0,
-  baseline,
+  subtitle,
+  infoText,
 }: {
   label: string;
   value: number;
   onChangeValue: (v: number) => void;
   min?: number;
-  baseline?: number;
+  subtitle?: string;
+  infoText?: string;
 }) {
+  const [showInfo, setShowInfo] = React.useState(false);
+
   const handleDecrement = () => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -187,10 +191,24 @@ function IntegerInputRow({
   return (
     <View style={styles.integerRow}>
       <View style={styles.integerInfo}>
-        <Text style={styles.integerLabel}>{label}</Text>
-        {baseline !== undefined && (
-          <Text style={styles.integerBaseline}>{baseline} included in base</Text>
-        )}
+        <View style={styles.integerLabelRow}>
+          <Text style={styles.integerLabel}>{label}</Text>
+          {infoText ? (
+            <TouchableOpacity
+              onPress={() => setShowInfo((prev) => !prev)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID={`info-${label.toLowerCase()}`}
+            >
+              <Info size={13} color={Colors.textTertiary} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        {subtitle ? (
+          <Text style={styles.integerBaseline}>{subtitle}</Text>
+        ) : null}
+        {showInfo && infoText ? (
+          <Text style={styles.integerHelpText}>{infoText}</Text>
+        ) : null}
       </View>
       <View style={styles.integerControls}>
         <TouchableOpacity
@@ -214,6 +232,28 @@ function IntegerInputRow({
       </View>
     </View>
   );
+}
+
+function formatProgramSubtitle({
+  baseline,
+  actual,
+  singular,
+  plural,
+}: {
+  baseline: number;
+  actual: number;
+  singular: string;
+  plural: string;
+}) {
+  const baselineLabel = baseline === 1 ? singular : plural;
+  const delta = actual - baseline;
+
+  if (delta === 0) {
+    return `Included in base: ${baseline} ${baselineLabel}`;
+  }
+
+  const deltaLabel = Math.abs(delta) === 1 ? '1' : String(Math.abs(delta));
+  return `Included in base: ${baseline} ${baselineLabel} ${MIDDLE_DOT} ${deltaLabel} ${delta > 0 ? 'added manually' : 'reduced manually'}`;
 }
 
 export default function EstimateScreen() {
@@ -276,10 +316,10 @@ export default function EstimateScreen() {
     setBedroomCount,
     kitchenCount,
     setKitchenCount,
-    extraWardrobeCount,
-    setExtraWardrobeCount,
-    includeGeneralFurniture,
-    setIncludeGeneralFurniture,
+    customKitchenUnitCost,
+    setCustomKitchenUnitCost,
+    generalFurnitureBaseAmount,
+    setGeneralFurnitureBaseAmount,
     hvacSelections,
     toggleHvacOption,
     hvacCosts,
@@ -307,6 +347,9 @@ export default function EstimateScreen() {
     setSiteAccessibilityId,
     siteAccessibility,
     kg600Cost,
+    residentialProgramBaseline,
+    suggestedKitchenUnitCost,
+    kitchenUnitCost,
     kitchenPackageCost,
     wardrobePackageCost,
     generalFurniturePackageCost,
@@ -321,6 +364,24 @@ export default function EstimateScreen() {
   const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? landValue * 0.06
     : landAcquisitionCosts;
+  const bedroomSubtitle = formatProgramSubtitle({
+    baseline: residentialProgramBaseline.bedrooms,
+    actual: bedroomCount,
+    singular: 'bedroom',
+    plural: 'bedrooms',
+  });
+  const bathroomSubtitle = formatProgramSubtitle({
+    baseline: residentialProgramBaseline.bathrooms,
+    actual: bathrooms,
+    singular: 'bathroom',
+    plural: 'bathrooms',
+  });
+  const wcSubtitle = formatProgramSubtitle({
+    baseline: residentialProgramBaseline.wcs,
+    actual: wcs,
+    singular: 'WC',
+    plural: 'WCs',
+  });
 
   const handleLocationSelect = useCallback(
     (id: string) => {
@@ -987,11 +1048,20 @@ export default function EstimateScreen() {
       </View>
       <View style={styles.card}>
         <IntegerInputRow
+          label="Bedrooms"
+          value={bedroomCount}
+          onChangeValue={setBedroomCount}
+          min={1}
+          subtitle={bedroomSubtitle}
+          infoText="Bedrooms here are used for built-in wardrobes only. Loose bedroom furniture is included in the General Furniture Base Amount."
+        />
+        <View style={styles.divider} />
+        <IntegerInputRow
           label="Bathrooms"
           value={bathrooms}
           onChangeValue={setBathrooms}
           min={0}
-          baseline={1}
+          subtitle={bathroomSubtitle}
         />
         <View style={styles.divider} />
         <IntegerInputRow
@@ -999,7 +1069,7 @@ export default function EstimateScreen() {
           value={wcs}
           onChangeValue={setWcs}
           min={0}
-          baseline={1}
+          subtitle={wcSubtitle}
         />
       </View>
 
@@ -1009,57 +1079,71 @@ export default function EstimateScreen() {
       </View>
       <View style={styles.card}>
         <IntegerInputRow
-          label="Bedrooms"
-          value={bedroomCount}
-          onChangeValue={setBedroomCount}
-          min={1}
-        />
-        <View style={styles.divider} />
-        <IntegerInputRow
           label="Kitchens"
           value={kitchenCount}
           onChangeValue={setKitchenCount}
-          min={1}
-          baseline={1}
-        />
-        <View style={styles.divider} />
-        <IntegerInputRow
-          label="Extra wardrobes"
-          value={extraWardrobeCount}
-          onChangeValue={setExtraWardrobeCount}
           min={0}
-          baseline={includedWardrobes}
+          subtitle="Kitchens are typically not included in the base contractor offer. Each kitchen is counted separately using the unit cost shown below."
         />
         <View style={styles.divider} />
-        <View style={styles.optionRow}>
-          <View style={styles.optionInfo}>
-            <Text style={styles.optionLabel}>General furniture package</Text>
-            <Text style={styles.optionSubtext}>
-              {includeGeneralFurniture
-                ? `${formatCurrency(generalFurniturePackageCost)} ${MIDDLE_DOT} movable furniture package`
-                : 'Optional movable furniture package'}
-            </Text>
-          </View>
-          <Switch
-            value={includeGeneralFurniture}
-            onValueChange={(val) => {
-              if (Platform.OS !== 'web') {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
-              setIncludeGeneralFurniture(val);
-            }}
-            trackColor={{ false: Colors.border, true: Colors.accent }}
-            thumbColor={Colors.white}
-            testID="general-furniture-toggle"
-          />
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Kitchen Unit Cost</Text>
+          {customKitchenUnitCost !== null && (
+            <TouchableOpacity onPress={() => setCustomKitchenUnitCost(null)}>
+              <Text style={styles.resetLink}>Reset</Text>
+            </TouchableOpacity>
+          )}
         </View>
+        <View style={styles.costInputRow}>
+          <TextInput
+            style={styles.costInput}
+            value={formatNumber(kitchenUnitCost)}
+            onChangeText={(text) => {
+              const cleaned = text.replace(/[^0-9]/g, '');
+              const num = parseInt(cleaned, 10);
+              if (isNaN(num) || num <= 0) {
+                setCustomKitchenUnitCost(null);
+              } else {
+                setCustomKitchenUnitCost(num);
+              }
+            }}
+            keyboardType="numeric"
+            testID="kitchen-unit-cost-input"
+          />
+          <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+        </View>
+        <Text style={styles.optionSubtext}>
+          {`Suggested ${formatCurrency(suggestedKitchenUnitCost)} ${MIDDLE_DOT} quality and area adjusted`}
+        </Text>
+        <View style={styles.divider} />
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>General Furniture Base Amount</Text>
+        </View>
+        <View style={styles.costInputRow}>
+          <TextInput
+            style={styles.costInput}
+            value={generalFurnitureBaseAmount > 0 ? formatNumber(generalFurnitureBaseAmount) : ''}
+            onChangeText={(text) => {
+              const cleaned = text.replace(/[^0-9]/g, '');
+              setGeneralFurnitureBaseAmount(parseInt(cleaned, 10) || 0);
+            }}
+            keyboardType="numeric"
+            placeholder="0"
+            placeholderTextColor={Colors.textTertiary}
+            testID="general-furniture-base-input"
+          />
+          <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+        </View>
+        <Text style={styles.optionSubtext}>
+          {`Loose furniture package. Recommended amount is based on bedrooms and effective area. This value is editable.`}
+        </Text>
         <View style={styles.divider} />
         <View style={styles.effectiveRow}>
           <Text style={styles.effectiveLabel}>KG600 Furnishings Total</Text>
           <Text style={styles.effectiveValue}>{formatCurrency(kg600Cost)}</Text>
         </View>
         <Text style={styles.effectiveFormula}>
-          {`${formatCurrency(kitchenPackageCost)} kitchen${wardrobePackageCost > 0 ? ` + ${formatCurrency(wardrobePackageCost)} wardrobes` : ''}${generalFurniturePackageCost > 0 ? ` + ${formatCurrency(generalFurniturePackageCost)} furniture` : ''}${bathroomWcFurnishingSliceCost > 0 ? ` + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices` : ''}`}
+          {`${formatCurrency(kitchenPackageCost)} kitchen${wardrobePackageCost > 0 ? ` + ${formatCurrency(wardrobePackageCost)} wardrobes (${includedWardrobes})` : ''}${generalFurniturePackageCost > 0 ? ` + ${formatCurrency(generalFurniturePackageCost)} general furniture` : ''}${bathroomWcFurnishingSliceCost > 0 ? ` + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices` : ''}`}
         </Text>
       </View>
 
@@ -2012,6 +2096,11 @@ const styles = StyleSheet.create({
   integerInfo: {
     flex: 1,
   },
+  integerLabelRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
   integerLabel: {
     fontSize: 14,
     fontWeight: '600' as const,
@@ -2021,6 +2110,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textTertiary,
     marginTop: 2,
+  },
+  integerHelpText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    lineHeight: 16,
   },
   integerControls: {
     flexDirection: 'row' as const,

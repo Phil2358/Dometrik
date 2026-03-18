@@ -93,9 +93,52 @@ export const COST_CATEGORIES: CostCategory[] = [
 
 export const KG600_KITCHEN_PACKAGE_BASE_COST = 7500;
 export const KG600_WARDROBE_PACKAGE_BASE_COST = 1800;
-export const KG600_GENERAL_FURNITURE_PACKAGE_BASE_COST = 6000;
+export const KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT = 2500;
 export const KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST = 600;
 export const KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST = 300;
+export const KG400_BEDROOM_DELTA_BASE_COST = 1200;
+export const KG400_BATHROOM_DELTA_BASE_COST = 4500;
+export const KG400_WC_DELTA_BASE_COST = 2500;
+
+export interface ResidentialProgramBaseline {
+  bedrooms: number;
+  bathrooms: number;
+  wcs: number;
+}
+
+export function getResidentialProgramBaseline(effectiveArea: number): ResidentialProgramBaseline {
+  const bedrooms = effectiveArea < 50
+    ? 1
+    : 2 + Math.floor((effectiveArea - 50) / 50);
+  const bathrooms = effectiveArea < 100 ? 1 : 2;
+  const wcs = 1;
+
+  return {
+    bedrooms,
+    bathrooms,
+    wcs,
+  };
+}
+
+export function getKitchenAreaFactor(effectiveArea: number): number {
+  if (effectiveArea <= 80) return 0.85;
+  if (effectiveArea <= 140) return 1.00;
+  if (effectiveArea <= 220) return 1.20;
+  if (effectiveArea <= 320) return 1.40;
+  return 1.65;
+}
+
+export function getSuggestedGeneralFurnitureBaseAmount(effectiveArea: number, bedroomCount: number): number {
+  let areaBase = 4500;
+
+  if (effectiveArea > 80) areaBase = 5500;
+  if (effectiveArea > 140) areaBase = 7000;
+  if (effectiveArea > 220) areaBase = 8500;
+  if (effectiveArea > 320) areaBase = 10000;
+
+  const bedroomAdjustment = Math.max(0, bedroomCount - 1) * 500;
+  return areaBase + bedroomAdjustment;
+}
 
 export interface BasementType {
   id: string;

@@ -42,9 +42,15 @@ import {
   getUtilityConnectionGroupCosts,
   KG600_KITCHEN_PACKAGE_BASE_COST,
   KG600_WARDROBE_PACKAGE_BASE_COST,
-  KG600_GENERAL_FURNITURE_PACKAGE_BASE_COST,
+  KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT,
   KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST,
   KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST,
+  KG400_BEDROOM_DELTA_BASE_COST,
+  KG400_BATHROOM_DELTA_BASE_COST,
+  KG400_WC_DELTA_BASE_COST,
+  getKitchenAreaFactor,
+  getResidentialProgramBaseline,
+  getSuggestedGeneralFurnitureBaseAmount,
 } from '@/constants/construction';
 import type { CostCategory } from '@/constants/construction';
 
@@ -53,6 +59,8 @@ export interface CategoryCost {
   cost: number;
   costPerSqm: number;
 }
+
+type ProgramCountMode = 'auto' | 'manual';
 
 export interface ScenarioConfig {
   id: string;
@@ -81,12 +89,20 @@ export interface ScenarioConfig {
   landValue: number;
   landAcquisitionCosts: number;
   landAcquisitionCostsMode: 'auto' | 'manual';
-  bathrooms: number;
-  wcs: number;
-  bedroomCount: number;
+  bathrooms?: number;
+  wcs?: number;
+  bedroomCount?: number;
+  bathroomsMode?: ProgramCountMode;
+  bathroomsManualValue?: number | null;
+  wcsMode?: ProgramCountMode;
+  wcsManualValue?: number | null;
+  bedroomCountMode?: ProgramCountMode;
+  bedroomCountManualValue?: number | null;
   kitchenCount: number;
-  extraWardrobeCount: number;
-  includeGeneralFurniture: boolean;
+  kitchenCountCustomized?: boolean;
+  customKitchenUnitCost: number | null;
+  generalFurnitureBaseAmount: number;
+  generalFurnitureBaseAmountCustomized?: boolean;
   hvacSelections: Record<string, boolean>;
   utilityConnectionId: string;
   customUtilityCost: number;
@@ -197,6 +213,31 @@ function getAutoEstimatedLandAcquisitionCosts(landValue: number): number {
   return landValue * DEFAULT_LAND_ACQUISITION_PERCENTAGE;
 }
 
+function getWeightedBasementAreaForProgramDefaults(
+  storageBasementArea: number,
+  parkingBasementArea: number,
+  habitableBasementArea: number,
+): number {
+  const storageBasementType = BASEMENT_TYPES.find((b) => b.id === 'storage') ?? BASEMENT_TYPES[0];
+  const parkingBasementType = BASEMENT_TYPES.find((b) => b.id === 'parking') ?? BASEMENT_TYPES[0];
+  const habitableBasementType = BASEMENT_TYPES.find((b) => b.id === 'habitable') ?? BASEMENT_TYPES[0];
+
+  return storageBasementArea * storageBasementType.costFactor
+    + parkingBasementArea * parkingBasementType.costFactor
+    + habitableBasementArea * habitableBasementType.costFactor;
+}
+
+function getProgramDefaultEffectiveArea(config: Partial<ScenarioConfig>): number {
+  return (config.mainArea ?? 0)
+    + (config.terraceArea ?? 0) * 0.5
+    + (config.balconyArea ?? 0) * 0.30
+    + getWeightedBasementAreaForProgramDefaults(
+      config.storageBasementArea ?? 0,
+      config.parkingBasementArea ?? 0,
+      config.habitableBasementArea ?? 0,
+    );
+}
+
 function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
   const plotSize = config.plotSize ?? 4000;
@@ -220,10 +261,50 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const landAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? getAutoEstimatedLandAcquisitionCosts(landValue)
     : (config.landAcquisitionCosts ?? 0);
-  const bedroomCount = config.bedroomCount ?? 3;
-  const kitchenCount = config.kitchenCount ?? 1;
-  const extraWardrobeCount = config.extraWardrobeCount ?? 0;
-  const includeGeneralFurniture = config.includeGeneralFurniture ?? false;
+  const defaultEffectiveArea = getProgramDefaultEffectiveArea({
+    ...config,
+    storageBasementArea,
+    parkingBasementArea,
+    habitableBasementArea,
+  });
+  const defaultProgramBaseline = getResidentialProgramBaseline(defaultEffectiveArea);
+  const bathroomsMode = config.bathroomsMode ?? 'auto';
+  const bathroomsManualValue = bathroomsMode === 'manual'
+    ? Math.max(0, config.bathroomsManualValue ?? config.bathrooms ?? defaultProgramBaseline.bathrooms)
+    : null;
+  const wcsMode = config.wcsMode ?? 'auto';
+  const wcsManualValue = wcsMode === 'manual'
+    ? Math.max(0, config.wcsManualValue ?? config.wcs ?? defaultProgramBaseline.wcs)
+    : null;
+  const bedroomCountMode = config.bedroomCountMode ?? 'auto';
+  const bedroomCountManualValue = bedroomCountMode === 'manual'
+    ? Math.max(1, config.bedroomCountManualValue ?? config.bedroomCount ?? defaultProgramBaseline.bedrooms)
+    : null;
+  const kitchenCountCustomized = config.kitchenCountCustomized ?? (
+    config.kitchenCount !== undefined && config.kitchenCount !== 1
+  );
+  const bathrooms = bathroomsMode === 'manual'
+    ? (bathroomsManualValue ?? defaultProgramBaseline.bathrooms)
+    : defaultProgramBaseline.bathrooms;
+  const wcs = wcsMode === 'manual'
+    ? (wcsManualValue ?? defaultProgramBaseline.wcs)
+    : defaultProgramBaseline.wcs;
+  const bedroomCount = bedroomCountMode === 'manual'
+    ? (bedroomCountManualValue ?? defaultProgramBaseline.bedrooms)
+    : defaultProgramBaseline.bedrooms;
+  const kitchenCount = kitchenCountCustomized
+    ? (config.kitchenCount ?? 0)
+    : 0;
+  const customKitchenUnitCost = config.customKitchenUnitCost ?? null;
+  const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(defaultEffectiveArea, bedroomCount);
+  const generalFurnitureBaseAmountCustomized = config.generalFurnitureBaseAmountCustomized ?? (
+    config.generalFurnitureBaseAmount !== undefined &&
+    config.generalFurnitureBaseAmount !== 0 &&
+    config.generalFurnitureBaseAmount !== 5000
+  );
+  const generalFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
+    ? (config.generalFurnitureBaseAmount ?? suggestedGeneralFurnitureBaseAmount)
+    : suggestedGeneralFurnitureBaseAmount;
 
   return {
     ...config,
@@ -236,10 +317,20 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     landValue,
     landAcquisitionCosts,
     landAcquisitionCostsMode,
+    bathrooms,
+    wcs,
     bedroomCount,
+    bathroomsMode,
+    bathroomsManualValue,
+    wcsMode,
+    wcsManualValue,
+    bedroomCountMode,
+    bedroomCountManualValue,
     kitchenCount,
-    extraWardrobeCount,
-    includeGeneralFurniture,
+    kitchenCountCustomized,
+    customKitchenUnitCost,
+    generalFurnitureBaseAmount,
+    generalFurnitureBaseAmountCustomized,
   };
 }
 
@@ -261,6 +352,15 @@ function generateId(): string {
 }
 
 function createDefaultConfig(name: string): ScenarioConfig {
+  const defaultEffectiveArea = getProgramDefaultEffectiveArea({
+    mainArea: 150,
+    terraceArea: 30,
+    balconyArea: 0,
+    storageBasementArea: 0,
+    parkingBasementArea: 0,
+    habitableBasementArea: 0,
+  });
+  const defaultProgramBaseline = getResidentialProgramBaseline(defaultEffectiveArea);
   return {
     id: generateId(),
     name,
@@ -288,12 +388,20 @@ function createDefaultConfig(name: string): ScenarioConfig {
     landValue: 0,
     landAcquisitionCosts: 0,
     landAcquisitionCostsMode: 'auto',
-    bathrooms: 1,
-    wcs: 1,
-    bedroomCount: 3,
-    kitchenCount: 1,
-    extraWardrobeCount: 0,
-    includeGeneralFurniture: false,
+    bathrooms: defaultProgramBaseline.bathrooms,
+    wcs: defaultProgramBaseline.wcs,
+    bedroomCount: defaultProgramBaseline.bedrooms,
+    bathroomsMode: 'auto',
+    bathroomsManualValue: null,
+    wcsMode: 'auto',
+    wcsManualValue: null,
+    bedroomCountMode: 'auto',
+    bedroomCountManualValue: null,
+    kitchenCount: 0,
+    kitchenCountCustomized: false,
+    customKitchenUnitCost: null,
+    generalFurnitureBaseAmount: getSuggestedGeneralFurnitureBaseAmount(defaultEffectiveArea, defaultProgramBaseline.bedrooms),
+    generalFurnitureBaseAmountCustomized: false,
     hvacSelections: {
       underfloor_heating: false,
       solar_thermal: false,
@@ -339,6 +447,15 @@ async function saveScenarios(scenarios: ScenarioConfig[], activeIndex: number): 
 }
 
 export const [EstimateProvider, useEstimate] = createContextHook(() => {
+  const initialProgramDefaultEffectiveArea = getProgramDefaultEffectiveArea({
+    mainArea: 150,
+    terraceArea: 30,
+    balconyArea: 0,
+    storageBasementArea: 0,
+    parkingBasementArea: 0,
+    habitableBasementArea: 0,
+  });
+  const initialResidentialProgramBaseline = getResidentialProgramBaseline(initialProgramDefaultEffectiveArea);
   const [scenarios, setScenarios] = useState<ScenarioConfig[]>([
     createDefaultConfig('Scenario A'),
   ]);
@@ -368,12 +485,19 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [landValue, setLandValue] = useState<number>(0);
   const [landAcquisitionCosts, setLandAcquisitionCosts] = useState<number>(0);
   const [landAcquisitionCostsMode, setLandAcquisitionCostsMode] = useState<'auto' | 'manual'>('auto');
-  const [bathrooms, setBathrooms] = useState<number>(1);
-  const [wcs, setWcs] = useState<number>(1);
-  const [bedroomCount, setBedroomCount] = useState<number>(3);
-  const [kitchenCount, setKitchenCount] = useState<number>(1);
-  const [extraWardrobeCount, setExtraWardrobeCount] = useState<number>(0);
-  const [includeGeneralFurniture, setIncludeGeneralFurniture] = useState<boolean>(false);
+  const [bathroomsMode, setBathroomsMode] = useState<ProgramCountMode>('auto');
+  const [bathroomsManualValue, setBathroomsManualValue] = useState<number | null>(null);
+  const [wcsMode, setWcsMode] = useState<ProgramCountMode>('auto');
+  const [wcsManualValue, setWcsManualValue] = useState<number | null>(null);
+  const [bedroomCountMode, setBedroomCountMode] = useState<ProgramCountMode>('auto');
+  const [bedroomCountManualValue, setBedroomCountManualValue] = useState<number | null>(null);
+  const [kitchenCount, setKitchenCountState] = useState<number>(0);
+  const [kitchenCountCustomized, setKitchenCountCustomized] = useState<boolean>(false);
+  const [customKitchenUnitCost, setCustomKitchenUnitCost] = useState<number | null>(null);
+  const [generalFurnitureBaseAmount, setGeneralFurnitureBaseAmountState] = useState<number>(
+    getSuggestedGeneralFurnitureBaseAmount(initialProgramDefaultEffectiveArea, initialResidentialProgramBaseline.bedrooms)
+  );
+  const [generalFurnitureBaseAmountCustomized, setGeneralFurnitureBaseAmountCustomized] = useState<boolean>(false);
   const [hvacSelections, setHvacSelections] = useState<Record<string, boolean>>({
     underfloor_heating: false,
     solar_thermal: false,
@@ -383,6 +507,24 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [customUtilityCost, setCustomUtilityCost] = useState<number>(4000);
   const [groundwaterConditionId, setGroundwaterConditionId] = useState<string>('normal');
   const [siteAccessibilityId, setSiteAccessibilityId] = useState<string>('normal');
+  const effectiveArea = useMemo(
+    () => mainArea + terraceArea * 0.5 + balconyArea * 0.30 + getWeightedBasementAreaForProgramDefaults(
+      storageBasementArea,
+      parkingBasementArea,
+      habitableBasementArea,
+    ),
+    [mainArea, terraceArea, balconyArea, storageBasementArea, parkingBasementArea, habitableBasementArea],
+  );
+  const residentialProgramBaseline = getResidentialProgramBaseline(effectiveArea);
+  const bathrooms = bathroomsMode === 'manual'
+    ? Math.max(0, bathroomsManualValue ?? residentialProgramBaseline.bathrooms)
+    : residentialProgramBaseline.bathrooms;
+  const wcs = wcsMode === 'manual'
+    ? Math.max(0, wcsManualValue ?? residentialProgramBaseline.wcs)
+    : residentialProgramBaseline.wcs;
+  const bedroomCount = bedroomCountMode === 'manual'
+    ? Math.max(1, bedroomCountManualValue ?? residentialProgramBaseline.bedrooms)
+    : residentialProgramBaseline.bedrooms;
 
   const snapshotCurrentState = useCallback((): Omit<ScenarioConfig, 'id' | 'name'> => {
     return {
@@ -412,12 +554,20 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
         ? getAutoEstimatedLandAcquisitionCosts(landValue)
         : landAcquisitionCosts,
       landAcquisitionCostsMode,
-      bathrooms,
-      wcs,
-      bedroomCount,
+      bathrooms: bathroomsMode === 'manual' ? bathrooms : undefined,
+      wcs: wcsMode === 'manual' ? wcs : undefined,
+      bedroomCount: bedroomCountMode === 'manual' ? bedroomCount : undefined,
+      bathroomsMode,
+      bathroomsManualValue: bathroomsMode === 'manual' ? bathrooms : null,
+      wcsMode,
+      wcsManualValue: wcsMode === 'manual' ? wcs : null,
+      bedroomCountMode,
+      bedroomCountManualValue: bedroomCountMode === 'manual' ? bedroomCount : null,
       kitchenCount,
-      extraWardrobeCount,
-      includeGeneralFurniture,
+      kitchenCountCustomized,
+      customKitchenUnitCost,
+      generalFurnitureBaseAmount,
+      generalFurnitureBaseAmountCustomized,
       hvacSelections: { ...hvacSelections },
       utilityConnectionId,
       customUtilityCost,
@@ -429,7 +579,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
-    bathrooms, wcs, bedroomCount, kitchenCount, extraWardrobeCount, includeGeneralFurniture,
+    bathrooms, wcs, bedroomCount, bathroomsMode, bathroomsManualValue, wcsMode, wcsManualValue, bedroomCountMode, bedroomCountManualValue,
+    kitchenCount, kitchenCountCustomized, customKitchenUnitCost, generalFurnitureBaseAmount, generalFurnitureBaseAmountCustomized,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId,
   ]);
@@ -458,12 +609,17 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setLandValue(normalizedConfig.landValue);
     setLandAcquisitionCosts(normalizedConfig.landAcquisitionCosts);
     setLandAcquisitionCostsMode(normalizedConfig.landAcquisitionCostsMode);
-    setBathrooms(config.bathrooms);
-    setWcs(config.wcs);
-    setBedroomCount(config.bedroomCount ?? 3);
-    setKitchenCount(config.kitchenCount ?? 1);
-    setExtraWardrobeCount(config.extraWardrobeCount ?? 0);
-    setIncludeGeneralFurniture(config.includeGeneralFurniture ?? false);
+    setBathroomsMode(normalizedConfig.bathroomsMode ?? 'auto');
+    setBathroomsManualValue(normalizedConfig.bathroomsManualValue ?? null);
+    setWcsMode(normalizedConfig.wcsMode ?? 'auto');
+    setWcsManualValue(normalizedConfig.wcsManualValue ?? null);
+    setBedroomCountMode(normalizedConfig.bedroomCountMode ?? 'auto');
+    setBedroomCountManualValue(normalizedConfig.bedroomCountManualValue ?? null);
+    setKitchenCountState(normalizedConfig.kitchenCount);
+    setKitchenCountCustomized(normalizedConfig.kitchenCountCustomized ?? false);
+    setCustomKitchenUnitCost(normalizedConfig.customKitchenUnitCost);
+    setGeneralFurnitureBaseAmountState(normalizedConfig.generalFurnitureBaseAmount);
+    setGeneralFurnitureBaseAmountCustomized(normalizedConfig.generalFurnitureBaseAmountCustomized ?? false);
     setHvacSelections({ ...config.hvacSelections });
     setUtilityConnectionId(config.utilityConnectionId);
     setCustomUtilityCost(config.customUtilityCost);
@@ -524,7 +680,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
-    bathrooms, wcs, bedroomCount, kitchenCount, extraWardrobeCount, includeGeneralFurniture,
+    bathrooms, wcs, bedroomCount, kitchenCount, customKitchenUnitCost, generalFurnitureBaseAmount,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId, persistState,
   ]);
@@ -686,11 +842,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     };
   }, [storageBasementArea, parkingBasementArea, habitableBasementArea, basementArea, weightedBasementArea]);
 
-  const effectiveArea = useMemo(
-    () => mainArea + terraceArea * 0.5 + balconyArea * 0.30 + weightedBasementArea,
-    [mainArea, terraceArea, balconyArea, weightedBasementArea],
-  );
-
   const siteCondition = useMemo(
     () => SITE_CONDITIONS.find((s) => s.id === siteConditionId) ?? SITE_CONDITIONS[0],
     [siteConditionId],
@@ -740,20 +891,52 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const accessibilityExecutionDelta = Math.max(0, siteAccessibility.sitePreparationFactor - 1);
   const kg300AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.35;
   const kg400AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.22;
-
-  const deltaBathrooms = bathrooms - INTERIOR_BASELINE.bathrooms;
-  const deltaWcs = wcs - INTERIOR_BASELINE.wcs;
+  const interiorDeltaBathrooms = bathrooms - INTERIOR_BASELINE.bathrooms;
+  const interiorDeltaWcs = wcs - INTERIOR_BASELINE.wcs;
   const qualityPackageMultiplier = quality.benchmarkFactor;
+  const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms;
+  const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms;
+  const wcDelta = wcs - residentialProgramBaseline.wcs;
+  const kg400BedroomDeltaCost = Math.round(bedroomDelta * KG400_BEDROOM_DELTA_BASE_COST * qualityPackageMultiplier);
+  const kg400BathroomDeltaCost = Math.round(bathroomDelta * KG400_BATHROOM_DELTA_BASE_COST * qualityPackageMultiplier);
+  const kg400WcDeltaCost = Math.round(wcDelta * KG400_WC_DELTA_BASE_COST * qualityPackageMultiplier);
+  const kg400BedroomVentilationAdjustment = Math.round(kg400BedroomDeltaCost * 0.45);
+  const kg400BedroomElectricalAdjustment = Math.round(kg400BedroomDeltaCost * 0.35);
+  const kg400BedroomDataAdjustment =
+    kg400BedroomDeltaCost - kg400BedroomVentilationAdjustment - kg400BedroomElectricalAdjustment;
+  const kg400BathroomPlumbingAdjustment = Math.round(kg400BathroomDeltaCost * 0.75);
+  const kg400BathroomHeatingAdjustment = Math.round(kg400BathroomDeltaCost * 0.15);
+  const kg400BathroomElectricalAdjustment =
+    kg400BathroomDeltaCost - kg400BathroomPlumbingAdjustment - kg400BathroomHeatingAdjustment;
+  const kg400WcPlumbingAdjustment = Math.round(kg400WcDeltaCost * 0.70);
+  const kg400WcElectricalAdjustment = Math.round(kg400WcDeltaCost * 0.20);
+  const kg400WcDataAdjustment =
+    kg400WcDeltaCost - kg400WcPlumbingAdjustment - kg400WcElectricalAdjustment;
+  const kg400ProgramAdjustmentsByCategory: Record<string, number> = {
+    plumbing: kg400BathroomPlumbingAdjustment + kg400WcPlumbingAdjustment,
+    heating: kg400BathroomHeatingAdjustment,
+    ventilation_cooling: kg400BedroomVentilationAdjustment,
+    electrical: kg400BedroomElectricalAdjustment + kg400BathroomElectricalAdjustment + kg400WcElectricalAdjustment,
+    data_security: kg400BedroomDataAdjustment + kg400WcDataAdjustment,
+    automation: 0,
+  };
   const includedWardrobes = bedroomCount;
-  const totalWardrobeCount = bedroomCount + extraWardrobeCount;
-  const kitchenUnitCost = Math.round(KG600_KITCHEN_PACKAGE_BASE_COST * qualityPackageMultiplier);
+  const totalWardrobeCount = bedroomCount;
+  const kitchenAreaFactor = getKitchenAreaFactor(effectiveArea);
+  const suggestedKitchenUnitCost = Math.round(
+    KG600_KITCHEN_PACKAGE_BASE_COST * kitchenAreaFactor * qualityPackageMultiplier
+  );
+  const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(
+    effectiveArea,
+    bedroomCount,
+  );
+  const kitchenUnitCost = customKitchenUnitCost ?? suggestedKitchenUnitCost;
   const wardrobeUnitCost = Math.round(KG600_WARDROBE_PACKAGE_BASE_COST * qualityPackageMultiplier);
-  const generalFurniturePackageCost = includeGeneralFurniture
-    ? Math.round(KG600_GENERAL_FURNITURE_PACKAGE_BASE_COST * qualityPackageMultiplier)
-    : 0;
-  const extraBathroomFurnishingSliceCost = Math.max(0, deltaBathrooms)
+  const generalFurnitureBedroomIncrement = Math.max(0, bedroomCount - 1) * KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT;
+  const generalFurniturePackageCost = generalFurnitureBaseAmount + generalFurnitureBedroomIncrement;
+  const extraBathroomFurnishingSliceCost = Math.max(0, bathroomDelta)
     * Math.round(KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier);
-  const extraWcFurnishingSliceCost = Math.max(0, deltaWcs)
+  const extraWcFurnishingSliceCost = Math.max(0, wcDelta)
     * Math.round(KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier);
   const kitchenPackageCost = kitchenCount * kitchenUnitCost;
   const wardrobePackageCost = totalWardrobeCount * wardrobeUnitCost;
@@ -764,6 +947,47 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     subgroup610Cost: kg600GeneralFurnishingsCost,
     subgroup620Cost: kg600SpecialFurnishingsCost,
   };
+
+  useEffect(() => {
+    if (!kitchenCountCustomized && kitchenCount !== 0) {
+      setKitchenCountState(0);
+    }
+  }, [kitchenCount, kitchenCountCustomized]);
+
+  useEffect(() => {
+    if (!generalFurnitureBaseAmountCustomized && generalFurnitureBaseAmount !== suggestedGeneralFurnitureBaseAmount) {
+      setGeneralFurnitureBaseAmountState(suggestedGeneralFurnitureBaseAmount);
+    }
+  }, [
+    generalFurnitureBaseAmount,
+    generalFurnitureBaseAmountCustomized,
+    suggestedGeneralFurnitureBaseAmount,
+  ]);
+
+  const setBathrooms = useCallback((value: number) => {
+    setBathroomsMode('manual');
+    setBathroomsManualValue(Math.max(0, value));
+  }, []);
+
+  const setWcs = useCallback((value: number) => {
+    setWcsMode('manual');
+    setWcsManualValue(Math.max(0, value));
+  }, []);
+
+  const setBedroomCount = useCallback((value: number) => {
+    setBedroomCountMode('manual');
+    setBedroomCountManualValue(Math.max(1, value));
+  }, []);
+
+  const setKitchenCount = useCallback((value: number) => {
+    setKitchenCountCustomized(true);
+    setKitchenCountState(value);
+  }, []);
+
+  const setGeneralFurnitureBaseAmount = useCallback((value: number) => {
+    setGeneralFurnitureBaseAmountCustomized(true);
+    setGeneralFurnitureBaseAmountState(value);
+  }, []);
 
   const categoryCosts = useMemo<CategoryCost[]>(() => {
     return COST_CATEGORIES.map((category) => {
@@ -777,6 +1001,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       if (category.din276 === 'KG 400') {
         categoryCost = Math.round(kg400Base * (category.percentage / 24));
         categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
+        categoryCost = Math.max(0, categoryCost + (kg400ProgramAdjustmentsByCategory[category.id] ?? 0));
       }
 
       if (category.din276 === 'KG 600') {
@@ -785,13 +1010,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
           : 0;
       } else if (category.id === 'interior') {
         const adj = 1
-          + deltaBathrooms * INTERIOR_ADJUSTMENTS.bathroom.interior
-          + deltaWcs * INTERIOR_ADJUSTMENTS.wc.interior;
-        categoryCost = Math.round(categoryCost * adj);
-      } else if (category.id === 'plumbing') {
-        const adj = 1
-          + deltaBathrooms * INTERIOR_ADJUSTMENTS.bathroom.plumbing
-          + deltaWcs * INTERIOR_ADJUSTMENTS.wc.plumbing;
+          + interiorDeltaBathrooms * INTERIOR_ADJUSTMENTS.bathroom.interior
+          + interiorDeltaWcs * INTERIOR_ADJUSTMENTS.wc.interior;
         categoryCost = Math.round(categoryCost * adj);
       }
 
@@ -806,10 +1026,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg400Base,
     benchmarkConstructionCost,
     effectiveArea,
-    deltaBathrooms,
-    deltaWcs,
+    interiorDeltaBathrooms,
+    interiorDeltaWcs,
     kg300AccessibilityMultiplier,
     kg400AccessibilityMultiplier,
+    kg400ProgramAdjustmentsByCategory,
     kg600GeneralFurnishingsCost,
     kg600SpecialFurnishingsCost,
   ]);
@@ -1205,10 +1426,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setBedroomCount,
     kitchenCount,
     setKitchenCount,
-    extraWardrobeCount,
-    setExtraWardrobeCount,
-    includeGeneralFurniture,
-    setIncludeGeneralFurniture,
+    customKitchenUnitCost,
+    setCustomKitchenUnitCost,
+    generalFurnitureBaseAmount,
+    setGeneralFurnitureBaseAmount,
     hvacSelections,
     toggleHvacOption,
     hvacCosts,
@@ -1290,9 +1511,17 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg500Total,
     kg600Cost,
     kg600SubgroupCosts,
+    residentialProgramBaseline,
+    bedroomDelta,
+    bathroomDelta,
+    wcDelta,
+    suggestedKitchenUnitCost,
+    suggestedGeneralFurnitureBaseAmount,
+    kitchenUnitCost,
     kitchenPackageCost,
     wardrobePackageCost,
     generalFurniturePackageCost,
+    generalFurnitureBedroomIncrement,
     bathroomWcFurnishingSliceCost,
     includedWardrobes,
     totalWardrobeCount,
@@ -1325,7 +1554,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landAcquisitionCostsMode, setLandAcquisitionCostsMode,
     bathrooms, setBathrooms, wcs, setWcs,
     bedroomCount, setBedroomCount, kitchenCount, setKitchenCount,
-    extraWardrobeCount, setExtraWardrobeCount, includeGeneralFurniture, setIncludeGeneralFurniture,
+    customKitchenUnitCost, setCustomKitchenUnitCost, generalFurnitureBaseAmount, setGeneralFurnitureBaseAmount,
     hvacSelections, toggleHvacOption, hvacCosts, totalHvacCost,
     customCostPerSqm, setCustomCostPerSqm, plotSize, setPlotSize,
     mainArea, setMainArea, terraceArea, setTerraceArea,
@@ -1348,8 +1577,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
     kg200Total, kg300Cost, kg300Total, kg300SubgroupCosts, kg400Cost, kg400Total, kg500Total, kg600Cost,
-    kg600SubgroupCosts, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
-    bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
+    kg600SubgroupCosts, residentialProgramBaseline, bedroomDelta, bathroomDelta, wcDelta,
+    suggestedKitchenUnitCost, suggestedGeneralFurnitureBaseAmount, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
+    generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, contingencyPercent, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
     basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
