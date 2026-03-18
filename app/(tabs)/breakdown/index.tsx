@@ -89,8 +89,6 @@ const MULTIPLY_SYMBOL = '\u00D7';
 const MIDDLE_DOT = '\u00B7';
 const EN_DASH = '\u2013';
 const SQUARE_METER_UNIT = 'm\u00B2';
-const EFKA_REFERENCE_COST = 19000;
-const EFKA_REFERENCE_AREA = 130;
 
 function CollapsibleGroup({ group }: { group: DinGroup }) {
   const [expanded, setExpanded] = useState<boolean>(true);
@@ -336,7 +334,8 @@ export default function BreakdownScreen() {
     contractorCost,
     contractorPercent,
     vatPercent,
-    efkaInsuranceManualCost,
+    vatAmount,
+    efkaInsuranceAmount,
     poolCost,
     includePool,
     poolArea,
@@ -345,6 +344,8 @@ export default function BreakdownScreen() {
     poolTypeOption,
     permitDesignFee,
     totalCost,
+    projectTotalBeforeVat,
+    totalCostInclVat,
     utilityGroup220Cost,
     utilityGroup230Cost,
     kg200Total,
@@ -376,11 +377,7 @@ export default function BreakdownScreen() {
     habitableBasementArea,
   );
   const group100Total = landValue + displayedLandAcquisitionCosts;
-  const efkaInsuranceAutoCost = Math.round(effectiveArea * (EFKA_REFERENCE_COST / EFKA_REFERENCE_AREA));
-  const efkaInsuranceAmount = efkaInsuranceManualCost ?? efkaInsuranceAutoCost;
-  const investmentTotal = totalCost + group100Total + efkaInsuranceAmount;
-  const vatAmount = Math.round(investmentTotal * (vatPercent / 100));
-  const totalInclVat = investmentTotal + vatAmount;
+  const investmentTotal = projectTotalBeforeVat;
 
   const getCategoryCost = useCallback((id: string): number => {
     return categoryCosts.find((c) => c.category.id === id)?.cost ?? 0;
@@ -883,7 +880,7 @@ export default function BreakdownScreen() {
         <View style={styles.vatDivider} />
         <View style={styles.vatRow}>
           <Text style={styles.vatTotalLabel}>Total incl. VAT</Text>
-          <Text style={styles.vatTotalValue}>{formatCurrency(totalInclVat)}</Text>
+          <Text style={styles.vatTotalValue}>{formatCurrency(totalCostInclVat)}</Text>
         </View>
         <Text style={styles.vatNote}>{`VAT calculated from the current pre-VAT project total using the selected ${formatPercent(vatPercent, vatPercent % 1 === 0 ? 0 : 1)} rate.`}</Text>
       </View>

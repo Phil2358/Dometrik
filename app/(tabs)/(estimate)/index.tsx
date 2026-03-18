@@ -122,8 +122,6 @@ const EN_DASH = '\u2013';
 const MINUS_SYMBOL = '\u2212';
 const ARROW_SYMBOL = '\u2192';
 const SQUARE_METER_UNIT = 'm\u00B2';
-const EFKA_REFERENCE_COST = 19000;
-const EFKA_REFERENCE_AREA = 130;
 
 function getFeesQualityLabel(qualityId: string): string {
   switch (qualityId) {
@@ -494,12 +492,15 @@ export default function EstimateScreen() {
     setContractorPercent,
     vatPercent,
     setVatPercent,
-    efkaInsuranceManualCost,
+    vatAmount,
     setEfkaInsuranceManualCost,
-    manualContingencyPercent,
+    efkaInsuranceAutoCost,
+    efkaInsuranceAmount,
+    efkaInsuranceManualOverrideActive,
     setManualContingencyPercent,
-    manualContingencyCost,
     setManualContingencyCost,
+    contingencyManualOverrideActive,
+    appliedContingencyPercent,
     siteConditionId,
     setSiteConditionId,
      siteCondition,
@@ -591,17 +592,6 @@ export default function EstimateScreen() {
     ? landValue * 0.06
     : landAcquisitionCosts;
   const feesQualityLabel = getFeesQualityLabel(qualityId);
-  const efkaInsuranceAutoCost = Math.round(effectiveArea * (EFKA_REFERENCE_COST / EFKA_REFERENCE_AREA));
-  const efkaInsuranceManualOverride = efkaInsuranceManualCost !== null;
-  const efkaInsuranceAmount = efkaInsuranceManualCost ?? efkaInsuranceAutoCost;
-  const estimateSubtotalBeforeVat = totalCost + landValue + displayedLandAcquisitionCosts + efkaInsuranceAmount;
-  const vatAmount = Math.round(estimateSubtotalBeforeVat * (vatPercent / 100));
-  const contingencyManualOverride = manualContingencyPercent !== null || manualContingencyCost !== null;
-  const displayedContingencyPercent = manualContingencyPercent ?? (
-    manualContingencyCost !== null && constructionSubtotal > 0
-      ? (manualContingencyCost / constructionSubtotal) * 100
-      : contingencyPercent * 100
-  );
   const appliedGeneralFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
     ? generalFurnitureBaseAmount
     : suggestedGeneralFurnitureBaseAmount;
@@ -1984,16 +1974,16 @@ export default function EstimateScreen() {
           <OverrideValueField
             value={formatNumber(efkaInsuranceAmount)}
             onChangeText={(text) => setEfkaInsuranceManualCost(parseInt(text.replace(/[^0-9]/g, ''), 10) || 0)}
-            editable={efkaInsuranceManualOverride}
+            editable={efkaInsuranceManualOverrideActive}
             unit={` ${EURO_SYMBOL}`}
-            helperText={efkaInsuranceManualOverride
+            helperText={efkaInsuranceManualOverrideActive
               ? `Automatic reference: ${formatCurrency(efkaInsuranceAutoCost)}.`
               : ''}
             onToggle={() => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
-              setEfkaInsuranceManualCost(efkaInsuranceManualOverride ? null : efkaInsuranceAutoCost);
+              setEfkaInsuranceManualCost(efkaInsuranceManualOverrideActive ? null : efkaInsuranceAutoCost);
             }}
             inputTestID="efka-insurance-cost-input"
             actionTestID="efka-insurance-manual-toggle"
@@ -2022,21 +2012,21 @@ export default function EstimateScreen() {
           <View style={styles.divider} />
           <Text style={styles.cardTitle}>Applied rate</Text>
           <OverrideValueField
-            value={formatEditableDecimal(displayedContingencyPercent, 1)}
+            value={formatEditableDecimal(appliedContingencyPercent, 1)}
             onChangeText={(text) => {
               setManualContingencyPercent(Math.max(0, parseDecimalInput(text)));
               setManualContingencyCost(null);
             }}
-            editable={contingencyManualOverride}
+            editable={contingencyManualOverrideActive}
             unit=" %"
-            helperText={contingencyManualOverride
+            helperText={contingencyManualOverrideActive
               ? `Reference rate: ${formatEditableDecimal(contingencyPercent * 100, 1)}% for ${feesQualityLabel}.`
               : ''}
             onToggle={() => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
-              if (contingencyManualOverride) {
+              if (contingencyManualOverrideActive) {
                 setManualContingencyPercent(null);
                 setManualContingencyCost(null);
               } else {

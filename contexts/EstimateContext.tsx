@@ -6,6 +6,10 @@ import { calculateKg400Costs } from '@/calculator-engine/modules/kg400Costs';
 import { calculatePoolCosts } from '@/calculator-engine/modules/poolCosts';
 import { calculateLandscapingCosts } from '@/calculator-engine/modules/landscapingCosts';
 import { calculatePermitCosts } from '@/calculator-engine/modules/permitCosts';
+import { calculateContractorMarginCosts } from '@/calculator-engine/modules/contractorMarginCosts';
+import { calculateContingencyCosts } from '@/calculator-engine/modules/contingencyCosts';
+import { calculateEfkaCosts } from '@/calculator-engine/modules/efkaCosts';
+import { calculateVatCosts } from '@/calculator-engine/modules/vatCosts';
 import {
   LOCATIONS,
   QUALITY_LEVELS,
@@ -21,7 +25,6 @@ import {
   POOL_TYPE_OPTIONS,
   DEFAULT_POOL_DEPTH,
   UTILITY_CONNECTION_OPTIONS,
-  CONTINGENCY_PERCENTAGES,
   GROUNDWATER_CONDITIONS,
   SITE_ACCESSIBILITY_OPTIONS,
   BASE_GROUP_SHARE_KG200,
@@ -65,6 +68,8 @@ export interface ScenarioConfig {
   customCostPerSqm: number | null;
   effectiveArea?: number;
   vatPercent?: number;
+  // Deprecated compatibility bridge for older saved scenarios. Live e-EFKA
+  // calculations now use efkaInsuranceManualCost plus engine defaults.
   efkaInsuranceRatePerSqm?: number;
   efkaInsuranceManualCost?: number | null;
   manualContingencyPercent?: number | null;
@@ -1533,18 +1538,45 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [kg300Total, kg400Total, kg600Cost],
   );
 
-  const contingencyPercent = CONTINGENCY_PERCENTAGES[qualityId] ?? 0.10;
-  const recommendedContingencyCost = Math.round(constructionSubtotal * contingencyPercent);
-  const appliedContingencyFactor = manualContingencyPercent !== null
-    ? manualContingencyPercent / 100
-    : (
-      manualContingencyCost !== null && constructionSubtotal > 0
-        ? manualContingencyCost / constructionSubtotal
-        : contingencyPercent
-    );
-  const contingencyCost = Math.round(constructionSubtotal * appliedContingencyFactor);
+  const contingencyResult = useMemo(() => calculateContingencyCosts({
+    constructionSubtotal,
+    qualityId,
+    manualContingencyPercent,
+    manualContingencyCost,
+  }), [
+    constructionSubtotal,
+    qualityId,
+    manualContingencyPercent,
+    manualContingencyCost,
+  ]);
 
-  const contractorCost = Math.round(constructionSubtotal * (contractorPercent / 100));
+  const contingencyPercent = contingencyResult.recommendedPercent;
+  const appliedContingencyPercent = contingencyResult.appliedPercentValue;
+  const contingencyManualOverrideActive = contingencyResult.manualOverrideActive;
+  const recommendedContingencyCost = contingencyResult.recommendedCost;
+  const contingencyCost = contingencyResult.contingencyCost;
+
+  const contractorMarginResult = useMemo(() => calculateContractorMarginCosts({
+    constructionSubtotal,
+    contractorPercent,
+  }), [
+    constructionSubtotal,
+    contractorPercent,
+  ]);
+
+  const contractorCost = contractorMarginResult.contractorCost;
+
+  const efkaCostsResult = useMemo(() => calculateEfkaCosts({
+    effectiveArea,
+    manualCost: efkaInsuranceManualCost,
+  }), [
+    effectiveArea,
+    efkaInsuranceManualCost,
+  ]);
+
+  const efkaInsuranceAutoCost = efkaCostsResult.automaticCost;
+  const efkaInsuranceAmount = efkaCostsResult.appliedCost;
+  const efkaInsuranceManualOverrideActive = efkaCostsResult.manualOverrideActive;
 
   const totalCost = kg200Total
     + constructionSubtotal
@@ -1552,6 +1584,19 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     + permitDesignFee
     + contingencyCost
     + contractorCost;
+
+  const group100Total = landValue + landAcquisitionCosts;
+  const projectTotalBeforeVat = totalCost + group100Total + efkaInsuranceAmount;
+  const vatResult = useMemo(() => calculateVatCosts({
+    baseAmount: projectTotalBeforeVat,
+    vatPercent,
+  }), [
+    projectTotalBeforeVat,
+    vatPercent,
+  ]);
+
+  const vatAmount = vatResult.vatAmount;
+  const totalCostInclVat = vatResult.totalIncludingVat;
 
   const selectQuality = useCallback((id: string) => {
     setQualityId(id);
@@ -1677,12 +1722,19 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setContractorPercent,
     vatPercent,
     setVatPercent,
+    vatAmount,
+    totalCostInclVat,
     efkaInsuranceManualCost,
     setEfkaInsuranceManualCost,
+    efkaInsuranceAutoCost,
+    efkaInsuranceAmount,
+    efkaInsuranceManualOverrideActive,
     manualContingencyPercent,
     setManualContingencyPercent,
     manualContingencyCost,
     setManualContingencyCost,
+    contingencyManualOverrideActive,
+    appliedContingencyPercent,
     location,
     quality,
     effectiveArea,
@@ -1697,6 +1749,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolCost,
     permitDesignFee,
     totalCost,
+    group100Total,
+    projectTotalBeforeVat,
     utilityConnectionId,
     setUtilityConnectionId,
     customUtilityCost,
@@ -1792,13 +1846,13 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolTypeId, setPoolTypeId, poolTypeOption,
     poolArea, poolDepth,
     contractorPercent, setContractorPercent,
-    vatPercent, setVatPercent,
-    efkaInsuranceManualCost, setEfkaInsuranceManualCost,
+    vatPercent, setVatPercent, vatAmount, totalCostInclVat,
+    efkaInsuranceManualCost, setEfkaInsuranceManualCost, efkaInsuranceAutoCost, efkaInsuranceAmount, efkaInsuranceManualOverrideActive,
     manualContingencyPercent, setManualContingencyPercent,
-    manualContingencyCost, setManualContingencyCost,
+    manualContingencyCost, setManualContingencyCost, contingencyManualOverrideActive, appliedContingencyPercent,
     location, quality, effectiveArea, baseCostPerSqm, costPerSqm,
     sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm,
-    constructionCost, categoryCosts, contractorCost, poolCost, permitDesignFee, totalCost,
+    constructionCost, categoryCosts, contractorCost, poolCost, permitDesignFee, totalCost, group100Total, projectTotalBeforeVat,
     utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, selectedUtilityConnectionCost, utilityGroupCosts,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
