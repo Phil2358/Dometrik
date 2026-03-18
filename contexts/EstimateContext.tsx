@@ -71,7 +71,9 @@ export interface ScenarioConfig {
   effectiveArea?: number;
   vatPercent?: number;
   efkaInsuranceRatePerSqm?: number;
+  efkaInsuranceManualCost?: number | null;
   manualContingencyPercent?: number | null;
+  manualContingencyCost?: number | null;
   plotSize: number;
   mainArea: number;
   terraceArea: number;
@@ -325,9 +327,15 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     : (config.landAcquisitionCosts ?? 0);
   const vatPercent = Math.max(0, config.vatPercent ?? 24);
   const efkaInsuranceRatePerSqm = Math.max(0, config.efkaInsuranceRatePerSqm ?? 0);
+  const efkaInsuranceManualCost = config.efkaInsuranceManualCost === null || config.efkaInsuranceManualCost === undefined
+    ? null
+    : Math.max(0, config.efkaInsuranceManualCost);
   const manualContingencyPercent = config.manualContingencyPercent === null || config.manualContingencyPercent === undefined
     ? null
     : Math.max(0, config.manualContingencyPercent);
+  const manualContingencyCost = config.manualContingencyCost === null || config.manualContingencyCost === undefined
+    ? null
+    : Math.max(0, config.manualContingencyCost);
   const defaultEffectiveArea = getProgramDefaultEffectiveArea({
     ...config,
     storageBasementArea,
@@ -393,7 +401,9 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     effectiveArea: config.effectiveArea ?? effectiveArea,
     vatPercent,
     efkaInsuranceRatePerSqm,
+    efkaInsuranceManualCost,
     manualContingencyPercent,
+    manualContingencyCost,
     plotSize,
     basementArea,
     basementTypeId: basementArea > 0 ? legacyBasementTypeId : 'storage',
@@ -462,7 +472,9 @@ function createDefaultConfig(name: string): ScenarioConfig {
     effectiveArea: defaultEffectiveArea,
     vatPercent: 24,
     efkaInsuranceRatePerSqm: 0,
+    efkaInsuranceManualCost: null,
     manualContingencyPercent: null,
+    manualContingencyCost: null,
     plotSize: 4000,
     mainArea: 150,
     terraceArea: 30,
@@ -584,7 +596,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [contractorPercent, setContractorPercent] = useState<number>(DEFAULT_CONTRACTOR_PERCENTAGE);
   const [vatPercent, setVatPercent] = useState<number>(24);
   const [efkaInsuranceRatePerSqm, setEfkaInsuranceRatePerSqm] = useState<number>(0);
+  const [efkaInsuranceManualCost, setEfkaInsuranceManualCost] = useState<number | null>(null);
   const [manualContingencyPercent, setManualContingencyPercent] = useState<number | null>(null);
+  const [manualContingencyCost, setManualContingencyCost] = useState<number | null>(null);
   const [siteConditionId, setSiteConditionId] = useState<string>('flat_normal');
   const [landscapingArea, setLandscapingArea] = useState<number>(0);
   const [landValue, setLandValue] = useState<number>(0);
@@ -661,7 +675,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       contractorPercent,
       vatPercent,
       efkaInsuranceRatePerSqm,
+      efkaInsuranceManualCost,
       manualContingencyPercent,
+      manualContingencyCost,
       siteConditionId,
       landscapingArea,
       landValue,
@@ -728,7 +744,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setContractorPercent(config.contractorPercent);
     setVatPercent(normalizedConfig.vatPercent ?? 24);
     setEfkaInsuranceRatePerSqm(normalizedConfig.efkaInsuranceRatePerSqm ?? 0);
+    setEfkaInsuranceManualCost(normalizedConfig.efkaInsuranceManualCost ?? null);
     setManualContingencyPercent(normalizedConfig.manualContingencyPercent ?? null);
+    setManualContingencyCost(normalizedConfig.manualContingencyCost ?? null);
     setSiteConditionId(config.siteConditionId);
     setLandscapingArea(config.landscapingArea);
     setLandValue(normalizedConfig.landValue);
@@ -822,7 +840,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     locationId, qualityId, customCostPerSqm, effectiveArea, plotSize, mainArea, terraceArea, balconyArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, vatPercent, efkaInsuranceRatePerSqm,
-    manualContingencyPercent, siteConditionId,
+    efkaInsuranceManualCost, manualContingencyPercent, manualContingencyCost, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, kitchenCount, customKitchenUnitCost, generalFurnitureBaseAmount,
     dataSecurityPackageLevel, dataSecurityManualQuote, automationPackageLevel, automationManualQuote,
@@ -1517,7 +1535,15 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   );
 
   const contingencyPercent = CONTINGENCY_PERCENTAGES[qualityId] ?? 0.10;
-  const contingencyCost = Math.round(constructionSubtotal * contingencyPercent);
+  const recommendedContingencyCost = Math.round(constructionSubtotal * contingencyPercent);
+  const appliedContingencyFactor = manualContingencyPercent !== null
+    ? manualContingencyPercent / 100
+    : (
+      manualContingencyCost !== null && constructionSubtotal > 0
+        ? manualContingencyCost / constructionSubtotal
+        : contingencyPercent
+    );
+  const contingencyCost = Math.round(constructionSubtotal * appliedContingencyFactor);
 
   const contractorCost = Math.round(constructionSubtotal * (contractorPercent / 100));
 
@@ -1654,8 +1680,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setVatPercent,
     efkaInsuranceRatePerSqm,
     setEfkaInsuranceRatePerSqm,
+    efkaInsuranceManualCost,
+    setEfkaInsuranceManualCost,
     manualContingencyPercent,
     setManualContingencyPercent,
+    manualContingencyCost,
+    setManualContingencyCost,
     location,
     quality,
     effectiveArea,
@@ -1711,6 +1741,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     totalWardrobeCount,
     constructionSubtotal,
     contingencyPercent,
+    recommendedContingencyCost,
     contingencyCost,
     mainBuildingArea,
     permitDesignEffectiveArea,
@@ -1766,7 +1797,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     contractorPercent, setContractorPercent,
     vatPercent, setVatPercent,
     efkaInsuranceRatePerSqm, setEfkaInsuranceRatePerSqm,
+    efkaInsuranceManualCost, setEfkaInsuranceManualCost,
     manualContingencyPercent, setManualContingencyPercent,
+    manualContingencyCost, setManualContingencyCost,
     location, quality, effectiveArea, baseCostPerSqm, costPerSqm,
     sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm,
     constructionCost, categoryCosts, contractorCost, poolCost, permitDesignFee, totalCost,
@@ -1777,7 +1810,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg600SubgroupCosts, residentialProgramBaseline, bedroomDelta, bathroomDelta, wcDelta,
     suggestedKitchenUnitCost, suggestedGeneralFurnitureBaseAmount, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
-    constructionSubtotal, contingencyPercent, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
+    constructionSubtotal, contingencyPercent, recommendedContingencyCost, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
     basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
     getAllScenarioConfigs, resetAllData,

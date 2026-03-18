@@ -4,10 +4,12 @@ import { formatEuro } from '@/constants/construction';
 
 interface HeaderCostDisplayProps {
   totalCost: number;
+  vatAmount?: number;
 }
 
 export default function HeaderCostDisplay({
   totalCost,
+  vatAmount,
 }: HeaderCostDisplayProps) {
   const [displayedCost, setDisplayedCost] = useState(totalCost);
   const [delta, setDelta] = useState<number | null>(null);
@@ -79,15 +81,22 @@ export default function HeaderCostDisplay({
   return (
     <View style={headerStyles.container}>
       <Text style={headerStyles.label}>DOMETRIK</Text>
-      <Animated.Text
-        style={[
-          headerStyles.cost,
-          { transform: [{ scale: costScale }] },
-        ]}
-        numberOfLines={1}
-      >
-        {formatEuro(displayedCost)}
-      </Animated.Text>
+      <View style={headerStyles.costRow}>
+        <Animated.Text
+          style={[
+            headerStyles.cost,
+            { transform: [{ scale: costScale }] },
+          ]}
+          numberOfLines={1}
+        >
+          {formatEuro(displayedCost)}
+        </Animated.Text>
+        {typeof vatAmount === 'number' && (
+          <Text style={headerStyles.vatText} numberOfLines={1}>
+            + {formatEuro(vatAmount)} VAT
+          </Text>
+        )}
+      </View>
       {delta !== null && (
         <Animated.Text
           style={[
@@ -123,6 +132,21 @@ const headerStyles = StyleSheet.create({
     letterSpacing: -0.5,
     fontVariant: ['tabular-nums'],
     marginTop: 1,
+  },
+  costRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    columnGap: 8,
+    rowGap: 2,
+  },
+  vatText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: 'rgba(255,255,255,0.72)',
+    fontVariant: ['tabular-nums'],
+    marginTop: 4,
   },
   delta: {
     fontSize: 12,

@@ -122,6 +122,8 @@ const EN_DASH = '\u2013';
 const MINUS_SYMBOL = '\u2212';
 const ARROW_SYMBOL = '\u2192';
 const SQUARE_METER_UNIT = 'm\u00B2';
+const EFKA_REFERENCE_COST = 19000;
+const EFKA_REFERENCE_AREA = 130;
 
 function getFeesQualityLabel(qualityId: string): string {
   switch (qualityId) {
@@ -144,14 +146,70 @@ function formatEditableDecimal(value: number, digits = 1): string {
 }
 
 function parseDecimalInput(text: string): number {
-  const normalizedSeparators = text.replace(/,/g, '.');
-  const cleaned = normalizedSeparators.replace(/[^0-9.]/g, '');
-  const firstDotIndex = cleaned.indexOf('.');
-  const normalized = firstDotIndex === -1
-    ? cleaned
-    : `${cleaned.slice(0, firstDotIndex + 1)}${cleaned.slice(firstDotIndex + 1).replace(/\./g, '')}`;
-  const parsed = parseFloat(normalized);
+  const normalized = text.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  const firstDotIndex = normalized.indexOf('.');
+  const safeValue = firstDotIndex === -1
+    ? normalized
+    : `${normalized.slice(0, firstDotIndex + 1)}${normalized.slice(firstDotIndex + 1).replace(/\./g, '')}`;
+  const parsed = parseFloat(safeValue);
   return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function OverrideValueField({
+  value,
+  onChangeText,
+  editable,
+  unit,
+  helperText,
+  onToggle,
+  inputTestID,
+  actionTestID,
+  keyboardType = 'numeric',
+}: {
+  value: string;
+  onChangeText: (text: string) => void;
+  editable: boolean;
+  unit: string;
+  helperText: string;
+  onToggle: () => void;
+  inputTestID?: string;
+  actionTestID?: string;
+  keyboardType?: 'default' | 'numeric' | 'decimal-pad';
+}) {
+  const displayUnit = unit.trim();
+
+  return (
+    <>
+      <View style={[styles.overrideInputRow, !editable && styles.costInputRowDisabled]}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onToggle}
+          style={[styles.inlineOverrideAction, editable && styles.inlineOverrideActionActive]}
+          testID={actionTestID}
+        >
+          <Text style={[styles.inlineOverrideActionText, editable && styles.inlineOverrideActionTextActive]}>
+            {editable ? 'Manual' : 'Automatic'}
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.overrideInputValueWrap}>
+          <TextInput
+            style={[styles.costInput, !editable && styles.costInputDisabled]}
+            value={value}
+            onChangeText={onChangeText}
+            keyboardType={keyboardType}
+            editable={editable}
+            placeholder="0"
+            placeholderTextColor={Colors.textTertiary}
+            testID={inputTestID}
+          />
+          <Text style={[styles.costInputUnit, !editable && styles.costInputUnitDisabled]}>{displayUnit}</Text>
+        </View>
+      </View>
+      {helperText ? (
+        <Text style={styles.optionSubtext}>{helperText}</Text>
+      ) : null}
+    </>
+  );
 }
 
 function SiteConditionIcon({ conditionId, size = 40, color }: { conditionId: string; size?: number; color: string }) {
@@ -436,10 +494,12 @@ export default function EstimateScreen() {
     setContractorPercent,
     vatPercent,
     setVatPercent,
-    efkaInsuranceRatePerSqm,
-    setEfkaInsuranceRatePerSqm,
+    efkaInsuranceManualCost,
+    setEfkaInsuranceManualCost,
     manualContingencyPercent,
     setManualContingencyPercent,
+    manualContingencyCost,
+    setManualContingencyCost,
     siteConditionId,
     setSiteConditionId,
      siteCondition,
@@ -501,6 +561,7 @@ export default function EstimateScreen() {
     setCustomUtilityCost,
     utilityConnectionCost,
     contingencyPercent,
+    recommendedContingencyCost,
     permitDesignEffectiveArea,
     groundwaterConditionId,
     setGroundwaterConditionId,
@@ -530,11 +591,17 @@ export default function EstimateScreen() {
     ? landValue * 0.06
     : landAcquisitionCosts;
   const feesQualityLabel = getFeesQualityLabel(qualityId);
-  const vatAmount = Math.round(totalCost * (vatPercent / 100));
-  const efkaInsuranceAmount = Math.round(effectiveArea * efkaInsuranceRatePerSqm);
-  const manualContingencyAmount = manualContingencyPercent === null
-    ? null
-    : Math.round(constructionSubtotal * (manualContingencyPercent / 100));
+  const efkaInsuranceAutoCost = Math.round(effectiveArea * (EFKA_REFERENCE_COST / EFKA_REFERENCE_AREA));
+  const efkaInsuranceManualOverride = efkaInsuranceManualCost !== null;
+  const efkaInsuranceAmount = efkaInsuranceManualCost ?? efkaInsuranceAutoCost;
+  const estimateSubtotalBeforeVat = totalCost + landValue + displayedLandAcquisitionCosts + efkaInsuranceAmount;
+  const vatAmount = Math.round(estimateSubtotalBeforeVat * (vatPercent / 100));
+  const contingencyManualOverride = manualContingencyPercent !== null || manualContingencyCost !== null;
+  const displayedContingencyPercent = manualContingencyPercent ?? (
+    manualContingencyCost !== null && constructionSubtotal > 0
+      ? (manualContingencyCost / constructionSubtotal) * 100
+      : contingencyPercent * 100
+  );
   const appliedGeneralFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
     ? generalFurnitureBaseAmount
     : suggestedGeneralFurnitureBaseAmount;
@@ -645,7 +712,7 @@ export default function EstimateScreen() {
     >
       <View style={styles.groupSection}>
         <Text style={styles.groupSectionTitle}>Building Size</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.cardCompactTop]}>
           <SliderInput
             label="Living Area (above ground)"
             subtitle="Total above-ground house area, including walls, measured to the outer face of the exterior structural walls. Basement area is entered separately."
@@ -744,7 +811,7 @@ export default function EstimateScreen() {
 
       <View style={styles.groupSection}>
         <Text style={styles.groupSectionTitle}>Interior Program & Furnishing</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.cardCompactTop]}>
           <IntegerInputRow
             label="Bedrooms"
             value={bedroomCount}
@@ -770,7 +837,7 @@ export default function EstimateScreen() {
             subtitle={wcSubtitle}
           />
         </View>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.cardCompactTop]}>
           <IntegerInputRow
             label="Kitchens"
             value={kitchenCount}
@@ -781,81 +848,56 @@ export default function EstimateScreen() {
           <View style={styles.divider} />
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Kitchen Unit Cost</Text>
-            {customKitchenUnitCost !== null && (
-              <TouchableOpacity onPress={() => setCustomKitchenUnitCost(null)}>
-                <Text style={styles.resetLink}>Reset</Text>
-              </TouchableOpacity>
-            )}
           </View>
-          <View style={styles.costInputRow}>
-            <TextInput
-              style={styles.costInput}
-              value={formatNumber(kitchenUnitCost)}
-              onChangeText={(text) => {
-                const cleaned = text.replace(/[^0-9]/g, '');
-                const num = parseInt(cleaned, 10);
-                if (isNaN(num) || num <= 0) {
-                  setCustomKitchenUnitCost(null);
-                } else {
-                  setCustomKitchenUnitCost(num);
-                }
-              }}
-              keyboardType="numeric"
-              testID="kitchen-unit-cost-input"
-            />
-            <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-          </View>
-          <Text style={styles.optionSubtext}>
-            {`Suggested ${formatCurrency(suggestedKitchenUnitCost)} ${MIDDLE_DOT} quality and area adjusted`}
-          </Text>
-          <View style={styles.divider} />
-          <View style={styles.optionRow}>
-            <View style={styles.optionInfo}>
-              <Text style={styles.optionLabel}>Manual Override</Text>
-              <Text style={styles.optionSubtext}>
-                {generalFurnitureBaseAmountCustomized
-                  ? 'Manual value is applied to the furnishing totals.'
-                  : 'Automatic recommendation is applied based on bedrooms and effective area.'}
-              </Text>
-            </View>
-            <Switch
-              value={generalFurnitureBaseAmountCustomized}
-              onValueChange={(value) => {
-                if (Platform.OS !== 'web') {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }
-                setGeneralFurnitureBaseAmountMode(value);
-              }}
-              trackColor={{ false: Colors.border, true: Colors.accent }}
-              thumbColor={Colors.white}
-              testID="general-furniture-manual-toggle"
-            />
-          </View>
+          <OverrideValueField
+            value={formatNumber(kitchenUnitCost)}
+            onChangeText={(text) => {
+              const cleaned = text.replace(/[^0-9]/g, '');
+              const num = parseInt(cleaned, 10);
+              if (isNaN(num) || num <= 0) {
+                setCustomKitchenUnitCost(null);
+              } else {
+                setCustomKitchenUnitCost(num);
+              }
+            }}
+            editable={customKitchenUnitCost !== null}
+            unit={` ${EURO_SYMBOL}`}
+            helperText={customKitchenUnitCost !== null
+              ? `Automatic reference: ${formatCurrency(suggestedKitchenUnitCost)} quality and area adjusted.`
+              : `Suggested ${formatCurrency(suggestedKitchenUnitCost)} ${MIDDLE_DOT} quality and area adjusted`}
+            onToggle={() => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setCustomKitchenUnitCost(customKitchenUnitCost !== null ? null : suggestedKitchenUnitCost);
+            }}
+            inputTestID="kitchen-unit-cost-input"
+            actionTestID="kitchen-unit-cost-toggle"
+          />
           <View style={styles.divider} />
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>General Furniture Base Amount</Text>
           </View>
-          <View style={[styles.costInputRow, !generalFurnitureBaseAmountCustomized && styles.costInputRowDisabled]}>
-            <TextInput
-              style={[styles.costInput, !generalFurnitureBaseAmountCustomized && styles.costInputDisabled]}
-              value={formatNumber(appliedGeneralFurnitureBaseAmount)}
-              onChangeText={(text) => {
-                const cleaned = text.replace(/[^0-9]/g, '');
-                setGeneralFurnitureBaseAmount(parseInt(cleaned, 10) || 0);
-              }}
-              keyboardType="numeric"
-              editable={generalFurnitureBaseAmountCustomized}
-              placeholder="0"
-              placeholderTextColor={Colors.textTertiary}
-              testID="general-furniture-base-input"
-            />
-            <Text style={[styles.costInputUnit, !generalFurnitureBaseAmountCustomized && styles.costInputUnitDisabled]}> {EURO_SYMBOL}</Text>
-          </View>
-          <Text style={styles.optionSubtext}>
-            {generalFurnitureBaseAmountCustomized
-              ? `Recommended amount: ${formatCurrency(suggestedGeneralFurnitureBaseAmount)} based on bedrooms and effective area.`
+          <OverrideValueField
+            value={formatNumber(appliedGeneralFurnitureBaseAmount)}
+            onChangeText={(text) => {
+              const cleaned = text.replace(/[^0-9]/g, '');
+              setGeneralFurnitureBaseAmount(parseInt(cleaned, 10) || 0);
+            }}
+            editable={generalFurnitureBaseAmountCustomized}
+            unit={` ${EURO_SYMBOL}`}
+            helperText={generalFurnitureBaseAmountCustomized
+              ? `Automatic reference: ${formatCurrency(suggestedGeneralFurnitureBaseAmount)} based on bedrooms and effective area.`
               : 'Automatically recommended based on bedrooms and effective area.'}
-          </Text>
+            onToggle={() => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setGeneralFurnitureBaseAmountMode(!generalFurnitureBaseAmountCustomized);
+            }}
+            inputTestID="general-furniture-base-input"
+            actionTestID="general-furniture-manual-toggle"
+          />
           <View style={styles.divider} />
           <View style={styles.effectiveRow}>
             <Text style={styles.effectiveLabel}>KG600 Furnishings Total</Text>
@@ -1870,19 +1912,18 @@ export default function EstimateScreen() {
             <Info size={15} color={Colors.textTertiary} />
           </TouchableOpacity>
         </View>
+        <Text style={styles.groupSectionSubtitle}>
+          {`Based on ${feesQualityLabel} quality ${MIDDLE_DOT} ${formatNumber(permitDesignEffectiveArea)} ${SQUARE_METER_UNIT} effective project area`}
+        </Text>
         {showPermitDesignInfo && (
           <View style={styles.tooltipCard}>
             <Text style={styles.tooltipText}>{sanitizeEstimateText(PERMIT_DESIGN_TOOLTIP)}</Text>
           </View>
         )}
-        <View style={styles.card}>
-          <View style={styles.effectiveRow}>
-            <Text style={styles.effectiveLabel}>Current estimator amount</Text>
+        <View style={[styles.card, styles.cardCompactTop]}>
+          <View style={styles.valueOnlyRow}>
             <Text style={styles.effectiveValue}>{formatCurrency(permitDesignFee)}</Text>
           </View>
-          <Text style={styles.effectiveFormula}>
-            {`Based on ${feesQualityLabel} quality ${MIDDLE_DOT} ${formatNumber(permitDesignEffectiveArea)} ${SQUARE_METER_UNIT} effective project area`}
-          </Text>
           {isLargeProject && (
             <View style={styles.permitDesignAdvisory}>
               <Info size={13} color={Colors.accent} />
@@ -1923,7 +1964,7 @@ export default function EstimateScreen() {
         <View style={styles.card}>
           <SliderInput
             label="VAT rate"
-            subtitle={`Reference only: ${formatEditableDecimal(vatPercent, 1)}% of current estimate = ${formatCurrency(vatAmount)}`}
+            subtitle={`Reference only: ${formatEditableDecimal(vatPercent, 1)}% of subtotal before VAT = ${formatCurrency(vatAmount)}`}
             value={vatPercent}
             onChangeValue={(value) => setVatPercent(Math.max(0, value))}
             min={0}
@@ -1938,76 +1979,67 @@ export default function EstimateScreen() {
           <View style={styles.divider} />
           <Text style={styles.cardTitle}>e-EFKA worker insurance</Text>
           <Text style={styles.optionSubtext}>
-            Mandatory owner-paid construction worker insurance for private building works during execution.
+            Automatic estimate for mandatory owner-paid worker insurance based on effective area.
           </Text>
-          <View style={styles.costInputRow}>
-            <TextInput
-              style={styles.costInput}
-              value={formatEditableDecimal(efkaInsuranceRatePerSqm, 2)}
-              onChangeText={(text) => setEfkaInsuranceRatePerSqm(Math.max(0, parseDecimalInput(text)))}
-              keyboardType="decimal-pad"
-              placeholder="0"
-              placeholderTextColor={Colors.textTertiary}
-              testID="efka-insurance-rate-input"
-            />
-            <Text style={styles.costInputUnit}>{` ${EURO_SYMBOL}/${SQUARE_METER_UNIT}`}</Text>
-          </View>
-          <Text style={styles.optionSubtext}>
-            {`Estimated from ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT} effective area.`}
-          </Text>
-          <View style={styles.effectiveRow}>
-            <Text style={styles.effectiveLabel}>Estimated owner-paid insurance</Text>
-            <Text style={styles.effectiveValue}>{formatCurrency(efkaInsuranceAmount)}</Text>
-          </View>
-          <Text style={styles.effectiveFormula}>
-            {`${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT} ${MULTIPLY_SYMBOL} ${formatEditableDecimal(efkaInsuranceRatePerSqm, 2)} ${EURO_SYMBOL}/${SQUARE_METER_UNIT}`}
-          </Text>
-          <Text style={styles.moduleSupportText}>
-            Saved as a separate owner-paid cost reference and not added to the current estimator total.
-          </Text>
+          <OverrideValueField
+            value={formatNumber(efkaInsuranceAmount)}
+            onChangeText={(text) => setEfkaInsuranceManualCost(parseInt(text.replace(/[^0-9]/g, ''), 10) || 0)}
+            editable={efkaInsuranceManualOverride}
+            unit={` ${EURO_SYMBOL}`}
+            helperText={efkaInsuranceManualOverride
+              ? `Automatic reference: ${formatCurrency(efkaInsuranceAutoCost)}.`
+              : ''}
+            onToggle={() => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setEfkaInsuranceManualCost(efkaInsuranceManualOverride ? null : efkaInsuranceAutoCost);
+            }}
+            inputTestID="efka-insurance-cost-input"
+            actionTestID="efka-insurance-manual-toggle"
+          />
         </View>
       </View>
 
       <View style={styles.groupSection}>
         <Text style={styles.groupSectionTitle}>Construction Contingency</Text>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Automatic default</Text>
-          <View style={styles.effectiveRow}>
-            <Text style={styles.effectiveLabel}>{`${feesQualityLabel} quality default`}</Text>
-            <Text style={styles.effectiveValue}>{`${formatNumber(Math.round(contingencyPercent * 100))}%`}</Text>
-          </View>
-          <Text style={styles.effectiveFormula}>
-            {`${formatCurrency(contingencyCost)} is currently applied automatically to KG 300${EN_DASH}600 in the estimate.`}
-          </Text>
-          <View style={styles.divider} />
-          <Text style={styles.cardTitle}>Manual planning rate</Text>
-          <View style={styles.costInputRow}>
-            <TextInput
-              style={styles.costInput}
-              value={manualContingencyPercent === null ? '' : formatEditableDecimal(manualContingencyPercent, 1)}
-              onChangeText={(text) => {
-                const trimmed = text.trim();
-                if (trimmed === '') {
-                  setManualContingencyPercent(null);
-                  return;
-                }
-                setManualContingencyPercent(Math.max(0, parseDecimalInput(trimmed)));
-              }}
-              keyboardType="decimal-pad"
-              placeholder="0"
-              placeholderTextColor={Colors.textTertiary}
-              testID="manual-contingency-percent-input"
-            />
-            <Text style={styles.costInputUnit}> %</Text>
-          </View>
           <Text style={styles.optionSubtext}>
-            Optional planning allowance saved separately. Current totals continue to use the automatic quality-based contingency.
+            Quality-based reserve for construction variability on the KG 300{EN_DASH}600 subtotal.
           </Text>
-          {manualContingencyAmount !== null && (
-            <Text style={styles.effectiveFormula}>
-              {`${formatEditableDecimal(manualContingencyPercent ?? 0, 1)}% of construction = ${formatCurrency(manualContingencyAmount)}`}
-            </Text>
-          )}
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Contingency Rate</Text>
+          </View>
+          <OverrideValueField
+            value={formatEditableDecimal(displayedContingencyPercent, 1)}
+            onChangeText={(text) => {
+              setManualContingencyPercent(Math.max(0, parseDecimalInput(text)));
+              setManualContingencyCost(null);
+            }}
+            editable={contingencyManualOverride}
+            unit=" %"
+            helperText={contingencyManualOverride
+              ? `Automatic reference: ${formatEditableDecimal(contingencyPercent * 100, 1)}% for ${feesQualityLabel}.`
+              : `Automatically based on ${feesQualityLabel} quality.`}
+            onToggle={() => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              if (contingencyManualOverride) {
+                setManualContingencyPercent(null);
+                setManualContingencyCost(null);
+              } else {
+                setManualContingencyPercent(Math.round(contingencyPercent * 1000) / 10);
+                setManualContingencyCost(null);
+              }
+            }}
+            inputTestID="manual-contingency-percent-input"
+            actionTestID="contingency-manual-toggle"
+            keyboardType="decimal-pad"
+          />
+          <Text style={styles.effectiveFormula}>
+            {`${contingencyManualOverride ? 'Derived' : 'Recommended'} contingency cost: ${formatCurrency(contingencyCost)}`}
+          </Text>
         </View>
       </View>
     </CollapsibleGroup>
@@ -2356,6 +2388,44 @@ const styles = StyleSheet.create({
   costInputRowDisabled: {
     opacity: 0.7,
   },
+  overrideInputRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    backgroundColor: Colors.inputBg,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 48,
+    gap: 10,
+  },
+  overrideInputValueWrap: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flex: 1,
+    minWidth: 120,
+  },
+  inlineOverrideAction: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+    alignSelf: 'center' as const,
+  },
+  inlineOverrideActionActive: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentBg,
+  },
+  inlineOverrideActionText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.textTertiary,
+  },
+  inlineOverrideActionTextActive: {
+    color: Colors.accent,
+  },
   euroSign: {
     fontSize: 18,
     fontWeight: '700' as const,
@@ -2456,6 +2526,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     flexWrap: 'wrap' as const,
     gap: 8,
+  },
+  valueOnlyRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'flex-end' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 4,
   },
   effectiveLabel: {
     fontSize: 14,
