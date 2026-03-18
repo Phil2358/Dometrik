@@ -2,6 +2,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Kg300SubgroupCosts } from '@/calculator-engine/modules/categoryCosts';
+import { calculateKg400Costs } from '@/calculator-engine/modules/kg400Costs';
 import {
   LOCATIONS,
   QUALITY_LEVELS,
@@ -31,7 +32,6 @@ import {
   BASE_GROUP_SHARE_KG400,
   PREMIUM_BENCHMARK_BASE_COST_PER_SQM,
   KG300_CATEGORY_IDS,
-  KG400_CATEGORY_IDS,
   KG600_CATEGORY_IDS,
   clampSitePreparationMultiplier,
   getSizeCorrectionFactor,
@@ -45,11 +45,6 @@ import {
   KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT,
   KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST,
   KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST,
-  KG400_BEDROOM_DELTA_BASE_COST,
-  KG400_BATHROOM_DELTA_BASE_COST,
-  KG400_WC_DELTA_BASE_COST,
-  KG400_DATA_SECURITY_BASELINE_ALLOWANCE,
-  KG400_AUTOMATION_PACKAGE_COSTS,
   getKitchenAreaFactor,
   getResidentialProgramBaseline,
   getSuggestedGeneralFurnitureBaseAmount,
@@ -201,18 +196,6 @@ const BASEMENT_GROUNDWATER_FACTORS_320: Record<string, number> = {
   normal: 1.00,
   moderate: 1.08,
   high: 1.18,
-};
-
-const HVAC_HEATING_QUALITY_MULTIPLIERS: Record<string, number> = {
-  standard: 1.00,
-  premium: 1.12,
-  luxury: 1.25,
-};
-
-const HVAC_PV_QUALITY_MULTIPLIERS: Record<string, number> = {
-  standard: 1.00,
-  premium: 1.07,
-  luxury: 1.12,
 };
 
 function getAdjustedKg300Share(weightedBasementRatio: number): number {
@@ -883,7 +866,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const baseCostPerSqm = customCostPerSqm ?? quality.baseCostPerSqm;
   const costPerSqm = Math.round(baseCostPerSqm * location.multiplier);
-  const benchmarkBaseCostPerSqm = customCostPerSqm ?? PREMIUM_BENCHMARK_BASE_COST_PER_SQM;
 
   const sizeCorrectionFactor = useMemo(
     () => getSizeCorrectionFactor(mainArea),
@@ -894,89 +876,52 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const finalCostPerSqm = Math.round(correctedCostPerSqm * location.multiplier);
   const premiumReferenceCorrectedCostPerSqm = Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * sizeCorrectionFactor);
   const premiumReferenceFinalCostPerSqm = Math.round(premiumReferenceCorrectedCostPerSqm * location.multiplier);
-  const benchmarkCorrectedCostPerSqm = Math.round(benchmarkBaseCostPerSqm * sizeCorrectionFactor);
-  const benchmarkFinalCostPerSqm = Math.round(benchmarkCorrectedCostPerSqm * location.multiplier);
   const noBasementEffectiveArea = mainArea + terraceArea * 0.5 + balconyArea * 0.30;
 
   const baseConstructionCost = effectiveArea * finalCostPerSqm;
-  const mainAreaConstructionCost = mainArea * finalCostPerSqm;
-  const benchmarkConstructionCost = effectiveArea * benchmarkFinalCostPerSqm;
   const noBasementConstructionCost = noBasementEffectiveArea * finalCostPerSqm;
   const premiumReferenceConstructionCost = effectiveArea * premiumReferenceFinalCostPerSqm;
   const weightedBasementRatio = weightedBasementArea / Math.max(mainArea, 1);
   const adjustedKg300Share = BASE_GROUP_SHARE_KG300;
-  const adjustedKg400Share = BASE_GROUP_SHARE_KG400;
   const kg200Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG200);
   const kg300Base = Math.round(baseConstructionCost * adjustedKg300Share);
-  const kg400Base = Math.round(baseConstructionCost * adjustedKg400Share);
   const accessibilityExecutionDelta = Math.max(0, siteAccessibility.sitePreparationFactor - 1);
   const kg300AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.35;
-  const kg400AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.22;
   const interiorDeltaBathrooms = bathrooms - INTERIOR_BASELINE.bathrooms;
   const interiorDeltaWcs = wcs - INTERIOR_BASELINE.wcs;
   const qualityPackageMultiplier = quality.benchmarkFactor;
   const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms;
   const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms;
   const wcDelta = wcs - residentialProgramBaseline.wcs;
-  const kg400BedroomDeltaCost = Math.round(bedroomDelta * KG400_BEDROOM_DELTA_BASE_COST * qualityPackageMultiplier);
-  const kg400BathroomDeltaCost = Math.round(bathroomDelta * KG400_BATHROOM_DELTA_BASE_COST * qualityPackageMultiplier);
-  const kg400WcDeltaCost = Math.round(wcDelta * KG400_WC_DELTA_BASE_COST * qualityPackageMultiplier);
-  const kg400BedroomVentilationAdjustment = Math.round(kg400BedroomDeltaCost * 0.45);
-  const kg400BedroomElectricalAdjustment = Math.round(kg400BedroomDeltaCost * 0.35);
-  const kg400BathroomPlumbingAdjustment = Math.round(kg400BathroomDeltaCost * 0.75);
-  const kg400BathroomHeatingAdjustment = Math.round(kg400BathroomDeltaCost * 0.15);
-  const kg400BathroomElectricalAdjustment =
-    kg400BathroomDeltaCost - kg400BathroomPlumbingAdjustment - kg400BathroomHeatingAdjustment;
-  const kg400WcPlumbingAdjustment = Math.round(kg400WcDeltaCost * 0.70);
-  const kg400WcElectricalAdjustment = Math.round(kg400WcDeltaCost * 0.20);
-  const kg400ProgramAdjustmentsByCategory: Record<string, number> = {
-    plumbing: kg400BathroomPlumbingAdjustment + kg400WcPlumbingAdjustment,
-    heating: kg400BathroomHeatingAdjustment,
-    ventilation_cooling: kg400BedroomVentilationAdjustment,
-    electrical: kg400BedroomElectricalAdjustment + kg400BathroomElectricalAdjustment + kg400WcElectricalAdjustment,
-    data_security: 0,
-    automation: 0,
-  };
-  // 450 = minimal baseline weak-current allowance + optional extras.
-  const dataSecurityOptionalExtrasCost = 0;
-  const dataSecurityCategoryCost =
-    KG400_DATA_SECURITY_BASELINE_ALLOWANCE + dataSecurityOptionalExtrasCost;
-  // 480 = automation only via explicit optional package / extras.
-  const automationPackageId: keyof typeof KG400_AUTOMATION_PACKAGE_COSTS = 'none';
-  const automationCategoryCost = KG400_AUTOMATION_PACKAGE_COSTS[automationPackageId];
+  // KG400 is sourced only from calculator-engine. EstimateContext consumes engine output.
+  const kg400EngineResult = useMemo(
+    () => calculateKg400Costs({
+      mainArea,
+      effectiveArea,
+      finalCostPerSqm,
+      qualityId,
+      siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
+      bedroomDelta,
+      bathroomDelta,
+      wcDelta,
+      habitableBasementArea,
+      hvacSelections,
+    }),
+    [
+      mainArea,
+      effectiveArea,
+      finalCostPerSqm,
+      qualityId,
+      siteAccessibility,
+      bedroomDelta,
+      bathroomDelta,
+      wcDelta,
+      habitableBasementArea,
+      hvacSelections,
+    ],
+  );
   const includedWardrobes = bedroomCount;
   const totalWardrobeCount = bedroomCount;
-  const heatedInternalArea = Math.max(0, mainArea + habitableBasementArea);
-  const heatingOptionQualityMultiplier = HVAC_HEATING_QUALITY_MULTIPLIERS[qualityId] ?? 1.12;
-  const photovoltaicQualityMultiplier = HVAC_PV_QUALITY_MULTIPLIERS[qualityId] ?? 1.07;
-  const underfloorHeatingBaseCost = Math.max(9000, heatedInternalArea * 85);
-  const underfloorHeatingCost = hvacSelections.underfloor_heating
-    ? Math.round(underfloorHeatingBaseCost * heatingOptionQualityMultiplier)
-    : 0;
-  const solarThermalBaseCost = effectiveArea <= 120 ? 2500 : effectiveArea <= 220 ? 3500 : 4500;
-  const solarThermalCostCap = qualityId === 'luxury' ? 6500 : qualityId === 'premium' ? 6000 : 5500;
-  const solarThermalCost = hvacSelections.solar_thermal
-    ? Math.min(
-      solarThermalCostCap,
-      Math.round(solarThermalBaseCost * heatingOptionQualityMultiplier),
-    )
-    : 0;
-  const photovoltaicBaseCost = effectiveArea <= 120 ? 6000 : effectiveArea <= 220 ? 9000 : 11500;
-  const photovoltaicCostCap = qualityId === 'luxury' ? 14000 : qualityId === 'premium' ? 13250 : 12500;
-  const photovoltaicCost = hvacSelections.photovoltaic
-    ? Math.min(
-      photovoltaicCostCap,
-      Math.round(photovoltaicBaseCost * photovoltaicQualityMultiplier),
-    )
-    : 0;
-  const hvacOptionAdjustmentsByCategory: Record<string, number> = {
-    plumbing: 0,
-    heating: underfloorHeatingCost + solarThermalCost,
-    ventilation_cooling: 0,
-    electrical: photovoltaicCost,
-    data_security: 0,
-    automation: 0,
-  };
   const kitchenAreaFactor = getKitchenAreaFactor(effectiveArea);
   const suggestedKitchenUnitCost = Math.round(
     KG600_KITCHEN_PACKAGE_BASE_COST * kitchenAreaFactor * qualityPackageMultiplier
@@ -1054,27 +999,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       }
 
       if (category.din276 === 'KG 400') {
-        if (category.id === 'plumbing') {
-          categoryCost = Math.round(mainAreaConstructionCost * adjustedKg400Share * (category.percentage / 24));
-          categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
-          categoryCost = Math.max(
-            0,
-            categoryCost + (kg400ProgramAdjustmentsByCategory[category.id] ?? 0),
-          );
-        } else if (category.id === 'data_security') {
-          categoryCost = Math.max(0, dataSecurityCategoryCost);
-        } else if (category.id === 'automation') {
-          categoryCost = Math.max(0, automationCategoryCost);
-        } else {
-          categoryCost = Math.round(kg400Base * (category.percentage / 24));
-          categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
-          categoryCost = Math.max(
-            0,
-            categoryCost
-            + (kg400ProgramAdjustmentsByCategory[category.id] ?? 0)
-            + (hvacOptionAdjustmentsByCategory[category.id] ?? 0),
-          );
-        }
+        categoryCost = kg400EngineResult.categoryCostsById[category.id] ?? 0;
       }
 
       if (category.din276 === 'KG 600') {
@@ -1096,19 +1021,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     });
   }, [
     kg300Base,
-    kg400Base,
-    adjustedKg400Share,
-    benchmarkConstructionCost,
     effectiveArea,
-    mainAreaConstructionCost,
     interiorDeltaBathrooms,
     interiorDeltaWcs,
     kg300AccessibilityMultiplier,
-    kg400AccessibilityMultiplier,
-    kg400ProgramAdjustmentsByCategory,
-    hvacOptionAdjustmentsByCategory,
-    dataSecurityCategoryCost,
-    automationCategoryCost,
+    kg400EngineResult,
     kg600GeneralFurnishingsCost,
     kg600SpecialFurnishingsCost,
   ]);
@@ -1123,10 +1040,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [categoryCosts],
   );
 
-  const kg400Cost = useMemo(
-    () => categoryCosts.filter((c) => (KG400_CATEGORY_IDS as readonly string[]).includes(c.category.id)).reduce((s, c) => s + c.cost, 0),
-    [categoryCosts],
-  );
+  const kg400Cost = kg400EngineResult.kg400Total;
 
   const kg600Cost = useMemo(
     () => categoryCosts.filter((c) => (KG600_CATEGORY_IDS as readonly string[]).includes(c.category.id)).reduce((s, c) => s + c.cost, 0),
@@ -1405,19 +1319,13 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     return HVAC_OPTIONS.map((opt) => ({
       option: opt,
       enabled: hvacSelections[opt.id] ?? false,
-      cost: opt.id === 'underfloor_heating'
-        ? underfloorHeatingCost
-        : opt.id === 'solar_thermal'
-          ? solarThermalCost
-          : opt.id === 'photovoltaic'
-            ? photovoltaicCost
-            : 0,
+      cost: kg400EngineResult.hvacOptionCosts[opt.id] ?? 0,
     }));
-  }, [hvacSelections, photovoltaicCost, solarThermalCost, underfloorHeatingCost]);
+  }, [hvacSelections, kg400EngineResult]);
 
   const totalHvacCost = useMemo(
-    () => hvacCosts.reduce((sum, h) => sum + h.cost, 0),
-    [hvacCosts],
+    () => kg400EngineResult.hvacExtrasCost,
+    [kg400EngineResult],
   );
 
   const permitDesignEffectiveArea = useMemo(
@@ -1433,7 +1341,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     return Math.round(PERMIT_DESIGN_BASELINE_FEE * areaFactor * qualityFactor);
   }, [permitDesignEffectiveArea, qualityId]);
 
-  const kg400Total = kg400Cost;
+  const kg400Total = kg400EngineResult.kg400Total;
 
   const kg500Total = poolCost + landscapingCost;
 

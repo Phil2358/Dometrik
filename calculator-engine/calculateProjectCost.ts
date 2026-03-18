@@ -4,18 +4,17 @@ import {
   calculateCategoryCosts,
   calculateKg300SubgroupCosts,
   calculateWeightedBasementArea,
-  getAdjustedKg300Share,
-  getAdjustedKg400Share
+  getAdjustedKg300Share
 } from "./modules/categoryCosts"
 import { calculateSiteCosts } from "./modules/siteCosts"
 import { calculateBasementCosts } from "./modules/basementCosts"
-import { calculateHvacExtras } from "./modules/hvacExtras"
+import { calculateKg400Costs } from "./modules/kg400Costs"
 import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
 import { calculatePermitCosts } from "./modules/permitCosts"
 import {
-  KG400_AUTOMATION_PACKAGE_COSTS,
-  KG400_DATA_SECURITY_BASELINE_ALLOWANCE
+  getResidentialProgramBaseline,
+  SITE_ACCESSIBILITY_OPTIONS,
 } from "../constants/construction"
 
 interface ProjectCalculationInput {
@@ -50,6 +49,9 @@ interface ProjectCalculationInput {
   poolQualityId: string
   poolTypeId: string
 
+  bedroomCount?: number
+  bathrooms?: number
+  wcs?: number
   hvacSelections: Record<string, boolean>
 }
 
@@ -109,21 +111,27 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
   // Category costs (DIN276 groups)
   // -----------------------------------------
 
-  const hvacCosts =
-    calculateHvacExtras({
-      effectiveArea,
+  const residentialProgramBaseline =
+    getResidentialProgramBaseline(input.mainArea)
+  const bedroomCount = input.bedroomCount ?? residentialProgramBaseline.bedrooms
+  const bathrooms = input.bathrooms ?? residentialProgramBaseline.bathrooms
+  const wcs = input.wcs ?? residentialProgramBaseline.wcs
+  const siteAccessibility =
+    SITE_ACCESSIBILITY_OPTIONS.find((option) => option.id === input.accessibilityId)
+    ?? SITE_ACCESSIBILITY_OPTIONS[0]
+  const kg400Costs =
+    calculateKg400Costs({
       mainArea: input.mainArea,
-      habitableBasementArea: input.habitableBasementArea,
+      effectiveArea,
+      finalCostPerSqm: buildingCost.correctedCostPerSqm,
       qualityId: input.qualityId,
-      hvacSelections: input.hvacSelections
+      siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
+      bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
+      bathroomDelta: bathrooms - residentialProgramBaseline.bathrooms,
+      wcDelta: wcs - residentialProgramBaseline.wcs,
+      habitableBasementArea: input.habitableBasementArea,
+      hvacSelections: input.hvacSelections,
     })
-
-  // 450 keeps only a minimal weak-current baseline unless future explicit extras are selected.
-  const dataSecurityOptionalExtrasCost = 0
-  // 480 is automation only via explicit optional packages; default is no package selected.
-  const automationPackageId: keyof typeof KG400_AUTOMATION_PACKAGE_COSTS = "none"
-  const automationPackageCost =
-    KG400_AUTOMATION_PACKAGE_COSTS[automationPackageId]
 
 
   // -----------------------------------------
@@ -133,19 +141,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
   const categoryCosts =
     calculateCategoryCosts({
       kg300Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg300Share(weightedBasementRatio)),
-      kg400Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg400Share(weightedBasementRatio)),
-      kg400BaseByCategory: {
-        plumbing: Math.round(
-          input.mainArea
-          * buildingCost.correctedCostPerSqm
-          * getAdjustedKg400Share(weightedBasementRatio)
-        )
-      },
-      kg400FixedCostByCategory: {
-        data_security: KG400_DATA_SECURITY_BASELINE_ALLOWANCE + dataSecurityOptionalExtrasCost,
-        automation: automationPackageCost
-      },
-      kg400AdjustmentsByCategory: hvacCosts.adjustmentsByCategory
+      kg400Base: 0
     })
 
 
@@ -241,7 +237,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
 
   const totalCost =
       categoryCosts.kg300Total
-    + categoryCosts.kg400Total
+    + kg400Costs.kg400Total
     + siteCosts.kg200Total
     + poolCosts.poolCost
     + landscapingCosts.landscapingCost
@@ -261,7 +257,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     permitFee: permitCosts.permitFee,
     landscapingCost: landscapingCosts.landscapingCost,
     poolCost: poolCosts.poolCost,
-    hvacExtrasCost: hvacCosts.hvacExtrasCost,
+    hvacExtrasCost: kg400Costs.hvacExtrasCost,
     siteCost: siteCosts.kg200Total
 
   }
