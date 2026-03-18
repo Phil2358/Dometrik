@@ -676,7 +676,7 @@ export default function EstimateScreen() {
             testID="slider-balcony-area"
           />
         </View>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.cardEmphasis]}>
           <Text style={styles.cardTitle}>Effective Area</Text>
           <View style={styles.finalBenchmarkRow}>
             <Text style={styles.finalBenchmarkValue}>{formatNumber(effectiveArea)}</Text>
@@ -1652,7 +1652,7 @@ export default function EstimateScreen() {
             <Text style={styles.costBasisText}>{sanitizeEstimateText(COST_BASIS_SCOPE_TEXT)}</Text>
           </View>
         )}
-        <View style={styles.card}>
+        <View style={[styles.card, styles.cardCompactTop]}>
           <View style={styles.qualityRow}>
             {qualityBenchmarkOptions.map((option, index) => {
               const isSelected = option.id === 'custom'
@@ -2142,6 +2142,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
+  },
+  cardCompactTop: {
+    marginTop: 4,
+  },
+  cardEmphasis: {
+    marginTop: 10,
   },
   cardHeader: {
     flexDirection: 'row' as const,
