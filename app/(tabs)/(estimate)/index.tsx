@@ -159,7 +159,7 @@ function OverrideValueField({
   editable,
   unit,
   helperText,
-  onToggle,
+  onSetEditable,
   inputTestID,
   actionTestID,
   keyboardType = 'numeric',
@@ -169,7 +169,7 @@ function OverrideValueField({
   editable: boolean;
   unit: string;
   helperText: string;
-  onToggle: () => void;
+  onSetEditable: (nextEditable: boolean) => void;
   inputTestID?: string;
   actionTestID?: string;
   keyboardType?: 'default' | 'numeric' | 'decimal-pad';
@@ -179,16 +179,44 @@ function OverrideValueField({
   return (
     <>
       <View style={[styles.overrideInputRow, !editable && styles.costInputRowDisabled]}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={onToggle}
-          style={[styles.inlineOverrideAction, editable && styles.inlineOverrideActionActive]}
-          testID={actionTestID}
-        >
-          <Text style={[styles.inlineOverrideActionText, editable && styles.inlineOverrideActionTextActive]}>
-            {editable ? 'Manual' : 'Automatic'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.overrideModeSegment} testID={actionTestID}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => onSetEditable(false)}
+            style={[
+              styles.overrideModeOption,
+              !editable ? styles.overrideModeOptionActive : styles.overrideModeOptionInactive,
+            ]}
+            testID={actionTestID ? `${actionTestID}-automatic` : undefined}
+          >
+            <Text
+              style={[
+                styles.overrideModeOptionText,
+                !editable ? styles.overrideModeOptionTextActive : styles.overrideModeOptionTextInactive,
+              ]}
+            >
+              Automatic
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => onSetEditable(true)}
+            style={[
+              styles.overrideModeOption,
+              editable ? styles.overrideModeOptionActive : styles.overrideModeOptionInactive,
+            ]}
+            testID={actionTestID ? `${actionTestID}-manual` : undefined}
+          >
+            <Text
+              style={[
+                styles.overrideModeOptionText,
+                editable ? styles.overrideModeOptionTextActive : styles.overrideModeOptionTextInactive,
+              ]}
+            >
+              Manual
+            </Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.overrideInputValueWrap}>
           <TextInput
             style={[styles.costInput, !editable && styles.costInputDisabled]}
@@ -853,11 +881,11 @@ export default function EstimateScreen() {
             helperText={customKitchenUnitCost !== null
               ? `Automatic reference: ${formatCurrency(suggestedKitchenUnitCost)} quality and area adjusted.`
               : `Suggested ${formatCurrency(suggestedKitchenUnitCost)} ${MIDDLE_DOT} quality and area adjusted`}
-            onToggle={() => {
+            onSetEditable={(nextEditable) => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
-              setCustomKitchenUnitCost(customKitchenUnitCost !== null ? null : suggestedKitchenUnitCost);
+              setCustomKitchenUnitCost(nextEditable ? suggestedKitchenUnitCost : null);
             }}
             inputTestID="kitchen-unit-cost-input"
             actionTestID="kitchen-unit-cost-toggle"
@@ -877,11 +905,11 @@ export default function EstimateScreen() {
             helperText={generalFurnitureBaseAmountCustomized
               ? `Automatic reference: ${formatCurrency(suggestedGeneralFurnitureBaseAmount)} based on bedrooms and effective area.`
               : 'Automatically recommended based on bedrooms and effective area.'}
-            onToggle={() => {
+            onSetEditable={(nextEditable) => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
-              setGeneralFurnitureBaseAmountMode(!generalFurnitureBaseAmountCustomized);
+              setGeneralFurnitureBaseAmountMode(nextEditable);
             }}
             inputTestID="general-furniture-base-input"
             actionTestID="general-furniture-manual-toggle"
@@ -1977,11 +2005,11 @@ export default function EstimateScreen() {
             helperText={efkaInsuranceManualOverrideActive
               ? `Automatic reference: ${formatCurrency(efkaInsuranceAutoCost)}.`
               : ''}
-            onToggle={() => {
+            onSetEditable={(nextEditable) => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
-              setEfkaInsuranceManualCost(efkaInsuranceManualOverrideActive ? null : efkaInsuranceAutoCost);
+              setEfkaInsuranceManualCost(nextEditable ? efkaInsuranceAutoCost : null);
             }}
             inputTestID="efka-insurance-cost-input"
             actionTestID="efka-insurance-manual-toggle"
@@ -2373,26 +2401,36 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 120,
   },
-  inlineOverrideAction: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  overrideModeSegment: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     borderRadius: 999,
+    backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.border,
+    overflow: 'hidden' as const,
+  },
+  overrideModeOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 32,
+    justifyContent: 'center' as const,
+  },
+  overrideModeOptionActive: {
+    backgroundColor: Colors.accent,
+  },
+  overrideModeOptionInactive: {
     backgroundColor: Colors.card,
-    alignSelf: 'center' as const,
   },
-  inlineOverrideActionActive: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accentBg,
-  },
-  inlineOverrideActionText: {
+  overrideModeOptionText: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: Colors.textTertiary,
   },
-  inlineOverrideActionTextActive: {
-    color: Colors.accent,
+  overrideModeOptionTextActive: {
+    color: Colors.white,
+  },
+  overrideModeOptionTextInactive: {
+    color: Colors.textSecondary,
   },
   euroSign: {
     fontSize: 18,

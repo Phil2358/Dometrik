@@ -76,17 +76,17 @@ export function calculateSiteCosts(input: SiteCostsInput) {
   const accessibilityCost = 0
   const group250Cost = accessibilityCost
 
-  const kg200Adjustments =
-      utilityConnectionCost
-    + group240Cost
-    + group250Cost
+  const siteExcavationCost =
+    Math.round(input.kg200Base * sitePreparationMultiplier)
 
   const kg200Total =
-    input.kg200Base +
-    kg200Adjustments
+    siteExcavationCost +
+    utilityConnectionCost +
+    group240Cost +
+    group250Cost
 
   return {
-    siteExcavationCost: Math.round(input.kg200Base * sitePreparationMultiplier),
+    siteExcavationCost,
     basementExcavationCost: Math.round(basementExcavationCost),
     utilityConnectionCost: Math.round(utilityConnectionCost),
     group220Cost: utilityGroupCosts.group220Cost,

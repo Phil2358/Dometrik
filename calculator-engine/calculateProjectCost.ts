@@ -2,12 +2,10 @@ import { calculateEffectiveArea } from "./modules/effectiveArea"
 import { calculateRawBuildingCost } from "./modules/rawBuildingCost"
 import {
   calculateCategoryCosts,
-  calculateKg300SubgroupCosts,
   calculateWeightedBasementArea,
   getAdjustedKg300Share
 } from "./modules/categoryCosts"
 import { calculateSiteCosts } from "./modules/siteCosts"
-import { calculateBasementCosts } from "./modules/basementCosts"
 import { calculateKg400Costs } from "./modules/kg400Costs"
 import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
@@ -17,15 +15,21 @@ import { calculateContractorMarginCosts } from "./modules/contractorMarginCosts"
 import { calculateContingencyCosts } from "./modules/contingencyCosts"
 import { calculateEfkaCosts } from "./modules/efkaCosts"
 import { calculateVatCosts } from "./modules/vatCosts"
+import { calculateKg100Costs } from "./modules/kg100Costs"
+import { calculateDetailedKg300SubgroupCosts } from "./modules/kg300SubgroupCosts"
+import { buildProjectCostBreakdown, type ProjectBreakdownGroup } from "./buildProjectCostBreakdown"
 import {
   type AutomationPackageLevel,
+  BASE_GROUP_SHARE_KG300,
   type DataSecurityPackageLevel,
   type Kg400PackageSelection,
+  LOCATIONS,
+  PREMIUM_BENCHMARK_BASE_COST_PER_SQM,
   getResidentialProgramBaseline,
   SITE_ACCESSIBILITY_OPTIONS,
 } from "../constants/construction"
 
-interface ProjectCalculationInput {
+export interface ProjectCalculationInput {
 
   plotSize: number
   mainArea: number
@@ -78,11 +82,59 @@ interface ProjectCalculationInput {
   manualContingencyCost?: number | null
   landValue?: number
   landAcquisitionCosts?: number
-  group100Total?: number
+  landAcquisitionCostsMode?: "auto" | "manual"
   hvacSelections: Record<string, boolean>
 }
 
-export function calculateProjectCost(input: ProjectCalculationInput) {
+export interface ProjectCostResult {
+  totalCost: number
+  coreProjectTotal: number
+  group100Total: number
+  dinSubtotal: number
+  nonDinAdditionsSubtotal: number
+  preVatTotal: number
+  vat: number
+  vatAmount: number
+  finalTotal: number
+  totalCostInclVat: number
+  vatPercent: number
+  constructionSubtotal: number
+  contractorMargin: number
+  contractorCost: number
+  contingency: number
+  contingencyCost: number
+  contingencyRecommendedPercent: number
+  appliedContingencyPercent: number
+  recommendedContingencyCost: number
+  contingencyManualOverrideActive: boolean
+  efka: number
+  efkaCost: number
+  efkaInsuranceAmount: number
+  efkaInsuranceAutoCost: number
+  efkaInsuranceManualOverrideActive: boolean
+  kg100Total: number
+  kg200Total: number
+  kg300Total: number
+  kg400Total: number
+  kg500Total: number
+  kg600Cost: number
+  rawBuildingCost: number
+  kg300SubgroupCosts: ReturnType<typeof calculateDetailedKg300SubgroupCosts>["kg300SubgroupCosts"]
+  kg600SubgroupCosts: ReturnType<typeof calculateKg600Costs>["kg600SubgroupCosts"]
+  permitFee: number
+  landscapingCost: number
+  poolCost: number
+  hvacExtrasCost: number
+  siteCost: number
+  utilityConnectionCost: number
+  utilityGroup220Cost: number
+  utilityGroup230Cost: number
+  siteExcavationCost: number
+  kg100SubgroupCosts: ReturnType<typeof calculateKg100Costs>["subgroupCosts"]
+  breakdownGroups: ProjectBreakdownGroup[]
+}
+
+export function calculateProjectCost(input: ProjectCalculationInput): ProjectCostResult {
   const totalBasementArea =
     (input.storageBasementArea ?? 0) +
     (input.parkingBasementArea ?? 0) +
@@ -152,6 +204,11 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
   const siteAccessibility =
     SITE_ACCESSIBILITY_OPTIONS.find((option) => option.id === resolvedAccessibilityId)
     ?? SITE_ACCESSIBILITY_OPTIONS[0]
+  const location =
+    LOCATIONS.find((entry: any) => entry.id === input.locationId) ??
+    LOCATIONS[0]
+  const accessibilityExecutionDelta =
+    Math.max(0, siteAccessibility.sitePreparationFactor - 1)
   const kg400Costs =
     calculateKg400Costs({
       mainArea: input.mainArea,
@@ -221,36 +278,34 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       utilityConnectionId: input.utilityConnectionId,
       customUtilityCost: input.customUtilityCost
     })
-
-
-  // -----------------------------------------
-  // Basement structural costs
-  // -----------------------------------------
-
-  const basementCosts =
-    calculateBasementCosts({
-      basementArea: input.basementArea,
-      basementTypeId: input.basementTypeId,
-      storageBasementArea: input.storageBasementArea,
-      parkingBasementArea: input.parkingBasementArea,
-      habitableBasementArea: input.habitableBasementArea,
+  const premiumReferenceCorrectedCostPerSqm =
+    Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * buildingCost.sizeCorrectionFactor)
+  const premiumReferenceFinalCostPerSqm =
+    Math.round(premiumReferenceCorrectedCostPerSqm * location.multiplier)
+  const noBasementEffectiveArea =
+    input.mainArea + input.terraceArea * 0.5 + input.balconyArea * 0.30
+  const noBasementConstructionCost =
+    noBasementEffectiveArea * buildingCost.correctedCostPerSqm
+  const premiumReferenceConstructionCost =
+    effectiveArea * premiumReferenceCorrectedCostPerSqm
+  const premiumReferenceKg300Base =
+    Math.round(premiumReferenceConstructionCost * BASE_GROUP_SHARE_KG300)
+  const noBasementKg300Base =
+    Math.round(noBasementConstructionCost * BASE_GROUP_SHARE_KG300)
+  const kg300DetailResult =
+    calculateDetailedKg300SubgroupCosts({
+      basementArea: resolvedBasementArea,
+      premiumReferenceKg300Base,
+      noBasementKg300Base,
+      premiumReferenceFinalCostPerSqm,
+      kg300Cost: categoryCosts.kg300Total,
+      siteConditionId: input.siteConditionId,
       groundwaterConditionId: input.groundwaterConditionId,
-      siteConditionIsRocky: input.siteConditionId === "rock"
-    })
-
-  const kg300Total =
-    categoryCosts.kg300Total
-
-  const kg300SubgroupCosts =
-    calculateKg300SubgroupCosts({
-      kg300Total,
-      effectiveArea,
-      storageBasementArea: input.storageBasementArea,
-      parkingBasementArea: input.parkingBasementArea,
-      habitableBasementArea: input.habitableBasementArea,
+      accessibilityExecutionDelta,
       qualityId: input.qualityId,
-      selectedFinalCostPerSqm: buildingCost.correctedCostPerSqm
     })
+  const kg300Total = kg300DetailResult.kg300Total
+  const kg300SubgroupCosts = kg300DetailResult.kg300SubgroupCosts
 
 
   // -----------------------------------------
@@ -284,11 +339,18 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
   // Total project cost
   // -----------------------------------------
 
+  const kg100Costs =
+    calculateKg100Costs({
+      landValue: input.landValue,
+      landAcquisitionCosts: input.landAcquisitionCosts,
+      landAcquisitionCostsMode: input.landAcquisitionCostsMode,
+    })
+
   const kg500Total =
     poolCosts.poolCost + landscapingCosts.landscapingCost
 
   const constructionSubtotal =
-    categoryCosts.kg300Total + kg400Costs.kg400Total + kg600Costs.kg600Cost
+    kg300Total + kg400Costs.kg400Total + kg600Costs.kg600Cost
 
   const contingencyCosts =
     calculateContingencyCosts({
@@ -318,9 +380,7 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     + contingencyCosts.contingencyCost
     + contractorMarginCosts.contractorCost
 
-  const group100Total =
-    input.group100Total ??
-    ((input.landValue ?? 0) + (input.landAcquisitionCosts ?? 0))
+  const group100Total = kg100Costs.kg100Total
 
   const dinSubtotal =
       group100Total
@@ -341,6 +401,36 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     calculateVatCosts({
       baseAmount: preVatTotal,
       vatPercent: input.vatPercent ?? 24,
+    })
+
+  const breakdownGroups =
+    buildProjectCostBreakdown({
+      investmentTotal: preVatTotal,
+      landValue: kg100Costs.landValue,
+      landAcquisitionCosts: kg100Costs.incidentalLandAcquisitionCosts,
+      landAcquisitionCostsMode: kg100Costs.landAcquisitionCostsMode,
+      kg200Total: siteCosts.kg200Total,
+      siteExcavationCost: siteCosts.siteExcavationCost,
+      utilityGroup220Cost: siteCosts.group220Cost,
+      utilityGroup230Cost: siteCosts.group230Cost,
+      kg300Total,
+      kg300SubgroupCosts,
+      kg400Total: kg400Costs.kg400Total,
+      kg400CategoryCostsById: kg400Costs.categoryCostsById,
+      kg500Total,
+      landscapingCost: landscapingCosts.landscapingCost,
+      landscapingArea: input.landscapingArea,
+      poolCost: poolCosts.poolCost,
+      includePool: input.includePool,
+      poolArea: poolCosts.poolArea,
+      poolQualityId: input.poolQualityId,
+      poolTypeId: input.poolTypeId,
+      hvacSelections: input.hvacSelections,
+      siteConditionId: input.siteConditionId,
+      kg600Cost: kg600Costs.kg600Cost,
+      kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
+      bathroomWcFurnishingSliceCost: kg600Costs.bathroomWcFurnishingSliceCost,
+      permitDesignFee: permitCosts.permitFee,
     })
 
 
@@ -375,8 +465,9 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     efkaInsuranceAmount: efkaCosts.appliedCost,
     efkaInsuranceAutoCost: efkaCosts.automaticCost,
     efkaInsuranceManualOverrideActive: efkaCosts.manualOverrideActive,
+    kg100Total: kg100Costs.kg100Total,
     kg200Total: siteCosts.kg200Total,
-    kg300Total: categoryCosts.kg300Total,
+    kg300Total,
     kg400Total: kg400Costs.kg400Total,
     kg500Total,
     kg600Cost: kg600Costs.kg600Cost,
@@ -384,11 +475,17 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     rawBuildingCost: buildingCost.rawBuildingCost,
     kg300SubgroupCosts,
     kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
+    kg100SubgroupCosts: kg100Costs.subgroupCosts,
     permitFee: permitCosts.permitFee,
     landscapingCost: landscapingCosts.landscapingCost,
     poolCost: poolCosts.poolCost,
     hvacExtrasCost: kg400Costs.hvacExtrasCost,
-    siteCost: siteCosts.kg200Total
+    siteCost: siteCosts.kg200Total,
+    utilityConnectionCost: siteCosts.utilityConnectionCost,
+    utilityGroup220Cost: siteCosts.group220Cost,
+    utilityGroup230Cost: siteCosts.group230Cost,
+    siteExcavationCost: siteCosts.siteExcavationCost,
+    breakdownGroups,
 
   }
 

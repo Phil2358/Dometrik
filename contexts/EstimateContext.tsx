@@ -2,21 +2,15 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculateProjectCost } from '@/calculator-engine/calculateProjectCost';
-import type { Kg300SubgroupCosts } from '@/calculator-engine/modules/categoryCosts';
 import { calculateKg400Costs } from '@/calculator-engine/modules/kg400Costs';
 import { calculatePoolCosts } from '@/calculator-engine/modules/poolCosts';
-import { calculateLandscapingCosts } from '@/calculator-engine/modules/landscapingCosts';
-import { calculatePermitCosts } from '@/calculator-engine/modules/permitCosts';
 import { calculateKg600Costs } from '@/calculator-engine/modules/kg600Costs';
 import {
   LOCATIONS,
   QUALITY_LEVELS,
-  COST_CATEGORIES,
   DEFAULT_CONTRACTOR_PERCENTAGE,
   SITE_CONDITIONS,
   BASEMENT_TYPES,
-  INTERIOR_ADJUSTMENTS,
-  INTERIOR_BASELINE,
   HVAC_OPTIONS,
   POOL_SIZE_OPTIONS,
   POOL_QUALITY_OPTIONS,
@@ -25,30 +19,16 @@ import {
   UTILITY_CONNECTION_OPTIONS,
   GROUNDWATER_CONDITIONS,
   SITE_ACCESSIBILITY_OPTIONS,
-  BASE_GROUP_SHARE_KG200,
-  BASE_GROUP_SHARE_KG300,
-  BASE_GROUP_SHARE_KG400,
-  PREMIUM_BENCHMARK_BASE_COST_PER_SQM,
-  KG300_CATEGORY_IDS,
-  KG600_CATEGORY_IDS,
   clampSitePreparationMultiplier,
   getSizeCorrectionFactor,
   getBasementExcavationCost,
   getPlotSizeFactor,
-  getUtilityConnectionGroupCosts,
   type AutomationPackageLevel,
   type DataSecurityPackageLevel,
   type Kg400PackageSelection,
   getResidentialProgramBaseline,
   getSuggestedGeneralFurnitureBaseAmount,
 } from '@/constants/construction';
-import type { CostCategory } from '@/constants/construction';
-
-export interface CategoryCost {
-  category: CostCategory;
-  cost: number;
-  costPerSqm: number;
-}
 
 type ProgramCountMode = 'auto' | 'manual';
 
@@ -115,75 +95,6 @@ export interface ScenarioConfig {
 }
 
 const DEFAULT_LAND_ACQUISITION_PERCENTAGE = 0.06;
-const KG300_PLUS_KG400_BASE_SHARE = BASE_GROUP_SHARE_KG300 + BASE_GROUP_SHARE_KG400;
-
-const KG300_BASE_FLEXIBLE_SHARES: Record<string, {
-  subgroup330Share: number;
-  subgroup340Share: number;
-  subgroup350Share: number;
-  subgroup360Share: number;
-  subgroup390Share: number;
-}> = {
-  standard: {
-    subgroup330Share: 0.495,
-    subgroup340Share: 0.243,
-    subgroup350Share: 0.10,
-    subgroup360Share: 0.117,
-    subgroup390Share: 0.045,
-  },
-  premium: {
-    subgroup330Share: 0.54,
-    subgroup340Share: 0.216,
-    subgroup350Share: 0.10,
-    subgroup360Share: 0.099,
-    subgroup390Share: 0.045,
-  },
-  luxury: {
-    subgroup330Share: 0.567,
-    subgroup340Share: 0.189,
-    subgroup350Share: 0.10,
-    subgroup360Share: 0.099,
-    subgroup390Share: 0.045,
-  },
-};
-
-const KG300_ACCESSIBILITY_WEIGHTS = {
-  subgroup310: 0.60,
-  subgroup320: 1.00,
-  subgroup330: 0.45,
-  subgroup340: 0.60,
-  subgroup350: 0.60,
-  subgroup360: 0.25,
-  subgroup390: 0.20,
-} as const;
-
-const BASE_SITE_CONDITION_FACTORS_310: Record<string, number> = {
-  flat_normal: 1.00,
-  flat_rocky: 1.08,
-  inclined_normal: 1.06,
-  inclined_rocky: 1.15,
-  inclined_sandy: 1.18,
-};
-
-const BASE_SITE_CONDITION_FACTORS_320: Record<string, number> = {
-  flat_normal: 1.00,
-  flat_rocky: 1.03,
-  inclined_normal: 1.02,
-  inclined_rocky: 1.08,
-  inclined_sandy: 1.10,
-};
-
-const BASE_GROUNDWATER_FACTORS_310: Record<string, number> = {
-  normal: 1.00,
-  moderate: 1.02,
-  high: 1.05,
-};
-
-const BASE_GROUNDWATER_FACTORS_320: Record<string, number> = {
-  normal: 1.00,
-  moderate: 1.06,
-  high: 1.15,
-};
 
 const BASEMENT_SITE_CONDITION_FACTORS: Record<string, number> = {
   flat_normal: 1.00,
@@ -198,20 +109,6 @@ const BASEMENT_GROUNDWATER_FACTORS: Record<string, number> = {
   moderate: 1.04,
   high: 1.10,
 };
-
-const BASEMENT_GROUNDWATER_FACTORS_320: Record<string, number> = {
-  normal: 1.00,
-  moderate: 1.08,
-  high: 1.18,
-};
-
-function getAdjustedKg300Share(weightedBasementRatio: number): number {
-  if (weightedBasementRatio <= 0) return BASE_GROUP_SHARE_KG300;
-  if (weightedBasementRatio <= 0.15) return 0.645;
-  if (weightedBasementRatio <= 0.30) return 0.65;
-  if (weightedBasementRatio <= 0.50) return 0.66;
-  return 0.675;
-}
 
 function getAutoEstimatedLandAcquisitionCosts(landValue: number): number {
   return landValue * DEFAULT_LAND_ACQUISITION_PERCENTAGE;
@@ -1024,21 +921,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const correctedCostPerSqm = Math.round(baseCostPerSqm * sizeCorrectionFactor);
   const finalCostPerSqm = Math.round(correctedCostPerSqm * location.multiplier);
-  const premiumReferenceCorrectedCostPerSqm = Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * sizeCorrectionFactor);
-  const premiumReferenceFinalCostPerSqm = Math.round(premiumReferenceCorrectedCostPerSqm * location.multiplier);
-  const noBasementEffectiveArea = mainArea + terraceArea * 0.5 + balconyArea * 0.30;
-
-  const baseConstructionCost = effectiveArea * finalCostPerSqm;
-  const noBasementConstructionCost = noBasementEffectiveArea * finalCostPerSqm;
-  const premiumReferenceConstructionCost = effectiveArea * premiumReferenceFinalCostPerSqm;
-  const weightedBasementRatio = weightedBasementArea / Math.max(mainArea, 1);
-  const adjustedKg300Share = BASE_GROUP_SHARE_KG300;
-  const kg200Base = Math.round(baseConstructionCost * BASE_GROUP_SHARE_KG200);
-  const kg300Base = Math.round(baseConstructionCost * adjustedKg300Share);
   const accessibilityExecutionDelta = Math.max(0, siteAccessibility.sitePreparationFactor - 1);
-  const kg300AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.35;
-  const interiorDeltaBathrooms = bathrooms - INTERIOR_BASELINE.bathrooms;
-  const interiorDeltaWcs = wcs - INTERIOR_BASELINE.wcs;
   const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms;
   const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms;
   const wcDelta = wcs - residentialProgramBaseline.wcs;
@@ -1109,10 +992,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kitchenPackageCost = kg600CostsResult.kitchenPackageCost;
   const wardrobePackageCost = kg600CostsResult.wardrobePackageCost;
   const bathroomWcFurnishingSliceCost = kg600CostsResult.bathroomWcFurnishingSliceCost;
-  const kg600SpecialFurnishingsCost = kg600CostsResult.kg600SpecialFurnishingsCost;
-  const kg600GeneralFurnishingsCost = kg600CostsResult.kg600GeneralFurnishingsCost;
-  const kg600SubgroupCosts = kg600CostsResult.kg600SubgroupCosts;
-
   useEffect(() => {
     if (!kitchenCountCustomized && kitchenCount !== 0) {
       setKitchenCountState(0);
@@ -1160,79 +1039,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       setGeneralFurnitureBaseAmountState(suggestedGeneralFurnitureBaseAmount);
     }
   }, [suggestedGeneralFurnitureBaseAmount]);
-
-  const categoryCosts = useMemo<CategoryCost[]>(() => {
-    return COST_CATEGORIES.map((category) => {
-      let categoryCost = 0;
-
-      if (category.din276 === 'KG 300') {
-        categoryCost = Math.round(kg300Base * (category.percentage / 67));
-        categoryCost = Math.round(categoryCost * kg300AccessibilityMultiplier);
-      }
-
-      if (category.din276 === 'KG 400') {
-        categoryCost = kg400EngineResult.categoryCostsById[category.id] ?? 0;
-      }
-
-      if (category.din276 === 'KG 600') {
-        categoryCost = category.id === 'furnishings'
-          ? kg600GeneralFurnishingsCost + kg600SpecialFurnishingsCost
-          : 0;
-      } else if (category.id === 'interior') {
-        const adj = 1
-          + interiorDeltaBathrooms * INTERIOR_ADJUSTMENTS.bathroom.interior
-          + interiorDeltaWcs * INTERIOR_ADJUSTMENTS.wc.interior;
-        categoryCost = Math.round(categoryCost * adj);
-      }
-
-      return {
-        category,
-        cost: categoryCost,
-        costPerSqm: Math.round(categoryCost / (effectiveArea || 1)),
-      };
-    });
-  }, [
-    kg300Base,
-    effectiveArea,
-    interiorDeltaBathrooms,
-    interiorDeltaWcs,
-    kg300AccessibilityMultiplier,
-    kg400EngineResult,
-    kg600GeneralFurnishingsCost,
-    kg600SpecialFurnishingsCost,
-  ]);
-
-  const constructionCost = useMemo(
-    () => categoryCosts.reduce((sum, c) => sum + c.cost, 0),
-    [categoryCosts],
-  );
-
-  const kg300Cost = useMemo(
-    () => categoryCosts.filter((c) => (KG300_CATEGORY_IDS as readonly string[]).includes(c.category.id)).reduce((s, c) => s + c.cost, 0),
-    [categoryCosts],
-  );
-
-  const kg400Cost = kg400EngineResult.kg400Total;
-
-  const kg600Cost = useMemo(
-    () => categoryCosts.filter((c) => (KG600_CATEGORY_IDS as readonly string[]).includes(c.category.id)).reduce((s, c) => s + c.cost, 0),
-    [categoryCosts],
-  );
-
-  const selectedUtilityConnectionCost = useMemo(() => {
-    if (utilityConnectionId === 'custom') return customUtilityCost;
-    const opt = UTILITY_CONNECTION_OPTIONS.find((o) => o.id === utilityConnectionId);
-    return opt?.cost ?? 4000;
-  }, [utilityConnectionId, customUtilityCost]);
-
-  const utilityGroupCosts = useMemo(
-    () => getUtilityConnectionGroupCosts(utilityConnectionId, selectedUtilityConnectionCost),
-    [utilityConnectionId, selectedUtilityConnectionCost],
-  );
-
   const plotSizeFactor = useMemo(
     () => getPlotSizeFactor(plotSize),
-    [plotSize],
+  [plotSize],
   );
 
   const basementExcavationCost = useMemo(
@@ -1265,184 +1074,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     ),
     [plotSizeFactor, siteCondition, siteAccessibility],
   );
-
-  const siteExcavationCost = useMemo(
-    () => Math.round(kg200Base * sitePreparationMultiplier),
-    [kg200Base, sitePreparationMultiplier],
-  );
-
-  const kg200Total = siteExcavationCost + selectedUtilityConnectionCost + group240Cost + group250Cost;
-
-  const premiumReferenceKg300Base = Math.round(premiumReferenceConstructionCost * BASE_GROUP_SHARE_KG300);
-  const noBasementKg300Base = Math.round(noBasementConstructionCost * BASE_GROUP_SHARE_KG300);
-  const rawBaseSubgroup310Cost = Math.round(premiumReferenceKg300Base * 0.02);
-  const rawBaseSubgroup320Cost = Math.round(premiumReferenceKg300Base * 0.12);
-  const structuralBaseSubgroup350Cost = Math.round(premiumReferenceKg300Base * 0.10);
-  const baseSiteFactor310 = BASE_SITE_CONDITION_FACTORS_310[siteConditionId] ?? 1.00;
-  const baseSiteFactor320 = BASE_SITE_CONDITION_FACTORS_320[siteConditionId] ?? 1.00;
-  const baseGroundwaterFactor310 = BASE_GROUNDWATER_FACTORS_310[groundwaterConditionId] ?? 1.00;
-  const baseGroundwaterFactor320 = BASE_GROUNDWATER_FACTORS_320[groundwaterConditionId] ?? 1.00;
-  const adjustedBaseSubgroup310Cost = Math.round(
-    rawBaseSubgroup310Cost * baseSiteFactor310 * baseGroundwaterFactor310
-  );
-  const adjustedBaseSubgroup320Cost = Math.round(
-    rawBaseSubgroup320Cost * baseSiteFactor320 * baseGroundwaterFactor320
-  );
-  const baseStructuralAdjustment =
-    (adjustedBaseSubgroup310Cost - rawBaseSubgroup310Cost) +
-    (adjustedBaseSubgroup320Cost - rawBaseSubgroup320Cost);
-  const kg300Total = kg300Cost + baseStructuralAdjustment;
-
-  const kg300SubgroupCosts = useMemo<Kg300SubgroupCosts>(() => {
-    const noBasementAdjustedKg300 = noBasementKg300Base + baseStructuralAdjustment;
-    const totalBasementDrivenKg300 = Math.max(0, kg300Total - noBasementAdjustedKg300);
-    const basementSiteConditionFactor =
-      basementArea > 0
-        ? (BASEMENT_SITE_CONDITION_FACTORS[siteConditionId] ?? 1.00)
-        : 1.00;
-    const basementGroundwaterFactor310 =
-      basementArea > 0
-        ? (BASEMENT_GROUNDWATER_FACTORS[groundwaterConditionId] ?? 1.00)
-        : 1.00;
-    const basementGroundwaterFactor320 =
-      basementArea > 0
-        ? (BASEMENT_GROUNDWATER_FACTORS_320[groundwaterConditionId] ?? 1.00)
-        : 1.00;
-    const basementFactor310 = basementArea > 0
-      ? basementSiteConditionFactor * basementGroundwaterFactor310
-      : 1.00;
-    const basementFactor320 = basementArea > 0
-      ? basementSiteConditionFactor * basementGroundwaterFactor320
-      : 1.00;
-    const rawBasementStructuralPool = basementArea > 0
-      ? Math.min(
-        totalBasementDrivenKg300,
-        Math.round(basementArea * premiumReferenceFinalCostPerSqm * 0.10)
-      )
-      : 0;
-    const rawStructuralWeight310 = 0.25 * basementFactor310;
-    const rawStructuralWeight320 = 0.75 * basementFactor320;
-    const structuralWeightTotal = rawStructuralWeight310 + rawStructuralWeight320 || 1;
-    const subgroup310BasementStructural = Math.round(
-      rawBasementStructuralPool * (rawStructuralWeight310 / structuralWeightTotal)
-    );
-    const subgroup320BasementStructural = Math.round(
-      rawBasementStructuralPool - subgroup310BasementStructural
-    );
-    const basementTypePremiumPool = Math.max(0, totalBasementDrivenKg300 - rawBasementStructuralPool);
-
-    const baseSubgroup350Cost = structuralBaseSubgroup350Cost;
-    const baseSubgroup310Cost = adjustedBaseSubgroup310Cost;
-    const baseSubgroup320Cost = adjustedBaseSubgroup320Cost;
-
-    const baseStructuralCore =
-      baseSubgroup310Cost +
-      baseSubgroup320Cost +
-      baseSubgroup350Cost;
-    const baseFlexibleKg300 = Math.max(0, noBasementAdjustedKg300 - baseStructuralCore);
-
-    const flexibleShares =
-      KG300_BASE_FLEXIBLE_SHARES[qualityId] ??
-      KG300_BASE_FLEXIBLE_SHARES.premium;
-
-    const subgroup330Cost = Math.round(baseFlexibleKg300 * flexibleShares.subgroup330Share);
-    const subgroup340Cost = Math.round(baseFlexibleKg300 * flexibleShares.subgroup340Share);
-    const subgroup350QualityCost = Math.round(baseFlexibleKg300 * flexibleShares.subgroup350Share);
-    const subgroup360Cost = Math.round(baseFlexibleKg300 * flexibleShares.subgroup360Share);
-    const subgroup390BaseCost = Math.round(
-      baseFlexibleKg300
-      - subgroup330Cost
-      - subgroup340Cost
-      - subgroup350QualityCost
-      - subgroup360Cost
-    );
-    const basementTypePremium330 = Math.round(basementTypePremiumPool * 0.15);
-    const basementTypePremium340 = Math.round(basementTypePremiumPool * 0.55);
-    const basementTypePremium350 = Math.round(
-      basementTypePremiumPool - basementTypePremium330 - basementTypePremium340
-    );
-
-    const subgroup310BaseCost = baseSubgroup310Cost + subgroup310BasementStructural;
-    const subgroup320BaseCost = baseSubgroup320Cost + subgroup320BasementStructural;
-    const subgroup330BaseCost = subgroup330Cost + basementTypePremium330;
-    const subgroup340BaseCost = subgroup340Cost + basementTypePremium340;
-    const subgroup350BaseCost = baseSubgroup350Cost + subgroup350QualityCost + basementTypePremium350;
-    const subgroup360BaseCost = subgroup360Cost;
-    const subgroup390Cost = subgroup390BaseCost;
-
-    const subgroup310AccessibilityCost = Math.round(
-      subgroup310BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup310)
-    );
-    const subgroup320AccessibilityCost = Math.round(
-      subgroup320BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup320)
-    );
-    const subgroup330AccessibilityCost = Math.round(
-      subgroup330BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup330)
-    );
-    const subgroup340AccessibilityCost = Math.round(
-      subgroup340BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup340)
-    );
-    const subgroup350AccessibilityCost = Math.round(
-      subgroup350BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup350)
-    );
-    const subgroup360AccessibilityCost = Math.round(
-      subgroup360BaseCost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup360)
-    );
-    const subgroup390AccessibilityCost = Math.round(
-      subgroup390Cost * (1 + accessibilityExecutionDelta * KG300_ACCESSIBILITY_WEIGHTS.subgroup390)
-    );
-    const rawKg300SubgroupTotal =
-      subgroup310AccessibilityCost +
-      subgroup320AccessibilityCost +
-      subgroup330AccessibilityCost +
-      subgroup340AccessibilityCost +
-      subgroup350AccessibilityCost +
-      subgroup360AccessibilityCost +
-      subgroup390AccessibilityCost;
-    const kg300NormalizationFactor = rawKg300SubgroupTotal > 0
-      ? kg300Total / rawKg300SubgroupTotal
-      : 1;
-    const normalizedSubgroup310Cost = Math.round(subgroup310AccessibilityCost * kg300NormalizationFactor);
-    const normalizedSubgroup320Cost = Math.round(subgroup320AccessibilityCost * kg300NormalizationFactor);
-    const normalizedSubgroup330Cost = Math.round(subgroup330AccessibilityCost * kg300NormalizationFactor);
-    const normalizedSubgroup340Cost = Math.round(subgroup340AccessibilityCost * kg300NormalizationFactor);
-    const normalizedSubgroup350Cost = Math.round(subgroup350AccessibilityCost * kg300NormalizationFactor);
-    const normalizedSubgroup360Cost = Math.round(subgroup360AccessibilityCost * kg300NormalizationFactor);
-    const normalizedSubgroup390Cost =
-      kg300Total
-      - normalizedSubgroup310Cost
-      - normalizedSubgroup320Cost
-      - normalizedSubgroup330Cost
-      - normalizedSubgroup340Cost
-      - normalizedSubgroup350Cost
-      - normalizedSubgroup360Cost;
-
-    return {
-      subgroup310Cost: normalizedSubgroup310Cost,
-      subgroup320Cost: normalizedSubgroup320Cost,
-      subgroup330Cost: normalizedSubgroup330Cost,
-      subgroup340Cost: normalizedSubgroup340Cost,
-      subgroup350Cost: normalizedSubgroup350Cost,
-      subgroup360Cost: normalizedSubgroup360Cost,
-      subgroup370Cost: 0,
-      subgroup380Cost: 0,
-      subgroup390Cost: normalizedSubgroup390Cost,
-    };
-  }, [
-    accessibilityExecutionDelta,
-    adjustedBaseSubgroup310Cost,
-    adjustedBaseSubgroup320Cost,
-    baseStructuralAdjustment,
-    basementArea,
-    groundwaterConditionId,
-    kg300Total,
-    noBasementKg300Base,
-    premiumReferenceKg300Base,
-    premiumReferenceFinalCostPerSqm,
-    qualityId,
-    siteConditionId,
-    structuralBaseSubgroup350Cost,
-  ]);
 
   const poolSizeOption = useMemo(
     () => POOL_SIZE_OPTIONS.find((p) => p.id === poolSizeId) ?? POOL_SIZE_OPTIONS[1],
@@ -1478,16 +1109,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     siteConditionId,
   ]);
 
-  const landscapingEngineResult = useMemo(() => calculateLandscapingCosts({
-    landscapingArea,
-    siteConditionId,
-  }), [
-    landscapingArea,
-    siteConditionId,
-  ]);
-
   const poolCost = poolEngineResult.poolCost;
-  const landscapingCost = landscapingEngineResult.landscapingCost;
 
   const toggleHvacOption = useCallback((id: string) => {
     setHvacSelections((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -1521,17 +1143,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     () => mainBuildingArea + balconyArea * 0.30 + weightedBasementArea,
     [mainBuildingArea, balconyArea, weightedBasementArea],
   );
-
-  const permitEngineResult = useMemo(() => calculatePermitCosts({
-    effectiveArea: permitDesignEffectiveArea,
-    qualityId,
-  }), [permitDesignEffectiveArea, qualityId]);
-
-  const permitDesignFee = permitEngineResult.permitFee;
-
-  const kg400Total = kg400EngineResult.kg400Total;
-
-  const kg500Total = poolCost + landscapingCost;
 
   const projectRollupResult = useMemo(() => calculateProjectCost({
     plotSize,
@@ -1577,6 +1188,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     manualContingencyCost,
     landValue,
     landAcquisitionCosts,
+    landAcquisitionCostsMode,
     hvacSelections,
   }), [
     plotSize,
@@ -1622,10 +1234,28 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     manualContingencyCost,
     landValue,
     landAcquisitionCosts,
+    landAcquisitionCostsMode,
     hvacSelections,
   ]);
 
+  const breakdownGroups = projectRollupResult.breakdownGroups;
+  const landscapingCost = projectRollupResult.landscapingCost;
+  const utilityConnectionCost = projectRollupResult.utilityConnectionCost;
+  const utilityGroup220Cost = projectRollupResult.utilityGroup220Cost;
+  const utilityGroup230Cost = projectRollupResult.utilityGroup230Cost;
+  const siteExcavationCost = projectRollupResult.siteExcavationCost;
+  const kg200Total = projectRollupResult.kg200Total;
+  const kg300Cost = projectRollupResult.kg300Total;
+  const kg300Total = projectRollupResult.kg300Total;
+  const kg300SubgroupCosts = projectRollupResult.kg300SubgroupCosts;
+  const kg400Cost = projectRollupResult.kg400Total;
+  const kg400Total = projectRollupResult.kg400Total;
+  const kg500Total = projectRollupResult.kg500Total;
+  const kg600Cost = projectRollupResult.kg600Cost;
+  const kg600SubgroupCosts = projectRollupResult.kg600SubgroupCosts;
   const constructionSubtotal = projectRollupResult.constructionSubtotal;
+  const constructionCost = constructionSubtotal;
+  const permitDesignFee = projectRollupResult.permitFee;
   const contingencyPercent = projectRollupResult.contingencyRecommendedPercent;
   const appliedContingencyPercent = projectRollupResult.appliedContingencyPercent;
   const contingencyManualOverrideActive = projectRollupResult.contingencyManualOverrideActive;
@@ -1789,7 +1419,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     correctedCostPerSqm,
     finalCostPerSqm,
     constructionCost,
-    categoryCosts,
     contractorCost,
     poolCost,
     permitDesignFee,
@@ -1800,9 +1429,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setUtilityConnectionId,
     customUtilityCost,
     setCustomUtilityCost,
-    utilityConnectionCost: selectedUtilityConnectionCost,
-    utilityGroup220Cost: utilityGroupCosts.group220Cost,
-    utilityGroup230Cost: utilityGroupCosts.group230Cost,
+    utilityConnectionCost,
+    utilityGroup220Cost,
+    utilityGroup230Cost,
     groundwaterConditionId,
     setGroundwaterConditionId,
     groundwaterCondition,
@@ -1847,6 +1476,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     siteExcavationCost,
     plotSizeFactor,
     sitePreparationMultiplier,
+    breakdownGroups,
     scenarios,
     activeScenarioIndex,
     switchScenario,
@@ -1897,8 +1527,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     manualContingencyCost, setManualContingencyCost, contingencyManualOverrideActive, appliedContingencyPercent,
     location, quality, effectiveArea, baseCostPerSqm, costPerSqm,
     sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm,
-    constructionCost, categoryCosts, contractorCost, poolCost, permitDesignFee, totalCost, group100Total, projectTotalBeforeVat,
-    utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, selectedUtilityConnectionCost, utilityGroupCosts,
+    constructionCost, contractorCost, poolCost, permitDesignFee, totalCost, group100Total, projectTotalBeforeVat,
+    utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, utilityConnectionCost, utilityGroup220Cost, utilityGroup230Cost,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
     kg200Total, kg300Cost, kg300Total, kg300SubgroupCosts, kg400Cost, kg400Total, kg500Total, kg600Cost,
@@ -1906,7 +1536,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     suggestedKitchenUnitCost, suggestedGeneralFurnitureBaseAmount, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, contingencyPercent, recommendedContingencyCost, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
-    basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier,
+    basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier, breakdownGroups,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
     getAllScenarioConfigs, resetAllData,
   ]);
