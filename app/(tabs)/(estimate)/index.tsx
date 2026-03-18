@@ -160,6 +160,7 @@ function OverrideValueField({
   unit,
   helperText,
   onSetEditable,
+  editableLabel = 'Manual',
   inputTestID,
   actionTestID,
   keyboardType = 'numeric',
@@ -170,6 +171,7 @@ function OverrideValueField({
   unit: string;
   helperText: string;
   onSetEditable: (nextEditable: boolean) => void;
+  editableLabel?: string;
   inputTestID?: string;
   actionTestID?: string;
   keyboardType?: 'default' | 'numeric' | 'decimal-pad';
@@ -213,7 +215,7 @@ function OverrideValueField({
                 editable ? styles.overrideModeOptionTextActive : styles.overrideModeOptionTextInactive,
               ]}
             >
-              Manual
+              {editableLabel}
             </Text>
           </TouchableOpacity>
         </View>
@@ -644,7 +646,7 @@ export default function EstimateScreen() {
     id: 'standard' | 'premium' | 'luxury' | 'custom';
     title: string;
     descriptor: string;
-    benchmarkLabel: string;
+    benchmarkLabel?: string;
   }> = [
     {
       id: 'standard',
@@ -667,10 +669,7 @@ export default function EstimateScreen() {
     {
       id: 'custom',
       title: 'Custom',
-      descriptor: 'Manual benchmark input',
-      benchmarkLabel: customCostPerSqm !== null
-        ? `${formatCurrency(customCostPerSqm)} /${SQUARE_METER_UNIT}`
-        : 'Enter your own benchmark',
+      descriptor: 'Enter your own benchmark',
     },
   ];
 
@@ -1818,45 +1817,60 @@ export default function EstimateScreen() {
                       <Text style={styles.qualityDescriptor}>{option.descriptor}</Text>
                     </View>
                     <View style={styles.qualityCardValue}>
-                      <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
-                        {option.benchmarkLabel}
-                      </Text>
+                      {option.id === 'custom' ? (
+                        <TouchableOpacity
+                          activeOpacity={0.85}
+                          style={[
+                            styles.qualityCustomInputShell,
+                            isSelected && styles.qualityCustomInputShellSelected,
+                          ]}
+                          onPress={() => {
+                            if (customCostPerSqm === null) {
+                              setCustomCostPerSqm(quality.baseCostPerSqm);
+                            }
+                          }}
+                          testID="quality-custom-input-shell"
+                        >
+                          <TextInput
+                            style={[
+                              styles.qualityCustomInput,
+                              !isSelected && styles.qualityCustomInputDisabled,
+                            ]}
+                            value={customCostPerSqm !== null ? formatNumber(customCostPerSqm) : ''}
+                            onFocus={() => {
+                              if (customCostPerSqm === null) {
+                                setCustomCostPerSqm(quality.baseCostPerSqm);
+                              }
+                            }}
+                            onChangeText={(text) => {
+                              const cleaned = text.replace(/[^0-9]/g, '');
+                              if (!cleaned) return;
+                              setCustomCostPerSqm(parseInt(cleaned, 10) || quality.baseCostPerSqm);
+                            }}
+                            editable={isSelected}
+                            keyboardType="numeric"
+                            placeholder="0"
+                            placeholderTextColor={Colors.textTertiary}
+                            testID="quality-custom-input"
+                          />
+                          <Text style={[
+                            styles.qualityCustomInputUnit,
+                            !isSelected && styles.qualityCustomInputUnitDisabled,
+                          ]}>
+                            {`${EURO_SYMBOL}/${SQUARE_METER_UNIT}`}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
+                          {option.benchmarkLabel}
+                        </Text>
+                      )}
                     </View>
                   </TouchableOpacity>
                 </React.Fragment>
               );
             })}
           </View>
-
-          {customCostPerSqm !== null && (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{`Custom Benchmark per ${SQUARE_METER_UNIT}`}</Text>
-                <TouchableOpacity onPress={() => setCustomCostPerSqm(null)}>
-                  <Text style={styles.resetLink}>Reset</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.costInputRow}>
-                <TextInput
-                  style={styles.costInput}
-                  value={formatNumber(baseCostPerSqm)}
-                  onChangeText={(text) => {
-                    const cleaned = text.replace(/[^0-9]/g, '');
-                    const num = parseInt(cleaned, 10);
-                    if (isNaN(num) || num <= 0) {
-                      setCustomCostPerSqm(null);
-                    } else {
-                      setCustomCostPerSqm(num);
-                    }
-                  }}
-                  keyboardType="numeric"
-                  testID="cost-per-sqm-input"
-                />
-                <Text style={styles.costInputUnit}>{` ${EURO_SYMBOL} /${SQUARE_METER_UNIT}`}</Text>
-              </View>
-            </>
-          )}
         </View>
 
         <View style={styles.costBasisNote}>
@@ -2304,6 +2318,45 @@ const styles = StyleSheet.create({
   qualityCardValue: {
     alignItems: 'flex-end' as const,
     flexShrink: 1,
+    minWidth: 120,
+  },
+  qualityCustomInputShell: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'flex-end' as const,
+    minHeight: 40,
+    minWidth: 140,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.inputBg,
+    paddingHorizontal: 10,
+    gap: 4,
+  },
+  qualityCustomInputShellSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.card,
+  },
+  qualityCustomInput: {
+    minWidth: 64,
+    flexShrink: 1,
+    textAlign: 'right' as const,
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  qualityCustomInputDisabled: {
+    color: Colors.textTertiary,
+  },
+  qualityCustomInputUnit: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+  },
+  qualityCustomInputUnitDisabled: {
+    color: Colors.textTertiary,
   },
   qualityName: {
     fontSize: 14,
