@@ -106,11 +106,11 @@ export interface ResidentialProgramBaseline {
   wcs: number;
 }
 
-export function getResidentialProgramBaseline(effectiveArea: number): ResidentialProgramBaseline {
-  const bedrooms = effectiveArea < 50
+export function getResidentialProgramBaseline(livingArea: number): ResidentialProgramBaseline {
+  const bedrooms = livingArea < 50
     ? 1
-    : 2 + Math.floor((effectiveArea - 50) / 50);
-  const bathrooms = effectiveArea < 100 ? 1 : 2;
+    : 2 + Math.floor((livingArea - 50) / 50);
+  const bathrooms = livingArea < 100 ? 1 : 2;
   const wcs = 1;
 
   return {

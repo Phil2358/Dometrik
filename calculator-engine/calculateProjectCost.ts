@@ -123,6 +123,13 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
     calculateCategoryCosts({
       kg300Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg300Share(weightedBasementRatio)),
       kg400Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg400Share(weightedBasementRatio)),
+      kg400BaseByCategory: {
+        plumbing: Math.round(
+          input.mainArea
+          * buildingCost.correctedCostPerSqm
+          * getAdjustedKg400Share(weightedBasementRatio)
+        )
+      },
       kg400AdjustmentsByCategory: hvacCosts.adjustmentsByCategory
     })
 

@@ -12,6 +12,7 @@ interface CategoryCostsInput {
   kg300Base: number
   kg400Base: number
   kg400AdjustmentsByCategory?: Partial<Record<string, number>>
+  kg400BaseByCategory?: Partial<Record<string, number>>
 }
 
 interface Kg300SubgroupShareSet {
@@ -168,7 +169,7 @@ export function calculateCategoryCosts(input: CategoryCostsInput) {
       category.din276 === 'KG 300'
         ? input.kg300Base
         : category.din276 === 'KG 400'
-          ? input.kg400Base
+          ? (input.kg400BaseByCategory?.[category.id] ?? input.kg400Base)
           : 0
 
     const groupPercentage =

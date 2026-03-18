@@ -250,6 +250,10 @@ function getProgramDefaultEffectiveArea(config: Partial<ScenarioConfig>): number
     );
 }
 
+function getProgramBaselineLivingArea(config: Partial<ScenarioConfig>): number {
+  return config.mainArea ?? 0;
+}
+
 function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
   const plotSize = config.plotSize ?? 4000;
@@ -279,7 +283,9 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     parkingBasementArea,
     habitableBasementArea,
   });
-  const defaultProgramBaseline = getResidentialProgramBaseline(defaultEffectiveArea);
+  const defaultProgramBaseline = getResidentialProgramBaseline(
+    getProgramBaselineLivingArea(config)
+  );
   const bathroomsMode = config.bathroomsMode ?? 'auto';
   const bathroomsManualValue = bathroomsMode === 'manual'
     ? Math.max(0, config.bathroomsManualValue ?? config.bathrooms ?? defaultProgramBaseline.bathrooms)
@@ -372,7 +378,7 @@ function createDefaultConfig(name: string): ScenarioConfig {
     parkingBasementArea: 0,
     habitableBasementArea: 0,
   });
-  const defaultProgramBaseline = getResidentialProgramBaseline(defaultEffectiveArea);
+  const defaultProgramBaseline = getResidentialProgramBaseline(150);
   return {
     id: generateId(),
     name,
@@ -467,7 +473,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     parkingBasementArea: 0,
     habitableBasementArea: 0,
   });
-  const initialResidentialProgramBaseline = getResidentialProgramBaseline(initialProgramDefaultEffectiveArea);
+  const initialResidentialProgramBaseline = getResidentialProgramBaseline(150);
   const [scenarios, setScenarios] = useState<ScenarioConfig[]>([
     createDefaultConfig('Scenario A'),
   ]);
@@ -527,7 +533,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     ),
     [mainArea, terraceArea, balconyArea, storageBasementArea, parkingBasementArea, habitableBasementArea],
   );
-  const residentialProgramBaseline = getResidentialProgramBaseline(effectiveArea);
+  const residentialProgramBaseline = getResidentialProgramBaseline(mainArea);
   const bathrooms = bathroomsMode === 'manual'
     ? Math.max(0, bathroomsManualValue ?? residentialProgramBaseline.bathrooms)
     : residentialProgramBaseline.bathrooms;
@@ -891,6 +897,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const noBasementEffectiveArea = mainArea + terraceArea * 0.5 + balconyArea * 0.30;
 
   const baseConstructionCost = effectiveArea * finalCostPerSqm;
+  const mainAreaConstructionCost = mainArea * finalCostPerSqm;
   const benchmarkConstructionCost = effectiveArea * benchmarkFinalCostPerSqm;
   const noBasementConstructionCost = noBasementEffectiveArea * finalCostPerSqm;
   const premiumReferenceConstructionCost = effectiveArea * premiumReferenceFinalCostPerSqm;
@@ -1042,7 +1049,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       }
 
       if (category.din276 === 'KG 400') {
-        categoryCost = Math.round(kg400Base * (category.percentage / 24));
+        categoryCost = category.id === 'plumbing'
+          ? Math.round(mainAreaConstructionCost * adjustedKg400Share * (category.percentage / 24))
+          : Math.round(kg400Base * (category.percentage / 24));
         categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
         categoryCost = Math.max(
           0,
@@ -1072,8 +1081,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   }, [
     kg300Base,
     kg400Base,
+    adjustedKg400Share,
     benchmarkConstructionCost,
     effectiveArea,
+    mainAreaConstructionCost,
     interiorDeltaBathrooms,
     interiorDeltaWcs,
     kg300AccessibilityMultiplier,
