@@ -201,6 +201,18 @@ const BASEMENT_GROUNDWATER_FACTORS_320: Record<string, number> = {
   high: 1.18,
 };
 
+const HVAC_HEATING_QUALITY_MULTIPLIERS: Record<string, number> = {
+  standard: 1.00,
+  premium: 1.12,
+  luxury: 1.25,
+};
+
+const HVAC_PV_QUALITY_MULTIPLIERS: Record<string, number> = {
+  standard: 1.00,
+  premium: 1.07,
+  luxury: 1.12,
+};
+
 function getAdjustedKg300Share(weightedBasementRatio: number): number {
   if (weightedBasementRatio <= 0) return BASE_GROUP_SHARE_KG300;
   if (weightedBasementRatio <= 0.15) return 0.645;
@@ -922,6 +934,37 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   };
   const includedWardrobes = bedroomCount;
   const totalWardrobeCount = bedroomCount;
+  const heatedInternalArea = Math.max(0, mainArea + habitableBasementArea);
+  const heatingOptionQualityMultiplier = HVAC_HEATING_QUALITY_MULTIPLIERS[qualityId] ?? 1.12;
+  const photovoltaicQualityMultiplier = HVAC_PV_QUALITY_MULTIPLIERS[qualityId] ?? 1.07;
+  const underfloorHeatingBaseCost = Math.max(9000, heatedInternalArea * 85);
+  const underfloorHeatingCost = hvacSelections.underfloor_heating
+    ? Math.round(underfloorHeatingBaseCost * heatingOptionQualityMultiplier)
+    : 0;
+  const solarThermalBaseCost = effectiveArea <= 120 ? 2500 : effectiveArea <= 220 ? 3500 : 4500;
+  const solarThermalCostCap = qualityId === 'luxury' ? 6500 : qualityId === 'premium' ? 6000 : 5500;
+  const solarThermalCost = hvacSelections.solar_thermal
+    ? Math.min(
+      solarThermalCostCap,
+      Math.round(solarThermalBaseCost * heatingOptionQualityMultiplier),
+    )
+    : 0;
+  const photovoltaicBaseCost = effectiveArea <= 120 ? 6000 : effectiveArea <= 220 ? 9000 : 11500;
+  const photovoltaicCostCap = qualityId === 'luxury' ? 14000 : qualityId === 'premium' ? 13250 : 12500;
+  const photovoltaicCost = hvacSelections.photovoltaic
+    ? Math.min(
+      photovoltaicCostCap,
+      Math.round(photovoltaicBaseCost * photovoltaicQualityMultiplier),
+    )
+    : 0;
+  const hvacOptionAdjustmentsByCategory: Record<string, number> = {
+    plumbing: 0,
+    heating: underfloorHeatingCost + solarThermalCost,
+    ventilation_cooling: 0,
+    electrical: photovoltaicCost,
+    data_security: 0,
+    automation: 0,
+  };
   const kitchenAreaFactor = getKitchenAreaFactor(effectiveArea);
   const suggestedKitchenUnitCost = Math.round(
     KG600_KITCHEN_PACKAGE_BASE_COST * kitchenAreaFactor * qualityPackageMultiplier
@@ -1001,7 +1044,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       if (category.din276 === 'KG 400') {
         categoryCost = Math.round(kg400Base * (category.percentage / 24));
         categoryCost = Math.round(categoryCost * kg400AccessibilityMultiplier);
-        categoryCost = Math.max(0, categoryCost + (kg400ProgramAdjustmentsByCategory[category.id] ?? 0));
+        categoryCost = Math.max(
+          0,
+          categoryCost
+          + (kg400ProgramAdjustmentsByCategory[category.id] ?? 0)
+          + (hvacOptionAdjustmentsByCategory[category.id] ?? 0),
+        );
       }
 
       if (category.din276 === 'KG 600') {
@@ -1031,6 +1079,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg300AccessibilityMultiplier,
     kg400AccessibilityMultiplier,
     kg400ProgramAdjustmentsByCategory,
+    hvacOptionAdjustmentsByCategory,
     kg600GeneralFurnishingsCost,
     kg600SpecialFurnishingsCost,
   ]);
@@ -1327,9 +1376,15 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     return HVAC_OPTIONS.map((opt) => ({
       option: opt,
       enabled: hvacSelections[opt.id] ?? false,
-      cost: (hvacSelections[opt.id] ?? false) ? Math.round(mainBuildingArea * opt.costPerSqm) : 0,
+      cost: opt.id === 'underfloor_heating'
+        ? underfloorHeatingCost
+        : opt.id === 'solar_thermal'
+          ? solarThermalCost
+          : opt.id === 'photovoltaic'
+            ? photovoltaicCost
+            : 0,
     }));
-  }, [hvacSelections, mainBuildingArea]);
+  }, [hvacSelections, photovoltaicCost, solarThermalCost, underfloorHeatingCost]);
 
   const totalHvacCost = useMemo(
     () => hvacCosts.reduce((sum, h) => sum + h.cost, 0),
@@ -1349,7 +1404,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     return Math.round(PERMIT_DESIGN_BASELINE_FEE * areaFactor * qualityFactor);
   }, [permitDesignEffectiveArea, qualityId]);
 
-  const kg400Total = kg400Cost + totalHvacCost;
+  const kg400Total = kg400Cost;
 
   const kg500Total = poolCost + landscapingCost;
 
