@@ -45,6 +45,7 @@ import {
   KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT,
   KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST,
   KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST,
+  type Kg400PackageSelection,
   getKitchenAreaFactor,
   getResidentialProgramBaseline,
   getSuggestedGeneralFurnitureBaseAmount,
@@ -100,6 +101,12 @@ export interface ScenarioConfig {
   customKitchenUnitCost: number | null;
   generalFurnitureBaseAmount: number;
   generalFurnitureBaseAmountCustomized?: boolean;
+  dataSecurityPackageSelection?: Kg400PackageSelection;
+  dataSecurityManualQuote?: number | null;
+  automationPackageSelection?: Kg400PackageSelection;
+  automationManualQuote?: number | null;
+  dataSecurityPackageLevel?: 'none' | 'basic' | 'advanced';
+  automationPackageLevel?: 'none' | 'basic' | 'advanced';
   hvacSelections: Record<string, boolean>;
   utilityConnectionId: string;
   customUtilityCost: number;
@@ -308,6 +315,12 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const generalFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
     ? (config.generalFurnitureBaseAmount ?? suggestedGeneralFurnitureBaseAmount)
     : suggestedGeneralFurnitureBaseAmount;
+  const dataSecurityPackageSelection = config.dataSecurityPackageSelection
+    ?? (config.dataSecurityPackageLevel && config.dataSecurityPackageLevel !== 'none' ? 'yes' : 'no');
+  const dataSecurityManualQuote = config.dataSecurityManualQuote ?? null;
+  const automationPackageSelection = config.automationPackageSelection
+    ?? (config.automationPackageLevel && config.automationPackageLevel !== 'none' ? 'yes' : 'no');
+  const automationManualQuote = config.automationManualQuote ?? null;
 
   return {
     ...config,
@@ -334,6 +347,10 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
     customKitchenUnitCost,
     generalFurnitureBaseAmount,
     generalFurnitureBaseAmountCustomized,
+    dataSecurityPackageSelection,
+    dataSecurityManualQuote,
+    automationPackageSelection,
+    automationManualQuote,
   };
 }
 
@@ -405,6 +422,10 @@ function createDefaultConfig(name: string): ScenarioConfig {
     customKitchenUnitCost: null,
     generalFurnitureBaseAmount: getSuggestedGeneralFurnitureBaseAmount(defaultEffectiveArea, defaultProgramBaseline.bedrooms),
     generalFurnitureBaseAmountCustomized: false,
+    dataSecurityPackageSelection: 'no',
+    dataSecurityManualQuote: null,
+    automationPackageSelection: 'no',
+    automationManualQuote: null,
     hvacSelections: {
       underfloor_heating: false,
       solar_thermal: false,
@@ -501,6 +522,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     getSuggestedGeneralFurnitureBaseAmount(initialProgramDefaultEffectiveArea, initialResidentialProgramBaseline.bedrooms)
   );
   const [generalFurnitureBaseAmountCustomized, setGeneralFurnitureBaseAmountCustomized] = useState<boolean>(false);
+  const [dataSecurityPackageSelection, setDataSecurityPackageSelection] = useState<Kg400PackageSelection>('no');
+  const [dataSecurityManualQuote, setDataSecurityManualQuote] = useState<number | null>(null);
+  const [automationPackageSelection, setAutomationPackageSelection] = useState<Kg400PackageSelection>('no');
+  const [automationManualQuote, setAutomationManualQuote] = useState<number | null>(null);
   const [hvacSelections, setHvacSelections] = useState<Record<string, boolean>>({
     underfloor_heating: false,
     solar_thermal: false,
@@ -571,6 +596,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       customKitchenUnitCost,
       generalFurnitureBaseAmount,
       generalFurnitureBaseAmountCustomized,
+      dataSecurityPackageSelection,
+      dataSecurityManualQuote,
+      automationPackageSelection,
+      automationManualQuote,
       hvacSelections: { ...hvacSelections },
       utilityConnectionId,
       customUtilityCost,
@@ -584,6 +613,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, bathroomsMode, bathroomsManualValue, wcsMode, wcsManualValue, bedroomCountMode, bedroomCountManualValue,
     kitchenCount, kitchenCountCustomized, customKitchenUnitCost, generalFurnitureBaseAmount, generalFurnitureBaseAmountCustomized,
+    dataSecurityPackageSelection, dataSecurityManualQuote, automationPackageSelection, automationManualQuote,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId,
   ]);
@@ -623,6 +653,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setCustomKitchenUnitCost(normalizedConfig.customKitchenUnitCost);
     setGeneralFurnitureBaseAmountState(normalizedConfig.generalFurnitureBaseAmount);
     setGeneralFurnitureBaseAmountCustomized(normalizedConfig.generalFurnitureBaseAmountCustomized ?? false);
+    setDataSecurityPackageSelection(normalizedConfig.dataSecurityPackageSelection ?? 'no');
+    setDataSecurityManualQuote(normalizedConfig.dataSecurityManualQuote ?? null);
+    setAutomationPackageSelection(normalizedConfig.automationPackageSelection ?? 'no');
+    setAutomationManualQuote(normalizedConfig.automationManualQuote ?? null);
     setHvacSelections({ ...config.hvacSelections });
     setUtilityConnectionId(config.utilityConnectionId);
     setCustomUtilityCost(config.customUtilityCost);
@@ -684,6 +718,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, kitchenCount, customKitchenUnitCost, generalFurnitureBaseAmount,
+    dataSecurityPackageSelection, dataSecurityManualQuote, automationPackageSelection, automationManualQuote,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId, persistState,
   ]);
@@ -903,6 +938,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       bedroomDelta,
       bathroomDelta,
       wcDelta,
+      dataSecurityPackageSelection,
+      dataSecurityManualQuote,
+      automationPackageSelection,
+      automationManualQuote,
       habitableBasementArea,
       hvacSelections,
     }),
@@ -915,6 +954,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       bedroomDelta,
       bathroomDelta,
       wcDelta,
+      dataSecurityPackageSelection,
+      dataSecurityManualQuote,
+      automationPackageSelection,
+      automationManualQuote,
       habitableBasementArea,
       hvacSelections,
     ],
@@ -1326,6 +1369,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     () => kg400EngineResult.hvacExtrasCost,
     [kg400EngineResult],
   );
+  const dataSecurityDefaultPackageCost = kg400EngineResult.packageCosts.dataSecurity.defaultCost;
+  const dataSecurityAppliedPackageCost = kg400EngineResult.packageCosts.dataSecurity.appliedCost;
+  const dataSecurityManualOverrideActive = kg400EngineResult.packageCosts.dataSecurity.manualOverrideActive;
+  const automationDefaultPackageCost = kg400EngineResult.packageCosts.automation.defaultCost;
+  const automationAppliedPackageCost = kg400EngineResult.packageCosts.automation.appliedCost;
+  const automationManualOverrideActive = kg400EngineResult.packageCosts.automation.manualOverrideActive;
 
   const permitDesignEffectiveArea = useMemo(
     () => mainBuildingArea + balconyArea * 0.30 + weightedBasementArea,
@@ -1421,6 +1470,20 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setCustomKitchenUnitCost,
     generalFurnitureBaseAmount,
     setGeneralFurnitureBaseAmount,
+    dataSecurityPackageSelection,
+    setDataSecurityPackageSelection,
+    dataSecurityManualQuote,
+    setDataSecurityManualQuote,
+    dataSecurityDefaultPackageCost,
+    dataSecurityAppliedPackageCost,
+    dataSecurityManualOverrideActive,
+    automationPackageSelection,
+    setAutomationPackageSelection,
+    automationManualQuote,
+    setAutomationManualQuote,
+    automationDefaultPackageCost,
+    automationAppliedPackageCost,
+    automationManualOverrideActive,
     hvacSelections,
     toggleHvacOption,
     hvacCosts,
@@ -1546,6 +1609,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     bathrooms, setBathrooms, wcs, setWcs,
     bedroomCount, setBedroomCount, kitchenCount, setKitchenCount,
     customKitchenUnitCost, setCustomKitchenUnitCost, generalFurnitureBaseAmount, setGeneralFurnitureBaseAmount,
+    dataSecurityPackageSelection, setDataSecurityPackageSelection,
+    dataSecurityManualQuote, setDataSecurityManualQuote,
+    dataSecurityDefaultPackageCost, dataSecurityAppliedPackageCost, dataSecurityManualOverrideActive,
+    automationPackageSelection, setAutomationPackageSelection,
+    automationManualQuote, setAutomationManualQuote,
+    automationDefaultPackageCost, automationAppliedPackageCost, automationManualOverrideActive,
     hvacSelections, toggleHvacOption, hvacCosts, totalHvacCost,
     customCostPerSqm, setCustomCostPerSqm, plotSize, setPlotSize,
     mainArea, setMainArea, terraceArea, setTerraceArea,

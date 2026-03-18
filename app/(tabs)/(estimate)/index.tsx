@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot, Sofa } from 'lucide-react-native';
+import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Shield, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot, Sofa } from 'lucide-react-native';
 import SliderInput from '@/components/SliderInput';
 import ScenarioBar from '@/components/ScenarioBar';
 import { useRouter } from 'expo-router';
@@ -54,6 +54,7 @@ import {
   CONTRACTOR_MIN_PERCENTAGE,
   CONTRACTOR_MAX_PERCENTAGE,
   CONTRACTOR_STEP,
+  KG400_PACKAGE_SELECTION_OPTIONS,
   getSizeCorrectionLabel,
 } from '@/constants/construction';
 import { formatCurrency, formatDecimal, formatNumber } from '@/utils/format';
@@ -256,6 +257,12 @@ function formatProgramSubtitle({
   return `Included in base: ${baseline} ${baselineLabel} ${MIDDLE_DOT} ${deltaLabel} ${delta > 0 ? 'added manually' : 'reduced manually'}`;
 }
 
+function parseOptionalCurrencyInput(text: string): number | null {
+  const cleaned = text.replace(/[^0-9]/g, '');
+  const parsed = parseInt(cleaned, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 export default function EstimateScreen() {
   const router = useRouter();
   const {
@@ -320,6 +327,20 @@ export default function EstimateScreen() {
     setCustomKitchenUnitCost,
     generalFurnitureBaseAmount,
     setGeneralFurnitureBaseAmount,
+    dataSecurityPackageSelection,
+    setDataSecurityPackageSelection,
+    dataSecurityManualQuote,
+    setDataSecurityManualQuote,
+    dataSecurityDefaultPackageCost,
+    dataSecurityAppliedPackageCost,
+    dataSecurityManualOverrideActive,
+    automationPackageSelection,
+    setAutomationPackageSelection,
+    automationManualQuote,
+    setAutomationManualQuote,
+    automationDefaultPackageCost,
+    automationAppliedPackageCost,
+    automationManualOverrideActive,
     hvacSelections,
     toggleHvacOption,
     hvacCosts,
@@ -1038,6 +1059,146 @@ export default function EstimateScreen() {
               <Text style={styles.effectiveLabel}>Energy Systems Total</Text>
               <Text style={styles.effectiveValue}>{formatCurrency(totalHvacCost)}</Text>
             </View>
+          </>
+        )}
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Shield size={16} color={Colors.accent} />
+        <Text style={styles.sectionTitle}>Data, Security & Automation</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.poolSubsectionTitle}>450 Data / Security Package</Text>
+        {KG400_PACKAGE_SELECTION_OPTIONS.map((option, index) => {
+          const isSelected = dataSecurityPackageSelection === option.id;
+          return (
+            <React.Fragment key={option.id}>
+              {index > 0 && <View style={styles.divider} />}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setDataSecurityPackageSelection(option.id);
+                }}
+                testID={`data-security-package-${option.id}`}
+              >
+                <View style={styles.optionInfo}>
+                  <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>
+                    {option.name}
+                  </Text>
+                  <Text style={styles.optionSubtext}>
+                    {option.id === 'yes'
+                      ? 'Adds a practical alarm/intercom/data-security package'
+                      : 'Only the small automatic weak-current baseline remains'}
+                  </Text>
+                </View>
+                <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                  {isSelected && <View style={styles.radioInner} />}
+                </View>
+              </TouchableOpacity>
+            </React.Fragment>
+          );
+        })}
+
+        {dataSecurityPackageSelection === 'yes' && (
+          <>
+            <View style={styles.divider} />
+            <Text style={styles.optionSubtext}>
+              {`Assumed package: alarm, intercom, and a modest data/security upgrade. Default estimate ${formatCurrency(dataSecurityDefaultPackageCost)}.`}
+            </Text>
+            <View style={styles.costInputRow}>
+              <TextInput
+                style={styles.costInput}
+                value={dataSecurityManualQuote !== null ? formatNumber(dataSecurityManualQuote) : ''}
+                onChangeText={(text) => {
+                  setDataSecurityManualQuote(parseOptionalCurrencyInput(text));
+                }}
+                keyboardType="numeric"
+                placeholder={formatNumber(dataSecurityDefaultPackageCost)}
+                placeholderTextColor={Colors.textTertiary}
+                testID="data-security-quote-input"
+              />
+              <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+            </View>
+            <Text style={styles.optionSubtext}>
+              Supplier quote override (optional)
+            </Text>
+            <Text style={styles.optionSubtext}>
+              {dataSecurityManualOverrideActive
+                ? `Using supplier quote ${formatCurrency(dataSecurityAppliedPackageCost)} ${MIDDLE_DOT} default estimate ${formatCurrency(dataSecurityDefaultPackageCost)}`
+                : `Using default estimate ${formatCurrency(dataSecurityAppliedPackageCost)}`}
+            </Text>
+          </>
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.poolSubsectionTitle}>480 Smart Home / Automation</Text>
+        {KG400_PACKAGE_SELECTION_OPTIONS.map((option, index) => {
+          const isSelected = automationPackageSelection === option.id;
+          return (
+            <React.Fragment key={option.id}>
+              {index > 0 && <View style={styles.divider} />}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setAutomationPackageSelection(option.id);
+                }}
+                testID={`automation-package-${option.id}`}
+              >
+                <View style={styles.optionInfo}>
+                  <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>
+                    {option.name}
+                  </Text>
+                  <Text style={styles.optionSubtext}>
+                    {option.id === 'yes'
+                      ? 'Adds a simple smart-home automation package'
+                      : 'No smart-home automation package'}
+                  </Text>
+                </View>
+                <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                  {isSelected && <View style={styles.radioInner} />}
+                </View>
+              </TouchableOpacity>
+            </React.Fragment>
+          );
+        })}
+
+        {automationPackageSelection === 'yes' && (
+          <>
+            <View style={styles.divider} />
+            <Text style={styles.optionSubtext}>
+              {`Assumed package: core smart controls and integration. Default estimate ${formatCurrency(automationDefaultPackageCost)}.`}
+            </Text>
+            <View style={styles.costInputRow}>
+              <TextInput
+                style={styles.costInput}
+                value={automationManualQuote !== null ? formatNumber(automationManualQuote) : ''}
+                onChangeText={(text) => {
+                  setAutomationManualQuote(parseOptionalCurrencyInput(text));
+                }}
+                keyboardType="numeric"
+                placeholder={formatNumber(automationDefaultPackageCost)}
+                placeholderTextColor={Colors.textTertiary}
+                testID="automation-quote-input"
+              />
+              <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+            </View>
+            <Text style={styles.optionSubtext}>
+              Supplier quote override (optional)
+            </Text>
+            <Text style={styles.optionSubtext}>
+              {automationManualOverrideActive
+                ? `Using supplier quote ${formatCurrency(automationAppliedPackageCost)} ${MIDDLE_DOT} default estimate ${formatCurrency(automationDefaultPackageCost)}`
+                : `Using default estimate ${formatCurrency(automationAppliedPackageCost)}`}
+            </Text>
           </>
         )}
       </View>

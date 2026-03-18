@@ -100,12 +100,31 @@ export const KG400_BEDROOM_DELTA_BASE_COST = 1200;
 export const KG400_BATHROOM_DELTA_BASE_COST = 4500;
 export const KG400_WC_DELTA_BASE_COST = 2500;
 export const KG400_DATA_SECURITY_BASELINE_COST_PER_SQM = 6;
-export const KG400_AUTOMATION_PACKAGE_COSTS = {
-  none: 0,
-  basic_smart_controls: 2500,
-  mid_smart_home: 6000,
-  advanced_integrated_system: 12000,
-} as const;
+export type Kg400PackageSelection = 'no' | 'yes';
+
+export const KG400_PACKAGE_SELECTION_OPTIONS: Array<{
+  id: Kg400PackageSelection;
+  name: string;
+}> = [
+  { id: 'no', name: 'No' },
+  { id: 'yes', name: 'Yes' },
+];
+
+export const KG400_DATA_SECURITY_PACKAGE_BASE_COST = 3000;
+export const KG400_AUTOMATION_PACKAGE_BASE_COST = 5500;
+
+export const KG400_OPTION_PACKAGE_QUALITY_FACTORS: Record<string, number> = {
+  standard: 1.00,
+  premium: 1.10,
+  luxury: 1.20,
+};
+
+export function getKg400OptionalPackageAreaFactor(mainArea: number): number {
+  if (mainArea <= 120) return 0.95;
+  if (mainArea <= 220) return 1.00;
+  if (mainArea <= 320) return 1.08;
+  return 1.15;
+}
 
 export interface ResidentialProgramBaseline {
   bedrooms: number;

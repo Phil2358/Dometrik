@@ -13,6 +13,7 @@ import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
 import { calculatePermitCosts } from "./modules/permitCosts"
 import {
+  type Kg400PackageSelection,
   getResidentialProgramBaseline,
   SITE_ACCESSIBILITY_OPTIONS,
 } from "../constants/construction"
@@ -52,6 +53,10 @@ interface ProjectCalculationInput {
   bedroomCount?: number
   bathrooms?: number
   wcs?: number
+  dataSecurityPackageSelection?: Kg400PackageSelection
+  dataSecurityManualQuote?: number | null
+  automationPackageSelection?: Kg400PackageSelection
+  automationManualQuote?: number | null
   hvacSelections: Record<string, boolean>
 }
 
@@ -128,6 +133,10 @@ export function calculateProjectCost(input: ProjectCalculationInput) {
       bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
       bathroomDelta: bathrooms - residentialProgramBaseline.bathrooms,
       wcDelta: wcs - residentialProgramBaseline.wcs,
+      dataSecurityPackageSelection: input.dataSecurityPackageSelection,
+      dataSecurityManualQuote: input.dataSecurityManualQuote,
+      automationPackageSelection: input.automationPackageSelection,
+      automationManualQuote: input.automationManualQuote,
       habitableBasementArea: input.habitableBasementArea,
       hvacSelections: input.hvacSelections,
     })
