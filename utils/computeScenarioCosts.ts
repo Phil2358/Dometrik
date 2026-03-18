@@ -4,6 +4,11 @@ import { formatNumber } from "./format"
 export interface ComputedScenarioCosts {
   name: string
   totalCost: number
+  preVatTotal: number
+  vatAmount: number
+  finalTotal: number
+  dinSubtotal: number
+  nonDinAdditionsSubtotal: number
 
   locationName: string
   qualityName: string
@@ -18,10 +23,22 @@ export interface ComputedScenarioCosts {
 
   rawBuildingCost: number
   permitFee: number
+  permitDesignFee: number
   landscapingCost: number
   poolCost: number
   hvacExtrasCost: number
   siteCost: number
+  group100Total: number
+  kg200Total: number
+  kg300Cost: number
+  kg400Total: number
+  kg500Total: number
+  kg600Cost: number
+  constructionSubtotal: number
+  contractorCost: number
+  contingencyCost: number
+  efkaInsuranceAmount: number
+  vatPercent: number
 }
 
 export function formatBasementSummary(
@@ -69,7 +86,12 @@ export function computeScenarioCosts(config: any): ComputedScenarioCosts {
   return {
     name: config.name ?? "Scenario",
 
-    totalCost: result.totalCost ?? 0,
+    totalCost: result.preVatTotal ?? result.totalCost ?? 0,
+    preVatTotal: result.preVatTotal ?? result.totalCost ?? 0,
+    vatAmount: result.vatAmount ?? 0,
+    finalTotal: result.finalTotal ?? result.totalCost ?? 0,
+    dinSubtotal: result.dinSubtotal ?? 0,
+    nonDinAdditionsSubtotal: result.nonDinAdditionsSubtotal ?? 0,
 
     locationName: config.locationName ?? "",
     qualityName: config.qualityName ?? "",
@@ -84,9 +106,21 @@ export function computeScenarioCosts(config: any): ComputedScenarioCosts {
 
     rawBuildingCost: result.rawBuildingCost ?? 0,
     permitFee: result.permitFee ?? 0,
+    permitDesignFee: result.permitFee ?? 0,
     landscapingCost: result.landscapingCost ?? 0,
     poolCost: result.poolCost ?? 0,
     hvacExtrasCost: result.hvacExtrasCost ?? 0,
-    siteCost: result.siteCost ?? 0
+    siteCost: result.siteCost ?? 0,
+    group100Total: result.group100Total ?? 0,
+    kg200Total: result.kg200Total ?? 0,
+    kg300Cost: result.kg300Total ?? 0,
+    kg400Total: result.kg400Total ?? 0,
+    kg500Total: result.kg500Total ?? 0,
+    kg600Cost: result.kg600Cost ?? 0,
+    constructionSubtotal: result.constructionSubtotal ?? 0,
+    contractorCost: result.contractorCost ?? 0,
+    contingencyCost: result.contingencyCost ?? 0,
+    efkaInsuranceAmount: result.efkaInsuranceAmount ?? 0,
+    vatPercent: result.vatPercent ?? (config.vatPercent ?? 24),
   }
 }

@@ -1,15 +1,13 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { calculateProjectCost } from '@/calculator-engine/calculateProjectCost';
 import type { Kg300SubgroupCosts } from '@/calculator-engine/modules/categoryCosts';
 import { calculateKg400Costs } from '@/calculator-engine/modules/kg400Costs';
 import { calculatePoolCosts } from '@/calculator-engine/modules/poolCosts';
 import { calculateLandscapingCosts } from '@/calculator-engine/modules/landscapingCosts';
 import { calculatePermitCosts } from '@/calculator-engine/modules/permitCosts';
-import { calculateContractorMarginCosts } from '@/calculator-engine/modules/contractorMarginCosts';
-import { calculateContingencyCosts } from '@/calculator-engine/modules/contingencyCosts';
-import { calculateEfkaCosts } from '@/calculator-engine/modules/efkaCosts';
-import { calculateVatCosts } from '@/calculator-engine/modules/vatCosts';
+import { calculateKg600Costs } from '@/calculator-engine/modules/kg600Costs';
 import {
   LOCATIONS,
   QUALITY_LEVELS,
@@ -38,15 +36,9 @@ import {
   getBasementExcavationCost,
   getPlotSizeFactor,
   getUtilityConnectionGroupCosts,
-  KG600_KITCHEN_PACKAGE_BASE_COST,
-  KG600_WARDROBE_PACKAGE_BASE_COST,
-  KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT,
-  KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST,
-  KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST,
   type AutomationPackageLevel,
   type DataSecurityPackageLevel,
   type Kg400PackageSelection,
-  getKitchenAreaFactor,
   getResidentialProgramBaseline,
   getSuggestedGeneralFurnitureBaseAmount,
 } from '@/constants/construction';
@@ -1043,7 +1035,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kg300AccessibilityMultiplier = 1 + accessibilityExecutionDelta * 0.35;
   const interiorDeltaBathrooms = bathrooms - INTERIOR_BASELINE.bathrooms;
   const interiorDeltaWcs = wcs - INTERIOR_BASELINE.wcs;
-  const qualityPackageMultiplier = quality.benchmarkFactor;
   const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms;
   const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms;
   const wcDelta = wcs - residentialProgramBaseline.wcs;
@@ -1085,33 +1076,38 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       hvacSelections,
     ],
   );
-  const includedWardrobes = bedroomCount;
-  const totalWardrobeCount = bedroomCount;
-  const kitchenAreaFactor = getKitchenAreaFactor(effectiveArea);
-  const suggestedKitchenUnitCost = Math.round(
-    KG600_KITCHEN_PACKAGE_BASE_COST * kitchenAreaFactor * qualityPackageMultiplier
-  );
-  const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(
+  const kg600CostsResult = useMemo(() => calculateKg600Costs({
     effectiveArea,
+    qualityId,
     bedroomCount,
-  );
-  const kitchenUnitCost = customKitchenUnitCost ?? suggestedKitchenUnitCost;
-  const wardrobeUnitCost = Math.round(KG600_WARDROBE_PACKAGE_BASE_COST * qualityPackageMultiplier);
-  const generalFurnitureBedroomIncrement = Math.max(0, bedroomCount - 1) * KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT;
-  const generalFurniturePackageCost = generalFurnitureBaseAmount;
-  const extraBathroomFurnishingSliceCost = Math.max(0, bathroomDelta)
-    * Math.round(KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier);
-  const extraWcFurnishingSliceCost = Math.max(0, wcDelta)
-    * Math.round(KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier);
-  const kitchenPackageCost = kitchenCount * kitchenUnitCost;
-  const wardrobePackageCost = totalWardrobeCount * wardrobeUnitCost;
-  const bathroomWcFurnishingSliceCost = extraBathroomFurnishingSliceCost + extraWcFurnishingSliceCost;
-  const kg600SpecialFurnishingsCost = kitchenPackageCost + wardrobePackageCost + bathroomWcFurnishingSliceCost;
-  const kg600GeneralFurnishingsCost = generalFurniturePackageCost;
-  const kg600SubgroupCosts = {
-    subgroup610Cost: kg600GeneralFurnishingsCost,
-    subgroup620Cost: kg600SpecialFurnishingsCost,
-  };
+    kitchenCount,
+    customKitchenUnitCost,
+    generalFurnitureBaseAmount,
+    bathroomDelta,
+    wcDelta,
+  }), [
+    effectiveArea,
+    qualityId,
+    bedroomCount,
+    kitchenCount,
+    customKitchenUnitCost,
+    generalFurnitureBaseAmount,
+    bathroomDelta,
+    wcDelta,
+  ]);
+  const includedWardrobes = kg600CostsResult.includedWardrobes;
+  const totalWardrobeCount = kg600CostsResult.totalWardrobeCount;
+  const suggestedKitchenUnitCost = kg600CostsResult.suggestedKitchenUnitCost;
+  const suggestedGeneralFurnitureBaseAmount = kg600CostsResult.suggestedGeneralFurnitureBaseAmount;
+  const kitchenUnitCost = kg600CostsResult.kitchenUnitCost;
+  const generalFurnitureBedroomIncrement = kg600CostsResult.generalFurnitureBedroomIncrement;
+  const generalFurniturePackageCost = kg600CostsResult.generalFurniturePackageCost;
+  const kitchenPackageCost = kg600CostsResult.kitchenPackageCost;
+  const wardrobePackageCost = kg600CostsResult.wardrobePackageCost;
+  const bathroomWcFurnishingSliceCost = kg600CostsResult.bathroomWcFurnishingSliceCost;
+  const kg600SpecialFurnishingsCost = kg600CostsResult.kg600SpecialFurnishingsCost;
+  const kg600GeneralFurnishingsCost = kg600CostsResult.kg600GeneralFurnishingsCost;
+  const kg600SubgroupCosts = kg600CostsResult.kg600SubgroupCosts;
 
   useEffect(() => {
     if (!kitchenCountCustomized && kitchenCount !== 0) {
@@ -1533,70 +1529,113 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const kg500Total = poolCost + landscapingCost;
 
-  const constructionSubtotal = useMemo(
-    () => kg300Total + kg400Total + kg600Cost,
-    [kg300Total, kg400Total, kg600Cost],
-  );
-
-  const contingencyResult = useMemo(() => calculateContingencyCosts({
-    constructionSubtotal,
+  const projectRollupResult = useMemo(() => calculateProjectCost({
+    plotSize,
+    mainArea,
+    terraceArea,
+    balconyArea,
+    basementArea,
+    basementTypeId: basementType.id,
+    storageBasementArea,
+    parkingBasementArea,
+    habitableBasementArea,
+    locationId,
     qualityId,
-    manualContingencyPercent,
-    manualContingencyCost,
-  }), [
-    constructionSubtotal,
-    qualityId,
-    manualContingencyPercent,
-    manualContingencyCost,
-  ]);
-
-  const contingencyPercent = contingencyResult.recommendedPercent;
-  const appliedContingencyPercent = contingencyResult.appliedPercentValue;
-  const contingencyManualOverrideActive = contingencyResult.manualOverrideActive;
-  const recommendedContingencyCost = contingencyResult.recommendedCost;
-  const contingencyCost = contingencyResult.contingencyCost;
-
-  const contractorMarginResult = useMemo(() => calculateContractorMarginCosts({
-    constructionSubtotal,
+    customCostPerSqm,
+    siteConditionId,
+    groundwaterConditionId,
+    siteAccessibilityId,
+    utilityConnectionId,
+    customUtilityCost,
+    landscapingArea,
+    includePool,
+    poolSizeId,
+    poolCustomArea,
+    poolCustomDepth,
+    poolQualityId,
+    poolTypeId,
+    bedroomCount,
+    bathrooms,
+    wcs,
+    kitchenCount,
+    customKitchenUnitCost,
+    generalFurnitureBaseAmount,
+    dataSecurityPackageLevel,
+    dataSecurityPackageSelection,
+    dataSecurityManualQuote,
+    automationPackageLevel,
+    automationPackageSelection,
+    automationManualQuote,
     contractorPercent,
-  }), [
-    constructionSubtotal,
-    contractorPercent,
-  ]);
-
-  const contractorCost = contractorMarginResult.contractorCost;
-
-  const efkaCostsResult = useMemo(() => calculateEfkaCosts({
-    effectiveArea,
-    manualCost: efkaInsuranceManualCost,
-  }), [
-    effectiveArea,
+    vatPercent,
     efkaInsuranceManualCost,
-  ]);
-
-  const efkaInsuranceAutoCost = efkaCostsResult.automaticCost;
-  const efkaInsuranceAmount = efkaCostsResult.appliedCost;
-  const efkaInsuranceManualOverrideActive = efkaCostsResult.manualOverrideActive;
-
-  const totalCost = kg200Total
-    + constructionSubtotal
-    + kg500Total
-    + permitDesignFee
-    + contingencyCost
-    + contractorCost;
-
-  const group100Total = landValue + landAcquisitionCosts;
-  const projectTotalBeforeVat = totalCost + group100Total + efkaInsuranceAmount;
-  const vatResult = useMemo(() => calculateVatCosts({
-    baseAmount: projectTotalBeforeVat,
-    vatPercent,
+    manualContingencyPercent,
+    manualContingencyCost,
+    landValue,
+    landAcquisitionCosts,
+    hvacSelections,
   }), [
-    projectTotalBeforeVat,
+    plotSize,
+    mainArea,
+    terraceArea,
+    balconyArea,
+    basementArea,
+    basementType,
+    storageBasementArea,
+    parkingBasementArea,
+    habitableBasementArea,
+    locationId,
+    qualityId,
+    customCostPerSqm,
+    siteConditionId,
+    groundwaterConditionId,
+    siteAccessibilityId,
+    utilityConnectionId,
+    customUtilityCost,
+    landscapingArea,
+    includePool,
+    poolSizeId,
+    poolCustomArea,
+    poolCustomDepth,
+    poolQualityId,
+    poolTypeId,
+    bedroomCount,
+    bathrooms,
+    wcs,
+    kitchenCount,
+    customKitchenUnitCost,
+    generalFurnitureBaseAmount,
+    dataSecurityPackageLevel,
+    dataSecurityPackageSelection,
+    dataSecurityManualQuote,
+    automationPackageLevel,
+    automationPackageSelection,
+    automationManualQuote,
+    contractorPercent,
     vatPercent,
+    efkaInsuranceManualCost,
+    manualContingencyPercent,
+    manualContingencyCost,
+    landValue,
+    landAcquisitionCosts,
+    hvacSelections,
   ]);
 
-  const vatAmount = vatResult.vatAmount;
-  const totalCostInclVat = vatResult.totalIncludingVat;
+  const constructionSubtotal = projectRollupResult.constructionSubtotal;
+  const contingencyPercent = projectRollupResult.contingencyRecommendedPercent;
+  const appliedContingencyPercent = projectRollupResult.appliedContingencyPercent;
+  const contingencyManualOverrideActive = projectRollupResult.contingencyManualOverrideActive;
+  const recommendedContingencyCost = projectRollupResult.recommendedContingencyCost;
+  const contingencyCost = projectRollupResult.contingencyCost;
+  const contractorCost = projectRollupResult.contractorCost;
+  const efkaInsuranceAutoCost = projectRollupResult.efkaInsuranceAutoCost;
+  const efkaInsuranceAmount = projectRollupResult.efkaInsuranceAmount;
+  const efkaInsuranceManualOverrideActive = projectRollupResult.efkaInsuranceManualOverrideActive;
+  const totalCost = projectRollupResult.coreProjectTotal;
+  const group100Total = projectRollupResult.group100Total;
+  const projectTotalBeforeVat = projectRollupResult.preVatTotal;
+  const vatAmount = projectRollupResult.vatAmount;
+  const totalCostInclVat = projectRollupResult.finalTotal;
 
   const selectQuality = useCallback((id: string) => {
     setQualityId(id);

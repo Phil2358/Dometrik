@@ -30,8 +30,6 @@ import { formatNumber, formatPercent } from '@/utils/format';
 
 const SQUARE_METER_UNIT = 'm\u00B2';
 
-const VAT_RATE = 0.24;
-
 const COMPARE_COLORS = [
   '#2C5F6E',
   '#D4782F',
@@ -137,19 +135,29 @@ function getGroupedCostRows(scenarios: ComputedScenarioCosts[]): CostGroupRow[] 
     return { label, values, isDifferent, ...opts };
   };
 
-  rows.push(makeRow('Construction', (s) => s.rawBuildingCost, { isGroupHeader: true }));
-  rows.push(makeRow('Building construction', (s) => s.rawBuildingCost));
-rows.push(makeRow('Technical systems', (s) => s.hvacExtrasCost ?? 0));
-  rows.push(makeRow('Built-in equipment', () => 0));
+  rows.push(makeRow('Land & acquisition', (s) => s.group100Total, { isGroupHeader: true }));
+  rows.push(makeRow('Land + acquisition', (s) => s.group100Total));
 
-  rows.push(makeRow('Site & External', (s) => s.siteCost + s.landscapingCost, { isGroupHeader: true }));
-  rows.push(makeRow('Site preparation', (s) => s.siteCost));
-  rows.push(makeRow('External works', (s) => s.landscapingCost));
+  rows.push(makeRow('Construction', (s) => s.constructionSubtotal, { isGroupHeader: true }));
+  rows.push(makeRow('Building construction', (s) => s.kg300Cost));
+  rows.push(makeRow('Technical systems', (s) => s.kg400Total));
+  rows.push(makeRow('Built-in equipment', (s) => s.kg600Cost));
 
-  rows.push(makeRow('Project costs', (s) => s.permitFee, { isGroupHeader: true }));
-  rows.push(makeRow('Planning & fees', (s) => s.permitFee));
-  rows.push(makeRow('Contractor overhead', () => 0));
-  rows.push(makeRow('Construction contingency', () => 0));
+  rows.push(makeRow('Site & External', (s) => s.kg200Total + s.kg500Total, { isGroupHeader: true }));
+  rows.push(makeRow('Site preparation', (s) => s.kg200Total));
+  rows.push(makeRow('External works', (s) => s.kg500Total));
+
+  rows.push(
+    makeRow(
+      'Project costs',
+      (s) => s.permitDesignFee + s.contractorCost + s.contingencyCost + s.efkaInsuranceAmount,
+      { isGroupHeader: true }
+    )
+  );
+  rows.push(makeRow('Planning & fees', (s) => s.permitDesignFee));
+  rows.push(makeRow('Contractor overhead', (s) => s.contractorCost));
+  rows.push(makeRow('Construction contingency', (s) => s.contingencyCost));
+  rows.push(makeRow('e-EFKA worker insurance', (s) => s.efkaInsuranceAmount));
 
   return rows;
 }
@@ -161,6 +169,7 @@ function getLargestCostDriver(
   if (scenarios.length < 2) return null;
 
   const categories: { label: string; getter: (s: ComputedScenarioCosts) => number }[] = [
+    { label: 'Land & acquisition', getter: (s) => s.group100Total ?? 0 },
     { label: 'Building construction', getter: (s) => (s as any).kg300Cost ?? 0 },
     { label: 'Technical systems', getter: (s) => (s as any).kg400Total ?? 0 },
     { label: 'Built-in equipment', getter: (s) => (s as any).kg600Cost ?? 0 },
@@ -169,6 +178,7 @@ function getLargestCostDriver(
     { label: 'Planning & fees', getter: (s) => (s as any).permitDesignFee ?? 0 },
     { label: 'Contractor overhead', getter: (s) => (s as any).contractorCost ?? 0 },
     { label: 'Construction contingency', getter: (s) => (s as any).contingencyCost ?? 0 },
+    { label: 'e-EFKA worker insurance', getter: (s) => (s as any).efkaInsuranceAmount ?? 0 },
   ];
 
   let maxDiff = 0;
@@ -196,9 +206,9 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
   onUseScenario: () => void;
 }) {
   const color = COMPARE_COLORS[index];
-  const vatAmount = Math.round(scenario.totalCost * VAT_RATE);
-  const totalWithVat = scenario.totalCost + vatAmount;
-  const cheapestWithVat = Math.round(cheapestTotal * (1 + VAT_RATE));
+  const vatAmount = scenario.vatAmount ?? 0;
+  const totalWithVat = scenario.finalTotal ?? (scenario.totalCost + vatAmount);
+  const cheapestWithVat = cheapestTotal;
 
   const diffFromCheapest = totalWithVat - cheapestWithVat;
   const diffPercent = cheapestWithVat > 0 ? Math.round((diffFromCheapest / cheapestWithVat) * 100) : 0;
@@ -227,7 +237,7 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
           <Text style={summaryStyles.totalCost}>{formatEuro(totalWithVat)}</Text>
           <Text style={summaryStyles.vatLabel}> incl. VAT</Text>
         </View>
-        <Text style={summaryStyles.subtotalLabel}>{formatEuro(scenario.totalCost)} excl. VAT</Text>
+        <Text style={summaryStyles.subtotalLabel}>{formatEuro(scenario.preVatTotal ?? scenario.totalCost)} excl. VAT</Text>
 
         {rank === 'cheapest' && (
           <Text style={summaryStyles.diffText}>baseline</Text>
@@ -258,7 +268,7 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
 }
 
 function CostBarChart({ scenarios }: { scenarios: ComputedScenarioCosts[] }) {
-const maxCost = Math.max(...scenarios.map(s => (s.totalCost ?? 0) * (1 + VAT_RATE)));
+const maxCost = Math.max(...scenarios.map(s => s.finalTotal ?? 0));
   const scaleSteps = useMemo(() => {
     const step = Math.ceil(maxCost / 4 / 50000) * 50000;
     const steps: number[] = [];
@@ -277,7 +287,7 @@ const maxCost = Math.max(...scenarios.map(s => (s.totalCost ?? 0) * (1 + VAT_RAT
         ))}
       </View>
       {scenarios.map((s, i) => {
-        const totalWithVat = s.totalCost * (1 + VAT_RATE);
+        const totalWithVat = s.finalTotal ?? 0;
         const pct = (totalWithVat / maxCost) * 100;
         return (
           <View key={i} style={chartStyles.barRow}>
@@ -292,7 +302,7 @@ const maxCost = Math.max(...scenarios.map(s => (s.totalCost ?? 0) * (1 + VAT_RAT
           </View>
         );
       })}
-      <Text style={chartStyles.vatNote}>Amounts include 24 % VAT</Text>
+      <Text style={chartStyles.vatNote}>Amounts include scenario VAT</Text>
     </View>
   );
 }
@@ -321,13 +331,16 @@ export default function CompareScreen() {
 
   const paramRows = useMemo(() => computed.length >= 2 ? getParameterRows(computed) : [], [computed]);
   const groupedCostRows = useMemo(() => computed.length >= 2 ? getGroupedCostRows(computed) : [], [computed]);
-  const totalValues = useMemo(() => computed.map((s) => s.totalCost), [computed]);
+  const totalValues = useMemo(() => computed.map((s) => s.finalTotal ?? 0), [computed]);
   const minTotal = useMemo(() => totalValues.length > 0 ? Math.min(...totalValues) : 0, [totalValues]);
   const maxTotal = useMemo(() => totalValues.length > 0 ? Math.max(...totalValues) : 0, [totalValues]);
   const totalDiff = maxTotal - minTotal;
-  const totalDiffWithVat = Math.round(totalDiff * (1 + VAT_RATE));
+  const totalDiffWithVat = totalDiff;
 
-  const sortedByTotal = useMemo(() => [...computed].sort((a, b) => a.totalCost - b.totalCost), [computed]);
+  const sortedByTotal = useMemo(
+    () => [...computed].sort((a, b) => (a.finalTotal ?? 0) - (b.finalTotal ?? 0)),
+    [computed]
+  );
   const cheapestName = sortedByTotal.length > 0 ? sortedByTotal[0].name : '';
   const highestName = sortedByTotal.length > 0 ? sortedByTotal[sortedByTotal.length - 1].name : '';
 
@@ -340,11 +353,11 @@ export default function CompareScreen() {
     if (sortedByTotal.length < 2) return [];
     const diffs: { from: string; to: string; diff: number }[] = [];
     for (let i = 0; i < sortedByTotal.length - 1; i++) {
-      const diff = sortedByTotal[i + 1].totalCost - sortedByTotal[i].totalCost;
+      const diff = (sortedByTotal[i + 1].finalTotal ?? 0) - (sortedByTotal[i].finalTotal ?? 0);
       diffs.push({
         from: sortedByTotal[i].name,
         to: sortedByTotal[i + 1].name,
-        diff: Math.round(diff * (1 + VAT_RATE)),
+        diff,
       });
     }
     return diffs;
@@ -372,9 +385,7 @@ export default function CompareScreen() {
     >
       <View style={styles.headerCard}>
         <Text style={styles.headerTitle}>Scenario Comparison</Text>
-        <Text style={styles.headerSubtext}>
-          Comparing {computed.length} scenarios · VAT 24 % included
-        </Text>
+        <Text style={styles.headerSubtext}>Comparing {computed.length} scenarios</Text>
       </View>
 
       {computed.map((s, i) => {
@@ -421,7 +432,7 @@ export default function CompareScreen() {
               ))}
             </>
           )}
-          <Text style={styles.diffVatNote}>All amounts include 24 % VAT</Text>
+          <Text style={styles.diffVatNote}>All amounts include scenario VAT</Text>
         </View>
       )}
 
@@ -574,18 +585,18 @@ export default function CompareScreen() {
             </View>
             {computed.map((s, i) => (
               <View key={i} style={styles.tableValueCell}>
-                <Text style={styles.tableSubtotalValue}>{formatEuro(s.totalCost)}</Text>
+                <Text style={styles.tableSubtotalValue}>{formatEuro(s.preVatTotal ?? s.totalCost)}</Text>
               </View>
             ))}
           </View>
 
           <View style={[styles.tableRow, styles.tableVatRow]}>
             <View style={styles.tableLabelCellWide}>
-              <Text style={styles.tableVatLabel}>VAT (24 %)</Text>
+              <Text style={styles.tableVatLabel}>VAT</Text>
             </View>
             {computed.map((s, i) => (
               <View key={i} style={styles.tableValueCell}>
-                <Text style={styles.tableVatValue}>{formatEuro(Math.round(s.totalCost * VAT_RATE))}</Text>
+                <Text style={styles.tableVatValue}>{formatEuro(s.vatAmount ?? 0)}</Text>
               </View>
             ))}
           </View>
@@ -597,7 +608,7 @@ export default function CompareScreen() {
             {computed.map((s, i) => (
               <View key={i} style={styles.tableValueCell}>
                 <Text style={[styles.tableTotalValue, { color: COMPARE_COLORS[i] }]}>
-                  {formatEuro(Math.round(s.totalCost * (1 + VAT_RATE)))}
+                  {formatEuro(s.finalTotal ?? 0)}
                 </Text>
               </View>
             ))}
@@ -608,7 +619,7 @@ export default function CompareScreen() {
       <View style={styles.vatInfoCard}>
         <Info size={14} color={Colors.primary} />
         <Text style={styles.vatInfoText}>
-          VAT calculated using the current Greek construction VAT rate (24 %). VAT is applied to the full project subtotal and is not included in individual cost categories.
+          VAT is applied to each scenario's pre-VAT project subtotal and shown separately from the base cost categories.
         </Text>
       </View>
 
