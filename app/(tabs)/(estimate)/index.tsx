@@ -11,7 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, ExternalLink, Plug, ShieldAlert, Shield, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, LandPlot, Sofa, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, ExternalLink, Plug, Shield, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, LandPlot, Sofa, ChevronDown, ChevronUp } from 'lucide-react-native';
 import SliderInput from '@/components/SliderInput';
 import ScenarioBar from '@/components/ScenarioBar';
 import { useRouter } from 'expo-router';
@@ -122,6 +122,37 @@ const EN_DASH = '\u2013';
 const MINUS_SYMBOL = '\u2212';
 const ARROW_SYMBOL = '\u2192';
 const SQUARE_METER_UNIT = 'm\u00B2';
+
+function getFeesQualityLabel(qualityId: string): string {
+  switch (qualityId) {
+    case 'standard':
+      return 'Economy';
+    case 'premium':
+      return 'Mid-Range';
+    case 'luxury':
+      return 'Luxury';
+    default:
+      return 'Mid-Range';
+  }
+}
+
+function formatEditableDecimal(value: number, digits = 1): string {
+  if (Number.isInteger(value)) {
+    return formatNumber(value);
+  }
+  return formatDecimal(value, digits);
+}
+
+function parseDecimalInput(text: string): number {
+  const normalizedSeparators = text.replace(/,/g, '.');
+  const cleaned = normalizedSeparators.replace(/[^0-9.]/g, '');
+  const firstDotIndex = cleaned.indexOf('.');
+  const normalized = firstDotIndex === -1
+    ? cleaned
+    : `${cleaned.slice(0, firstDotIndex + 1)}${cleaned.slice(firstDotIndex + 1).replace(/\./g, '')}`;
+  const parsed = parseFloat(normalized);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
 
 function SiteConditionIcon({ conditionId, size = 40, color }: { conditionId: string; size?: number; color: string }) {
   const secondaryColor = color + '66';
@@ -403,6 +434,12 @@ export default function EstimateScreen() {
     poolDepth,
     contractorPercent,
     setContractorPercent,
+    vatPercent,
+    setVatPercent,
+    efkaInsuranceRatePerSqm,
+    setEfkaInsuranceRatePerSqm,
+    manualContingencyPercent,
+    setManualContingencyPercent,
     siteConditionId,
     setSiteConditionId,
      siteCondition,
@@ -427,6 +464,8 @@ export default function EstimateScreen() {
     setCustomKitchenUnitCost,
     generalFurnitureBaseAmount,
     setGeneralFurnitureBaseAmount,
+    generalFurnitureBaseAmountCustomized,
+    setGeneralFurnitureBaseAmountMode,
     dataSecurityPackageLevel,
     setDataSecurityPackageLevel,
     dataSecurityManualQuote,
@@ -455,6 +494,7 @@ export default function EstimateScreen() {
     contractorCost,
     poolCost,
     permitDesignFee,
+    totalCost,
     utilityConnectionId,
     setUtilityConnectionId,
     customUtilityCost,
@@ -468,8 +508,11 @@ export default function EstimateScreen() {
     setSiteAccessibilityId,
     siteAccessibility,
     kg600Cost,
+    constructionSubtotal,
+    contingencyCost,
     residentialProgramBaseline,
     suggestedKitchenUnitCost,
+    suggestedGeneralFurnitureBaseAmount,
     kitchenUnitCost,
     kitchenPackageCost,
     wardrobePackageCost,
@@ -486,6 +529,16 @@ export default function EstimateScreen() {
   const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? landValue * 0.06
     : landAcquisitionCosts;
+  const feesQualityLabel = getFeesQualityLabel(qualityId);
+  const vatAmount = Math.round(totalCost * (vatPercent / 100));
+  const efkaInsuranceAmount = Math.round(effectiveArea * efkaInsuranceRatePerSqm);
+  const manualContingencyAmount = manualContingencyPercent === null
+    ? null
+    : Math.round(constructionSubtotal * (manualContingencyPercent / 100));
+  const appliedGeneralFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
+    ? generalFurnitureBaseAmount
+    : suggestedGeneralFurnitureBaseAmount;
+  const furnishingBreakdownText = `${formatCurrency(kitchenPackageCost)} kitchen + ${formatCurrency(wardrobePackageCost)} wardrobes (${includedWardrobes}) + ${formatCurrency(generalFurniturePackageCost)} general furniture + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices`;
   const bedroomSubtitle = formatProgramSubtitle({
     baseline: residentialProgramBaseline.bedrooms,
     actual: bedroomCount,
@@ -581,6 +634,7 @@ export default function EstimateScreen() {
   const [showBenchmarkGroup, setShowBenchmarkGroup] = React.useState<boolean>(true);
   const [showOutdoorAdditionsGroup, setShowOutdoorAdditionsGroup] = React.useState<boolean>(true);
   const [showSystemsUpgradesGroup, setShowSystemsUpgradesGroup] = React.useState<boolean>(true);
+  const [showFeesMarginsGroup, setShowFeesMarginsGroup] = React.useState<boolean>(true);
 
   const renderBuildingDefinitionGroup = () => (
     <CollapsibleGroup
@@ -755,26 +809,52 @@ export default function EstimateScreen() {
             {`Suggested ${formatCurrency(suggestedKitchenUnitCost)} ${MIDDLE_DOT} quality and area adjusted`}
           </Text>
           <View style={styles.divider} />
+          <View style={styles.optionRow}>
+            <View style={styles.optionInfo}>
+              <Text style={styles.optionLabel}>Manual Override</Text>
+              <Text style={styles.optionSubtext}>
+                {generalFurnitureBaseAmountCustomized
+                  ? 'Manual value is applied to the furnishing totals.'
+                  : 'Automatic recommendation is applied based on bedrooms and effective area.'}
+              </Text>
+            </View>
+            <Switch
+              value={generalFurnitureBaseAmountCustomized}
+              onValueChange={(value) => {
+                if (Platform.OS !== 'web') {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+                setGeneralFurnitureBaseAmountMode(value);
+              }}
+              trackColor={{ false: Colors.border, true: Colors.accent }}
+              thumbColor={Colors.white}
+              testID="general-furniture-manual-toggle"
+            />
+          </View>
+          <View style={styles.divider} />
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>General Furniture Base Amount</Text>
           </View>
-          <View style={styles.costInputRow}>
+          <View style={[styles.costInputRow, !generalFurnitureBaseAmountCustomized && styles.costInputRowDisabled]}>
             <TextInput
-              style={styles.costInput}
-              value={generalFurnitureBaseAmount > 0 ? formatNumber(generalFurnitureBaseAmount) : ''}
+              style={[styles.costInput, !generalFurnitureBaseAmountCustomized && styles.costInputDisabled]}
+              value={formatNumber(appliedGeneralFurnitureBaseAmount)}
               onChangeText={(text) => {
                 const cleaned = text.replace(/[^0-9]/g, '');
                 setGeneralFurnitureBaseAmount(parseInt(cleaned, 10) || 0);
               }}
               keyboardType="numeric"
+              editable={generalFurnitureBaseAmountCustomized}
               placeholder="0"
               placeholderTextColor={Colors.textTertiary}
               testID="general-furniture-base-input"
             />
-            <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+            <Text style={[styles.costInputUnit, !generalFurnitureBaseAmountCustomized && styles.costInputUnitDisabled]}> {EURO_SYMBOL}</Text>
           </View>
           <Text style={styles.optionSubtext}>
-            {`Loose furniture package. Recommended amount is based on bedrooms and effective area. This value is editable.`}
+            {generalFurnitureBaseAmountCustomized
+              ? `Recommended amount: ${formatCurrency(suggestedGeneralFurnitureBaseAmount)} based on bedrooms and effective area.`
+              : 'Automatically recommended based on bedrooms and effective area.'}
           </Text>
           <View style={styles.divider} />
           <View style={styles.effectiveRow}>
@@ -782,7 +862,7 @@ export default function EstimateScreen() {
             <Text style={styles.effectiveValue}>{formatCurrency(kg600Cost)}</Text>
           </View>
           <Text style={styles.effectiveFormula}>
-            {`${formatCurrency(kitchenPackageCost)} kitchen${wardrobePackageCost > 0 ? ` + ${formatCurrency(wardrobePackageCost)} wardrobes (${includedWardrobes})` : ''}${generalFurniturePackageCost > 0 ? ` + ${formatCurrency(generalFurniturePackageCost)} general furniture` : ''}${bathroomWcFurnishingSliceCost > 0 ? ` + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices` : ''}`}
+            {furnishingBreakdownText}
           </Text>
         </View>
       </View>
@@ -1769,11 +1849,19 @@ export default function EstimateScreen() {
           </Text>
         </View>
       </View>
+    </CollapsibleGroup>
+  );
 
+  const renderFeesMarginsGroup = () => (
+    <CollapsibleGroup
+      title="Fees & Margins"
+      icon={<Shield size={16} color={Colors.accent} />}
+      expanded={showFeesMarginsGroup}
+      onToggle={() => setShowFeesMarginsGroup((prev) => !prev)}
+    >
       <View style={styles.groupSection}>
-        <Text style={styles.groupSectionTitle}>Permit / Professional Fees</Text>
-        <View style={styles.groupInlineHeader}>
-          <Text style={styles.groupInlineTitle}>Permit & Design Fees</Text>
+        <View style={styles.groupSectionHeader}>
+          <Text style={styles.groupSectionHeaderTitle}>Permits & Professional Fees</Text>
           <TouchableOpacity
             onPress={() => setShowPermitDesignInfo(!showPermitDesignInfo)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -1789,11 +1877,11 @@ export default function EstimateScreen() {
         )}
         <View style={styles.card}>
           <View style={styles.effectiveRow}>
-            <Text style={styles.effectiveLabel}>Permit & Design Fees</Text>
+            <Text style={styles.effectiveLabel}>Current estimator amount</Text>
             <Text style={styles.effectiveValue}>{formatCurrency(permitDesignFee)}</Text>
           </View>
           <Text style={styles.effectiveFormula}>
-            {`Based on ${quality.name} quality ${MIDDLE_DOT} ${formatNumber(permitDesignEffectiveArea)} ${SQUARE_METER_UNIT} effective project area`}
+            {`Based on ${feesQualityLabel} quality ${MIDDLE_DOT} ${formatNumber(permitDesignEffectiveArea)} ${SQUARE_METER_UNIT} effective project area`}
           </Text>
           {isLargeProject && (
             <View style={styles.permitDesignAdvisory}>
@@ -1814,10 +1902,10 @@ export default function EstimateScreen() {
       </View>
 
       <View style={styles.groupSection}>
-        <Text style={styles.groupSectionTitle}>Margin & Taxes</Text>
+        <Text style={styles.groupSectionTitle}>Contractor Margin</Text>
         <View style={styles.card}>
           <SliderInput
-            label="Contractor Overhead & Profit"
+            label="Margin rate"
             subtitle={`${formatDecimal(contractorPercent, 1)}% of construction = ${formatCurrency(contractorCost)}`}
             value={contractorPercent}
             onChangeValue={setContractorPercent}
@@ -1827,13 +1915,99 @@ export default function EstimateScreen() {
             suffix="%"
             testID="slider-contractor-percent"
           />
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Insurance & Taxes</Text>
+        <View style={styles.card}>
+          <SliderInput
+            label="VAT rate"
+            subtitle={`Reference only: ${formatEditableDecimal(vatPercent, 1)}% of current estimate = ${formatCurrency(vatAmount)}`}
+            value={vatPercent}
+            onChangeValue={(value) => setVatPercent(Math.max(0, value))}
+            min={0}
+            max={40}
+            step={0.5}
+            suffix="%"
+            testID="slider-vat-percent"
+          />
+          <Text style={styles.moduleSupportText}>
+            VAT is tracked here as an editable planning reference and is not added to the current estimator total.
+          </Text>
           <View style={styles.divider} />
-          <View style={styles.costHintRow}>
-            <ShieldAlert size={13} color={Colors.accent} />
-            <Text style={styles.costHint}>
-              {`Construction contingency (${formatNumber(Math.round(contingencyPercent * 100))}%) is applied to KG 300${EN_DASH}600 based on ${quality.name} quality level.`}
-            </Text>
+          <Text style={styles.cardTitle}>e-EFKA worker insurance</Text>
+          <Text style={styles.optionSubtext}>
+            Mandatory owner-paid construction worker insurance for private building works during execution.
+          </Text>
+          <View style={styles.costInputRow}>
+            <TextInput
+              style={styles.costInput}
+              value={formatEditableDecimal(efkaInsuranceRatePerSqm, 2)}
+              onChangeText={(text) => setEfkaInsuranceRatePerSqm(Math.max(0, parseDecimalInput(text)))}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={Colors.textTertiary}
+              testID="efka-insurance-rate-input"
+            />
+            <Text style={styles.costInputUnit}>{` ${EURO_SYMBOL}/${SQUARE_METER_UNIT}`}</Text>
           </View>
+          <Text style={styles.optionSubtext}>
+            {`Estimated from ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT} effective area.`}
+          </Text>
+          <View style={styles.effectiveRow}>
+            <Text style={styles.effectiveLabel}>Estimated owner-paid insurance</Text>
+            <Text style={styles.effectiveValue}>{formatCurrency(efkaInsuranceAmount)}</Text>
+          </View>
+          <Text style={styles.effectiveFormula}>
+            {`${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT} ${MULTIPLY_SYMBOL} ${formatEditableDecimal(efkaInsuranceRatePerSqm, 2)} ${EURO_SYMBOL}/${SQUARE_METER_UNIT}`}
+          </Text>
+          <Text style={styles.moduleSupportText}>
+            Saved as a separate owner-paid cost reference and not added to the current estimator total.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Construction Contingency</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Automatic default</Text>
+          <View style={styles.effectiveRow}>
+            <Text style={styles.effectiveLabel}>{`${feesQualityLabel} quality default`}</Text>
+            <Text style={styles.effectiveValue}>{`${formatNumber(Math.round(contingencyPercent * 100))}%`}</Text>
+          </View>
+          <Text style={styles.effectiveFormula}>
+            {`${formatCurrency(contingencyCost)} is currently applied automatically to KG 300${EN_DASH}600 in the estimate.`}
+          </Text>
+          <View style={styles.divider} />
+          <Text style={styles.cardTitle}>Manual planning rate</Text>
+          <View style={styles.costInputRow}>
+            <TextInput
+              style={styles.costInput}
+              value={manualContingencyPercent === null ? '' : formatEditableDecimal(manualContingencyPercent, 1)}
+              onChangeText={(text) => {
+                const trimmed = text.trim();
+                if (trimmed === '') {
+                  setManualContingencyPercent(null);
+                  return;
+                }
+                setManualContingencyPercent(Math.max(0, parseDecimalInput(trimmed)));
+              }}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={Colors.textTertiary}
+              testID="manual-contingency-percent-input"
+            />
+            <Text style={styles.costInputUnit}> %</Text>
+          </View>
+          <Text style={styles.optionSubtext}>
+            Optional planning allowance saved separately. Current totals continue to use the automatic quality-based contingency.
+          </Text>
+          {manualContingencyAmount !== null && (
+            <Text style={styles.effectiveFormula}>
+              {`${formatEditableDecimal(manualContingencyPercent ?? 0, 1)}% of construction = ${formatCurrency(manualContingencyAmount)}`}
+            </Text>
+          )}
         </View>
       </View>
     </CollapsibleGroup>
@@ -1854,6 +2028,7 @@ export default function EstimateScreen() {
       {renderBuildingDefinitionGroup()}
       {renderOutdoorAdditionsGroup()}
       {renderSystemsUpgradesGroup()}
+      {renderFeesMarginsGroup()}
 
       <TouchableOpacity
         style={styles.transparencyLink}
@@ -2178,6 +2353,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     minHeight: 48,
   },
+  costInputRowDisabled: {
+    opacity: 0.7,
+  },
   euroSign: {
     fontSize: 18,
     fontWeight: '700' as const,
@@ -2191,10 +2369,16 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     padding: 0,
   },
+  costInputDisabled: {
+    color: Colors.textSecondary,
+  },
   costInputUnit: {
     fontSize: 14,
     color: Colors.textSecondary,
     marginLeft: 4,
+  },
+  costInputUnitDisabled: {
+    color: Colors.textTertiary,
   },
   costHintRow: {
     flexDirection: 'row' as const,
@@ -2204,6 +2388,12 @@ const styles = StyleSheet.create({
   },
   costHint: {
     flex: 1,
+    fontSize: 12,
+    color: Colors.textTertiary,
+    lineHeight: 16,
+  },
+  moduleSupportText: {
+    marginTop: 10,
     fontSize: 12,
     color: Colors.textTertiary,
     lineHeight: 16,

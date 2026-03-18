@@ -69,6 +69,9 @@ export interface ScenarioConfig {
   qualityId: string;
   customCostPerSqm: number | null;
   effectiveArea?: number;
+  vatPercent?: number;
+  efkaInsuranceRatePerSqm?: number;
+  manualContingencyPercent?: number | null;
   plotSize: number;
   mainArea: number;
   terraceArea: number;
@@ -320,6 +323,11 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const landAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? getAutoEstimatedLandAcquisitionCosts(landValue)
     : (config.landAcquisitionCosts ?? 0);
+  const vatPercent = Math.max(0, config.vatPercent ?? 24);
+  const efkaInsuranceRatePerSqm = Math.max(0, config.efkaInsuranceRatePerSqm ?? 0);
+  const manualContingencyPercent = config.manualContingencyPercent === null || config.manualContingencyPercent === undefined
+    ? null
+    : Math.max(0, config.manualContingencyPercent);
   const defaultEffectiveArea = getProgramDefaultEffectiveArea({
     ...config,
     storageBasementArea,
@@ -360,8 +368,7 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(defaultEffectiveArea, bedroomCount);
   const generalFurnitureBaseAmountCustomized = config.generalFurnitureBaseAmountCustomized ?? (
     config.generalFurnitureBaseAmount !== undefined &&
-    config.generalFurnitureBaseAmount !== 0 &&
-    config.generalFurnitureBaseAmount !== 5000
+    config.generalFurnitureBaseAmount !== suggestedGeneralFurnitureBaseAmount
   );
   const generalFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
     ? (config.generalFurnitureBaseAmount ?? suggestedGeneralFurnitureBaseAmount)
@@ -384,6 +391,9 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
   return {
     ...config,
     effectiveArea: config.effectiveArea ?? effectiveArea,
+    vatPercent,
+    efkaInsuranceRatePerSqm,
+    manualContingencyPercent,
     plotSize,
     basementArea,
     basementTypeId: basementArea > 0 ? legacyBasementTypeId : 'storage',
@@ -450,6 +460,9 @@ function createDefaultConfig(name: string): ScenarioConfig {
     qualityId: 'premium',
     customCostPerSqm: null,
     effectiveArea: defaultEffectiveArea,
+    vatPercent: 24,
+    efkaInsuranceRatePerSqm: 0,
+    manualContingencyPercent: null,
     plotSize: 4000,
     mainArea: 150,
     terraceArea: 30,
@@ -569,6 +582,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [poolQualityId, setPoolQualityId] = useState<string>('standard');
   const [poolTypeId, setPoolTypeId] = useState<string>('skimmer');
   const [contractorPercent, setContractorPercent] = useState<number>(DEFAULT_CONTRACTOR_PERCENTAGE);
+  const [vatPercent, setVatPercent] = useState<number>(24);
+  const [efkaInsuranceRatePerSqm, setEfkaInsuranceRatePerSqm] = useState<number>(0);
+  const [manualContingencyPercent, setManualContingencyPercent] = useState<number | null>(null);
   const [siteConditionId, setSiteConditionId] = useState<string>('flat_normal');
   const [landscapingArea, setLandscapingArea] = useState<number>(0);
   const [landValue, setLandValue] = useState<number>(0);
@@ -643,6 +659,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       poolQualityId,
       poolTypeId,
       contractorPercent,
+      vatPercent,
+      efkaInsuranceRatePerSqm,
+      manualContingencyPercent,
       siteConditionId,
       landscapingArea,
       landValue,
@@ -707,6 +726,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setPoolQualityId(config.poolQualityId);
     setPoolTypeId(config.poolTypeId);
     setContractorPercent(config.contractorPercent);
+    setVatPercent(normalizedConfig.vatPercent ?? 24);
+    setEfkaInsuranceRatePerSqm(normalizedConfig.efkaInsuranceRatePerSqm ?? 0);
+    setManualContingencyPercent(normalizedConfig.manualContingencyPercent ?? null);
     setSiteConditionId(config.siteConditionId);
     setLandscapingArea(config.landscapingArea);
     setLandValue(normalizedConfig.landValue);
@@ -799,7 +821,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   }, [
     locationId, qualityId, customCostPerSqm, effectiveArea, plotSize, mainArea, terraceArea, balconyArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
-    poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
+    poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, vatPercent, efkaInsuranceRatePerSqm,
+    manualContingencyPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, kitchenCount, customKitchenUnitCost, generalFurnitureBaseAmount,
     dataSecurityPackageLevel, dataSecurityManualQuote, automationPackageLevel, automationManualQuote,
@@ -1063,7 +1086,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kitchenUnitCost = customKitchenUnitCost ?? suggestedKitchenUnitCost;
   const wardrobeUnitCost = Math.round(KG600_WARDROBE_PACKAGE_BASE_COST * qualityPackageMultiplier);
   const generalFurnitureBedroomIncrement = Math.max(0, bedroomCount - 1) * KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT;
-  const generalFurniturePackageCost = generalFurnitureBaseAmount + generalFurnitureBedroomIncrement;
+  const generalFurniturePackageCost = generalFurnitureBaseAmount;
   const extraBathroomFurnishingSliceCost = Math.max(0, bathroomDelta)
     * Math.round(KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier);
   const extraWcFurnishingSliceCost = Math.max(0, wcDelta)
@@ -1118,6 +1141,13 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setGeneralFurnitureBaseAmountCustomized(true);
     setGeneralFurnitureBaseAmountState(value);
   }, []);
+
+  const setGeneralFurnitureBaseAmountMode = useCallback((isManual: boolean) => {
+    setGeneralFurnitureBaseAmountCustomized(isManual);
+    if (!isManual) {
+      setGeneralFurnitureBaseAmountState(suggestedGeneralFurnitureBaseAmount);
+    }
+  }, [suggestedGeneralFurnitureBaseAmount]);
 
   const categoryCosts = useMemo<CategoryCost[]>(() => {
     return COST_CATEGORIES.map((category) => {
@@ -1558,6 +1588,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setCustomKitchenUnitCost,
     generalFurnitureBaseAmount,
     setGeneralFurnitureBaseAmount,
+    generalFurnitureBaseAmountCustomized,
+    setGeneralFurnitureBaseAmountMode,
     dataSecurityPackageLevel,
     setDataSecurityPackageLevel,
     dataSecurityPackageSelection,
@@ -1618,6 +1650,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolDepth,
     contractorPercent,
     setContractorPercent,
+    vatPercent,
+    setVatPercent,
+    efkaInsuranceRatePerSqm,
+    setEfkaInsuranceRatePerSqm,
+    manualContingencyPercent,
+    setManualContingencyPercent,
     location,
     quality,
     effectiveArea,
@@ -1700,7 +1738,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landAcquisitionCostsMode, setLandAcquisitionCostsMode,
     bathrooms, setBathrooms, wcs, setWcs,
     bedroomCount, setBedroomCount, kitchenCount, setKitchenCount,
-    customKitchenUnitCost, setCustomKitchenUnitCost, generalFurnitureBaseAmount, setGeneralFurnitureBaseAmount,
+    customKitchenUnitCost, setCustomKitchenUnitCost,
+    generalFurnitureBaseAmount, setGeneralFurnitureBaseAmount,
+    generalFurnitureBaseAmountCustomized, setGeneralFurnitureBaseAmountMode,
     dataSecurityPackageLevel, setDataSecurityPackageLevel,
     dataSecurityPackageSelection, setDataSecurityPackageSelection,
     dataSecurityManualQuote, setDataSecurityManualQuote,
@@ -1724,6 +1764,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolTypeId, setPoolTypeId, poolTypeOption,
     poolArea, poolDepth,
     contractorPercent, setContractorPercent,
+    vatPercent, setVatPercent,
+    efkaInsuranceRatePerSqm, setEfkaInsuranceRatePerSqm,
+    manualContingencyPercent, setManualContingencyPercent,
     location, quality, effectiveArea, baseCostPerSqm, costPerSqm,
     sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm,
     constructionCost, categoryCosts, contractorCost, poolCost, permitDesignFee, totalCost,
