@@ -863,6 +863,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     const newName = getNextScenarioName(existingNames);
     const newConfig: ScenarioConfig = {
       ...snapshot,
+      manualContingencyPercent: null,
+      manualContingencyCost: null,
       id: generateId(),
       name: newName,
     };
@@ -894,6 +896,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     const newName = getNextScenarioName(existingNames);
     const newConfig: ScenarioConfig = {
       ...source,
+      manualContingencyPercent: null,
+      manualContingencyCost: null,
       id: generateId(),
       name: newName,
       hvacSelections: { ...source.hvacSelections },
@@ -1640,6 +1644,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const selectQuality = useCallback((id: string) => {
     setQualityId(id);
     setCustomCostPerSqm(null);
+    setManualContingencyPercent(null);
+    setManualContingencyCost(null);
   }, []);
 
   const canCloneScenario = scenarios.length < MAX_SCENARIOS;

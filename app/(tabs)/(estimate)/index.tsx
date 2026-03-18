@@ -498,8 +498,6 @@ export default function EstimateScreen() {
     efkaInsuranceAmount,
     efkaInsuranceManualOverrideActive,
     setManualContingencyPercent,
-    setManualContingencyCost,
-    contingencyManualOverrideActive,
     appliedContingencyPercent,
     siteConditionId,
     setSiteConditionId,
@@ -1994,49 +1992,18 @@ export default function EstimateScreen() {
       <View style={styles.groupSection}>
         <Text style={styles.groupSectionTitle}>Construction Contingency</Text>
         <View style={styles.card}>
-          <Text style={styles.optionSubtext}>
-            Quality-based reserve for construction variability on the KG 300{EN_DASH}600 subtotal.
-          </Text>
           <SliderInput
-            label="Recommended rate"
-            subtitle={`Reference rate for ${feesQualityLabel} quality`}
-            value={Math.round(contingencyPercent * 1000) / 10}
-            onChangeValue={() => {}}
+            label="Applied rate"
+            subtitle={`Recommended rate for ${feesQualityLabel} quality: ${formatEditableDecimal(contingencyPercent * 100, 1)}%`}
+            value={Math.round(appliedContingencyPercent * 10) / 10}
+            onChangeValue={(value) => {
+              setManualContingencyPercent(Math.max(0, value));
+            }}
             min={0}
             max={20}
             step={0.5}
             suffix="%"
-            editable={false}
-            testID="slider-contingency-reference"
-          />
-          <View style={styles.divider} />
-          <Text style={styles.cardTitle}>Applied rate</Text>
-          <OverrideValueField
-            value={formatEditableDecimal(appliedContingencyPercent, 1)}
-            onChangeText={(text) => {
-              setManualContingencyPercent(Math.max(0, parseDecimalInput(text)));
-              setManualContingencyCost(null);
-            }}
-            editable={contingencyManualOverrideActive}
-            unit=" %"
-            helperText={contingencyManualOverrideActive
-              ? `Reference rate: ${formatEditableDecimal(contingencyPercent * 100, 1)}% for ${feesQualityLabel}.`
-              : ''}
-            onToggle={() => {
-              if (Platform.OS !== 'web') {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
-              if (contingencyManualOverrideActive) {
-                setManualContingencyPercent(null);
-                setManualContingencyCost(null);
-              } else {
-                setManualContingencyPercent(Math.round(contingencyPercent * 1000) / 10);
-                setManualContingencyCost(null);
-              }
-            }}
-            inputTestID="manual-contingency-percent-input"
-            actionTestID="contingency-manual-toggle"
-            keyboardType="decimal-pad"
+            testID="slider-contingency-rate"
           />
           <Text style={styles.effectiveFormula}>
             {`Contingency cost: ${formatCurrency(contingencyCost)}`}
