@@ -9,10 +9,9 @@ import {
   Switch,
   Platform,
   Linking,
-  Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { MapPin, Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, FileText, ExternalLink, Plug, ShieldAlert, Shield, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, RotateCcw, LandPlot, Sofa, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, ExternalLink, Plug, ShieldAlert, Shield, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, LandPlot, Sofa, ChevronDown, ChevronUp } from 'lucide-react-native';
 import SliderInput from '@/components/SliderInput';
 import ScenarioBar from '@/components/ScenarioBar';
 import { useRouter } from 'expo-router';
@@ -62,7 +61,7 @@ const DATA_SECURITY_LEVEL_OPTIONS = [
   {
     id: 'essential',
     label: 'Essential',
-    description: 'Basic cabling and core networking provision included in the benchmark.',
+    description: 'Basic data provision and core security preparation included in the base benchmark.',
   },
   {
     id: 'connected',
@@ -84,8 +83,8 @@ const DATA_SECURITY_LEVEL_OPTIONS = [
 const AUTOMATION_LEVEL_OPTIONS = [
   {
     id: 'none',
-    label: 'None',
-    description: 'Only the benchmark-included non-automation baseline is included.',
+    label: 'No automation',
+    description: 'Standard electrical installation without smart-home automation.',
   },
   {
     id: 'connected',
@@ -106,15 +105,14 @@ const AUTOMATION_LEVEL_OPTIONS = [
 
 function sanitizeEstimateText(value: string): string {
   return value
-    .replace(/Ãƒâ€”/g, '×')
-    .replace(/Ã—/g, '×')
-    .replace(/Ã¢â€šÂ¬/g, '€')
-    .replace(/â‚¬/g, '€')
-    .replace(/mÂ²/g, 'm²')
-    .replace(/âˆ’/g, '−')
-    .replace(/â€“/g, '–')
-    .replace(/â†’/g, '→')
-    .replace(/Â·/g, '·');
+    .replace(/\u00e2\u20ac\u201c/g, EN_DASH)
+    .replace(/\u00e2\u20ac\u201d/g, '\u2014')
+    .replace(/\u00e2\u2020\u2019/g, ARROW_SYMBOL)
+    .replace(/m\u00c2\u00b2/g, SQUARE_METER_UNIT)
+    .replace(/m\u00c3\u201a\u00c2\u00b2/g, SQUARE_METER_UNIT)
+    .replace(/\u00c2\u00b7/g, MIDDLE_DOT)
+    .replace(/\u00c3\u2014/g, MULTIPLY_SYMBOL)
+    .replace(/\u00c2\u20ac/g, EURO_SYMBOL);
 }
 
 const EURO_SYMBOL = '\u20AC';
@@ -478,12 +476,11 @@ export default function EstimateScreen() {
     generalFurniturePackageCost,
     bathroomWcFurnishingSliceCost,
     includedWardrobes,
-    resetAllData,
   } = useEstimate();
 
   const isLargeProject = permitDesignEffectiveArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
   const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
-  const displaySizeCorrectionLabel = sanitizeEstimateText(sizeCorrectionLabel);
+  const displaySizeCorrectionLabel = sanitizeEstimateText(sizeCorrectionLabel === 'Base' ? '0%' : sizeCorrectionLabel);
   const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
     ? landValue * 0.06
     : landAcquisitionCosts;
@@ -579,7 +576,1261 @@ export default function EstimateScreen() {
   const [showAccessibilityInfo, setShowAccessibilityInfo] = React.useState<boolean>(false);
   const [showBuildingInteriorGroup, setShowBuildingInteriorGroup] = React.useState<boolean>(true);
   const [showPlotExternalGroup, setShowPlotExternalGroup] = React.useState<boolean>(true);
-  const [showFeesGroup, setShowFeesGroup] = React.useState<boolean>(true);
+  const [showBenchmarkGroup, setShowBenchmarkGroup] = React.useState<boolean>(true);
+  const [showOutdoorAdditionsGroup, setShowOutdoorAdditionsGroup] = React.useState<boolean>(true);
+  const [showSystemsUpgradesGroup, setShowSystemsUpgradesGroup] = React.useState<boolean>(true);
+
+  const renderBuildingDefinitionGroup = () => (
+    <CollapsibleGroup
+      title="Building Definition"
+      icon={<Home size={16} color={Colors.accent} />}
+      expanded={showBuildingInteriorGroup}
+      onToggle={() => setShowBuildingInteriorGroup((prev) => !prev)}
+    >
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Building Size</Text>
+        <View style={styles.card}>
+          <SliderInput
+            label="Living Area (above ground)"
+            subtitle="Total above-ground house area, including walls, measured to the outer face of the exterior structural walls. Basement area is entered separately."
+            value={mainArea}
+            onChangeValue={setMainArea}
+            min={80}
+            max={400}
+            step={5}
+            testID="slider-living-area"
+          />
+          <View style={styles.divider} />
+          <Text style={styles.inlineSubsectionLabel}>Basement</Text>
+          <SliderInput
+            label="Storage Basement Area"
+            subtitle="Technical rooms, storage, utility spaces"
+            value={storageBasementArea}
+            onChangeValue={setStorageBasementArea}
+            min={0}
+            max={250}
+            step={5}
+            badge="50%"
+            testID="slider-storage-basement-area"
+          />
+          <View style={styles.divider} />
+          <SliderInput
+            label="Parking Basement Area"
+            subtitle="Garage and vehicle storage areas"
+            value={parkingBasementArea}
+            onChangeValue={setParkingBasementArea}
+            min={0}
+            max={250}
+            step={5}
+            badge="65%"
+            testID="slider-parking-basement-area"
+          />
+          <View style={styles.divider} />
+          <SliderInput
+            label="Habitable Basement Area"
+            subtitle="Basement floor area used as habitable interior space. Storage and parking basement areas are treated separately if applicable."
+            value={habitableBasementArea}
+            onChangeValue={setHabitableBasementArea}
+            min={0}
+            max={250}
+            step={5}
+            badge="85%"
+            testID="slider-habitable-basement-area"
+          />
+          {basementArea > 0 && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.effectiveRow}>
+                <Text style={styles.effectiveLabel}>Basement Mix</Text>
+                <Text style={styles.effectiveValue}>{`${formatNumber(basementArea)} ${SQUARE_METER_UNIT}`}</Text>
+              </View>
+              <Text style={styles.effectiveFormula}>
+                {`${storageBasementArea > 0 ? `${formatNumber(storageBasementArea)} ${SQUARE_METER_UNIT} storage` : ''}${storageBasementArea > 0 && (parkingBasementArea > 0 || habitableBasementArea > 0) ? ` ${MIDDLE_DOT} ` : ''}${parkingBasementArea > 0 ? `${formatNumber(parkingBasementArea)} ${SQUARE_METER_UNIT} parking` : ''}${parkingBasementArea > 0 && habitableBasementArea > 0 ? ` ${MIDDLE_DOT} ` : ''}${habitableBasementArea > 0 ? `${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT} habitable` : ''}`}
+              </Text>
+            </>
+          )}
+          <View style={styles.divider} />
+          <SliderInput
+            label="Covered Terraces"
+            subtitle="Counted at 50% of area"
+            value={terraceArea}
+            onChangeValue={setTerraceArea}
+            badge="50%"
+            min={0}
+            max={120}
+            step={5}
+            testID="slider-terrace-area"
+          />
+          <View style={styles.divider} />
+          <SliderInput
+            label="Balcony Area"
+            subtitle="Open balconies, cantilevered spaces"
+            value={balconyArea}
+            onChangeValue={setBalconyArea}
+            badge="30%"
+            min={0}
+            max={80}
+            step={5}
+            testID="slider-balcony-area"
+          />
+          <View style={styles.divider} />
+          <HighlightSummaryRow
+            label="Effective area"
+            value={`${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
+            subtitle={`The weighted project area used to apply the benchmark construction cost. ${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${storageBasementArea > 0 ? ` + (${formatNumber(storageBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})` : ''}${parkingBasementArea > 0 ? ` + (${formatNumber(parkingBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.65, 2)})` : ''}${habitableBasementArea > 0 ? ` + (${formatNumber(habitableBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.85, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
+          />
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Interior Program & Furnishing</Text>
+        <View style={styles.card}>
+          <IntegerInputRow
+            label="Bedrooms"
+            value={bedroomCount}
+            onChangeValue={setBedroomCount}
+            min={1}
+            subtitle={bedroomSubtitle}
+            infoText="Bedrooms here are used for built-in wardrobes only. Loose bedroom furniture is included in the General Furniture Base Amount."
+          />
+          <View style={styles.divider} />
+          <IntegerInputRow
+            label="Bathrooms"
+            value={bathrooms}
+            onChangeValue={setBathrooms}
+            min={0}
+            subtitle={bathroomSubtitle}
+          />
+          <View style={styles.divider} />
+          <IntegerInputRow
+            label="WCs (guest WC)"
+            value={wcs}
+            onChangeValue={setWcs}
+            min={0}
+            subtitle={wcSubtitle}
+          />
+        </View>
+        <View style={styles.card}>
+          <IntegerInputRow
+            label="Kitchens"
+            value={kitchenCount}
+            onChangeValue={setKitchenCount}
+            min={0}
+            subtitle="Kitchens are typically not included in the base contractor offer. Each kitchen is counted separately using the unit cost shown below."
+          />
+          <View style={styles.divider} />
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Kitchen Unit Cost</Text>
+            {customKitchenUnitCost !== null && (
+              <TouchableOpacity onPress={() => setCustomKitchenUnitCost(null)}>
+                <Text style={styles.resetLink}>Reset</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.costInputRow}>
+            <TextInput
+              style={styles.costInput}
+              value={formatNumber(kitchenUnitCost)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9]/g, '');
+                const num = parseInt(cleaned, 10);
+                if (isNaN(num) || num <= 0) {
+                  setCustomKitchenUnitCost(null);
+                } else {
+                  setCustomKitchenUnitCost(num);
+                }
+              }}
+              keyboardType="numeric"
+              testID="kitchen-unit-cost-input"
+            />
+            <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+          </View>
+          <Text style={styles.optionSubtext}>
+            {`Suggested ${formatCurrency(suggestedKitchenUnitCost)} ${MIDDLE_DOT} quality and area adjusted`}
+          </Text>
+          <View style={styles.divider} />
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>General Furniture Base Amount</Text>
+          </View>
+          <View style={styles.costInputRow}>
+            <TextInput
+              style={styles.costInput}
+              value={generalFurnitureBaseAmount > 0 ? formatNumber(generalFurnitureBaseAmount) : ''}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9]/g, '');
+                setGeneralFurnitureBaseAmount(parseInt(cleaned, 10) || 0);
+              }}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={Colors.textTertiary}
+              testID="general-furniture-base-input"
+            />
+            <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+          </View>
+          <Text style={styles.optionSubtext}>
+            {`Loose furniture package. Recommended amount is based on bedrooms and effective area. This value is editable.`}
+          </Text>
+          <View style={styles.divider} />
+          <View style={styles.effectiveRow}>
+            <Text style={styles.effectiveLabel}>KG600 Furnishings Total</Text>
+            <Text style={styles.effectiveValue}>{formatCurrency(kg600Cost)}</Text>
+          </View>
+          <Text style={styles.effectiveFormula}>
+            {`${formatCurrency(kitchenPackageCost)} kitchen${wardrobePackageCost > 0 ? ` + ${formatCurrency(wardrobePackageCost)} wardrobes (${includedWardrobes})` : ''}${generalFurniturePackageCost > 0 ? ` + ${formatCurrency(generalFurniturePackageCost)} general furniture` : ''}${bathroomWcFurnishingSliceCost > 0 ? ` + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices` : ''}`}
+          </Text>
+        </View>
+      </View>
+    </CollapsibleGroup>
+  );
+
+  const renderSystemsUpgradesGroup = () => (
+    <CollapsibleGroup
+      title="Systems & Upgrades"
+      icon={<Settings size={16} color={Colors.accent} />}
+      expanded={showSystemsUpgradesGroup}
+      onToggle={() => setShowSystemsUpgradesGroup((prev) => !prev)}
+    >
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Digital Infrastructure & Security</Text>
+        <Text style={styles.groupSectionSubtitle}>Essential level is included in the base benchmark (0% adjustment).</Text>
+        <View style={styles.card}>
+          {DATA_SECURITY_LEVEL_OPTIONS.map((option, index) => {
+            const isSelected = dataSecurityPackageLevel === option.id;
+            return (
+              <React.Fragment key={option.id}>
+                {index > 0 && <View style={styles.divider} />}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
+                  onPress={() => {
+                    if (Platform.OS !== 'web') {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                    setDataSecurityPackageLevel(option.id);
+                  }}
+                  testID={`data-security-package-${option.id}`}
+                >
+                  <View style={styles.optionInfo}>
+                    <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>
+                      {option.label}
+                    </Text>
+                    <Text style={styles.optionSubtext}>{option.description}</Text>
+                  </View>
+                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                    {isSelected && <View style={styles.radioInner} />}
+                  </View>
+                </TouchableOpacity>
+              </React.Fragment>
+            );
+          })}
+          {dataSecurityPackageLevel === 'custom' ? (
+            <>
+              <View style={styles.divider} />
+              <Text style={styles.optionSubtext}>
+                Enter a custom uplift above the benchmark-included baseline for Digital Infrastructure & Security.
+              </Text>
+              <View style={styles.costInputRow}>
+                <TextInput
+                  style={styles.costInput}
+                  value={dataSecurityManualQuote !== null ? formatNumber(dataSecurityManualQuote) : ''}
+                  onChangeText={(text) => {
+                    setDataSecurityManualQuote(parseOptionalCurrencyInput(text));
+                  }}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={Colors.textTertiary}
+                  testID="data-security-quote-input"
+                />
+                <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+              </View>
+              <Text style={styles.optionSubtext}>Custom uplift above baseline</Text>
+              <Text style={styles.optionSubtext}>
+                {`Total subgroup amount with custom uplift: ${formatCurrency(dataSecurityAppliedPackageCost)}`}
+              </Text>
+            </>
+          ) : dataSecurityPackageLevel !== 'essential' ? (
+            <>
+              <View style={styles.divider} />
+              <Text style={styles.optionSubtext}>
+                {`Total subgroup amount for selected level: ${formatCurrency(dataSecurityDefaultPackageCost)}.`}
+              </Text>
+            </>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Smart Control & Automation</Text>
+        <Text style={styles.groupSectionSubtitle}>No automation applies the base assumption (0% adjustment).</Text>
+        <View style={styles.card}>
+          {AUTOMATION_LEVEL_OPTIONS.map((option, index) => {
+            const isSelected = automationPackageLevel === option.id;
+            return (
+              <React.Fragment key={option.id}>
+                {index > 0 && <View style={styles.divider} />}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
+                  onPress={() => {
+                    if (Platform.OS !== 'web') {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                    setAutomationPackageLevel(option.id);
+                  }}
+                  testID={`automation-package-${option.id}`}
+                >
+                  <View style={styles.optionInfo}>
+                    <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>
+                      {option.label}
+                    </Text>
+                    <Text style={styles.optionSubtext}>{option.description}</Text>
+                  </View>
+                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                    {isSelected && <View style={styles.radioInner} />}
+                  </View>
+                </TouchableOpacity>
+              </React.Fragment>
+            );
+          })}
+          {automationPackageLevel === 'custom' ? (
+            <>
+              <View style={styles.divider} />
+              <Text style={styles.optionSubtext}>
+                Enter a custom amount for Smart Control & Automation.
+              </Text>
+              <View style={styles.costInputRow}>
+                <TextInput
+                  style={styles.costInput}
+                  value={automationManualQuote !== null ? formatNumber(automationManualQuote) : ''}
+                  onChangeText={(text) => {
+                    setAutomationManualQuote(parseOptionalCurrencyInput(text));
+                  }}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={Colors.textTertiary}
+                  testID="automation-quote-input"
+                />
+                <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+              </View>
+              <Text style={styles.optionSubtext}>Custom amount used in the calculation</Text>
+              <Text style={styles.optionSubtext}>
+                {`Total subgroup amount with custom input: ${formatCurrency(automationAppliedPackageCost)}`}
+              </Text>
+            </>
+          ) : automationPackageLevel !== 'none' ? (
+            <>
+              <View style={styles.divider} />
+              <Text style={styles.optionSubtext}>
+                {`Fixed uplift amount for selected level: ${formatCurrency(automationDefaultPackageCost)}.`}
+              </Text>
+            </>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <View style={styles.groupSectionHeader}>
+          <Text style={styles.groupSectionHeaderTitle}>Energy Systems</Text>
+          <TouchableOpacity
+            onPress={() => setShowHvacInfo(!showHvacInfo)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="hvac-info-btn"
+          >
+            <Info size={15} color={Colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+        {showHvacInfo && (
+          <View style={styles.tooltipCard}>
+            <Text style={styles.tooltipText}>{sanitizeEstimateText(HVAC_TOOLTIP)}</Text>
+          </View>
+        )}
+        <View style={styles.card}>
+          <Text style={styles.hvacBaseNote}>Base: Heat pump + fan-coil / VRV system included</Text>
+          {HVAC_OPTIONS.map((opt, idx) => {
+            const isEnabled = hvacSelections[opt.id] ?? false;
+            const hvacItem = hvacCosts.find((h) => h.option.id === opt.id);
+            return (
+              <React.Fragment key={opt.id}>
+                {idx > 0 && <View style={styles.divider} />}
+                <View style={styles.optionRow}>
+                  <View style={styles.optionInfo}>
+                    <Text style={styles.optionLabel}>{opt.name}</Text>
+                    <Text style={styles.optionSubtext}>
+                      {isEnabled && hvacItem
+                        ? `${formatCurrency(hvacItem.cost)} ${MIDDLE_DOT} ${opt.description}`
+                        : opt.description}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={isEnabled}
+                    onValueChange={() => {
+                      if (Platform.OS !== 'web') {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }
+                      toggleHvacOption(opt.id);
+                    }}
+                    trackColor={{ false: Colors.border, true: Colors.accent }}
+                    thumbColor={Colors.white}
+                    testID={`hvac-toggle-${opt.id}`}
+                  />
+                </View>
+              </React.Fragment>
+            );
+          })}
+          {totalHvacCost > 0 && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.effectiveRow}>
+                <Text style={styles.effectiveLabel}>Energy Systems Total</Text>
+                <Text style={styles.effectiveValue}>{formatCurrency(totalHvacCost)}</Text>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </CollapsibleGroup>
+  );
+
+  const renderSiteParametersGroup = () => (
+    <CollapsibleGroup
+      title="Site Parameters"
+      icon={<LandPlot size={16} color={Colors.accent} />}
+      expanded={showPlotExternalGroup}
+      onToggle={() => setShowPlotExternalGroup((prev) => !prev)}
+    >
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Location</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
+          {LOCATIONS.map((loc) => {
+            const isSelected = locationId === loc.id;
+            return (
+              <TouchableOpacity
+                key={loc.id}
+                activeOpacity={0.7}
+                style={[styles.chip, isSelected && styles.chipSelected]}
+                onPress={() => handleLocationSelect(loc.id)}
+                testID={`location-${loc.id}`}
+              >
+                <Text style={[styles.chipName, isSelected && styles.chipNameSelected]}>
+                  {loc.name}
+                </Text>
+                <Text style={[styles.chipMult, isSelected && styles.chipMultSelected]}>
+                  {MULTIPLY_SYMBOL}{formatDecimal(loc.multiplier, 2)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Land Acquisition</Text>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Land Cost</Text>
+          </View>
+          <View style={styles.costInputRow}>
+            <TextInput
+              style={styles.costInput}
+              value={landValue > 0 ? formatNumber(landValue) : ''}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9]/g, '');
+                setLandValue(parseInt(cleaned, 10) || 0);
+              }}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={Colors.textTertiary}
+              testID="land-value-input"
+            />
+            <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+          </View>
+
+          <View style={styles.divider} />
+          <Text style={styles.poolSubsectionTitle}>Incidental Land Acquisition Costs</Text>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'auto' && styles.utilityOptionRowSelected]}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setLandAcquisitionCostsMode('auto');
+            }}
+            testID="land-acquisition-mode-auto"
+          >
+            <View style={styles.optionInfo}>
+              <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'auto' && { color: Colors.accent }]}>
+                Auto estimate (6%)
+              </Text>
+              <Text style={styles.optionSubtext}>Derived from land cost {MULTIPLY_SYMBOL} {formatDecimal(0.06, 2)}</Text>
+            </View>
+            <View style={[styles.radioOuter, landAcquisitionCostsMode === 'auto' && styles.radioOuterSelected]}>
+              {landAcquisitionCostsMode === 'auto' && <View style={styles.radioInner} />}
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'manual' && styles.utilityOptionRowSelected]}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setLandAcquisitionCostsMode('manual');
+            }}
+            testID="land-acquisition-mode-manual"
+          >
+            <View style={styles.optionInfo}>
+              <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'manual' && { color: Colors.accent }]}>
+                Manual override
+              </Text>
+              <Text style={styles.optionSubtext}>Enter incidental acquisition costs directly</Text>
+            </View>
+            <View style={[styles.radioOuter, landAcquisitionCostsMode === 'manual' && styles.radioOuterSelected]}>
+              {landAcquisitionCostsMode === 'manual' && <View style={styles.radioInner} />}
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          {landAcquisitionCostsMode === 'manual' ? (
+            <>
+              <View style={styles.costInputRow}>
+                <TextInput
+                  style={styles.costInput}
+                  value={landAcquisitionCosts > 0 ? formatNumber(landAcquisitionCosts) : ''}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9]/g, '');
+                    setLandAcquisitionCosts(parseInt(cleaned, 10) || 0);
+                  }}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={Colors.textTertiary}
+                  testID="land-acquisition-costs-input"
+                />
+                <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+              </View>
+              <View style={styles.divider} />
+            </>
+          ) : null}
+
+          <View style={styles.effectiveRow}>
+            <Text style={styles.effectiveLabel}>Estimated Acquisition Costs</Text>
+            <Text style={styles.effectiveValue}>{formatCurrency(displayedLandAcquisitionCosts)}</Text>
+          </View>
+          <Text style={styles.effectiveFormula}>
+            {landAcquisitionCostsMode === 'auto'
+              ? `${formatCurrency(displayedLandAcquisitionCosts)} (6% of ${formatCurrency(landValue)})`
+              : 'Manual override value'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Plot Size</Text>
+        <View style={styles.card}>
+          <SliderInput
+            label="Plot size"
+            subtitle=""
+            value={plotSize}
+            onChangeValue={setPlotSize}
+            min={500}
+            max={10000}
+            step={100}
+            suffix={SQUARE_METER_UNIT}
+            testID="slider-plot-size"
+          />
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Site Conditions & Infrastructure</Text>
+
+        <View style={styles.groupNestedBlock}>
+          <View style={styles.groupInlineHeader}>
+            <Text style={styles.groupInlineTitle}>Slope & Soil Type</Text>
+            <TouchableOpacity
+              onPress={() => setShowSiteConditionInfo(!showSiteConditionInfo)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              testID="site-condition-info-btn"
+            >
+              <Info size={15} color={Colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+          {showSiteConditionInfo && (
+            <View style={styles.tooltipCard}>
+              <Text style={styles.tooltipText}>{sanitizeEstimateText(SITE_CONDITIONS_TOOLTIP)}</Text>
+            </View>
+          )}
+          <View style={styles.siteConditionsGrid}>
+            {SITE_CONDITIONS.map((cond) => {
+              const isSelected = siteConditionId === cond.id;
+              return (
+                <TouchableOpacity
+                  key={cond.id}
+                  activeOpacity={0.7}
+                  style={[styles.siteCondCard, isSelected && styles.siteCondCardSelected]}
+                  onPress={() => handleSiteConditionSelect(cond.id)}
+                  testID={`site-condition-${cond.id}`}
+                >
+                  <View style={[styles.siteCondIconWrap, isSelected && styles.siteCondIconWrapSelected]}>
+                    <SiteConditionIcon
+                      conditionId={cond.id}
+                      size={40}
+                      color={isSelected ? Colors.accent : Colors.primary}
+                    />
+                  </View>
+                  <Text style={[styles.siteCondName, isSelected && styles.siteCondNameSelected]}>
+                    {cond.name}
+                  </Text>
+                  <Text style={[styles.siteCondDesc, isSelected && styles.siteCondDescSelected]}>
+                    {cond.description}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {siteConditionId === 'inclined_sandy' && (
+            <View style={styles.warningCard}>
+              <AlertTriangle size={16} color={Colors.warning} />
+              <View style={styles.warningContent}>
+                <Text style={styles.warningTitle}>Important notice</Text>
+                <Text style={styles.warningText}>{sanitizeEstimateText(UNSTABLE_SOIL_WARNING)}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.groupNestedBlock}>
+          <View style={styles.groupInlineHeader}>
+            <Text style={styles.groupInlineTitle}>Groundwater</Text>
+            <TouchableOpacity
+              onPress={() => setShowGroundwaterInfo(!showGroundwaterInfo)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              testID="groundwater-info-btn"
+            >
+              <Info size={15} color={Colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+          {showGroundwaterInfo && (
+            <View style={styles.tooltipCard}>
+              <Text style={styles.tooltipText}>{sanitizeEstimateText(GROUNDWATER_TOOLTIP)}</Text>
+            </View>
+          )}
+          <View style={styles.card}>
+            {GROUNDWATER_CONDITIONS.map((gw, idx) => {
+              const isSelected = groundwaterConditionId === gw.id;
+              return (
+                <React.Fragment key={gw.id}>
+                  {idx > 0 && <View style={styles.divider} />}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
+                    onPress={() => {
+                      if (Platform.OS !== 'web') {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }
+                      setGroundwaterConditionId(gw.id);
+                    }}
+                    testID={`groundwater-${gw.id}`}
+                  >
+                    <View style={styles.optionInfo}>
+                      <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>{gw.name}</Text>
+                      <Text style={styles.optionSubtext}>{gw.description}</Text>
+                    </View>
+                    <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+          </View>
+          {groundwaterConditionId === 'high' && (
+            <View style={styles.warningCard}>
+              <AlertTriangle size={16} color={Colors.warning} />
+              <View style={styles.warningContent}>
+                <Text style={styles.warningTitle}>Important notice</Text>
+                <Text style={styles.warningText}>{sanitizeEstimateText(HIGH_GROUNDWATER_WARNING)}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.groupNestedBlock}>
+          <View style={styles.groupInlineHeader}>
+            <Text style={styles.groupInlineTitle}>Accessibility</Text>
+            <TouchableOpacity
+              onPress={() => setShowAccessibilityInfo(!showAccessibilityInfo)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              testID="accessibility-info-btn"
+            >
+              <Info size={15} color={Colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+          {showAccessibilityInfo && (
+            <View style={styles.tooltipCard}>
+              <Text style={styles.tooltipText}>{sanitizeEstimateText(SITE_ACCESSIBILITY_TOOLTIP)}</Text>
+            </View>
+          )}
+          <View style={styles.card}>
+            {SITE_ACCESSIBILITY_OPTIONS.map((acc, idx) => {
+              const isSelected = siteAccessibilityId === acc.id;
+              return (
+                <React.Fragment key={acc.id}>
+                  {idx > 0 && <View style={styles.divider} />}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
+                    onPress={() => {
+                      if (Platform.OS !== 'web') {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }
+                      setSiteAccessibilityId(acc.id);
+                    }}
+                    testID={`accessibility-${acc.id}`}
+                  >
+                    <View style={styles.optionInfo}>
+                      <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>{acc.name}</Text>
+                      <Text style={styles.optionSubtext}>{acc.description}</Text>
+                    </View>
+                    <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+          </View>
+          {(siteAccessibilityId === 'difficult' || siteAccessibilityId === 'very_difficult') && (
+            <View style={styles.warningCard}>
+              <AlertTriangle size={16} color={Colors.warning} />
+              <View style={styles.warningContent}>
+                <Text style={styles.warningText}>
+                  {sanitizeEstimateText(siteAccessibilityId === 'very_difficult' ? VERY_DIFFICULT_ACCESS_WARNING : DIFFICULT_ACCESS_WARNING)}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.groupNestedBlock}>
+          <View style={styles.groupInlineHeader}>
+            <Text style={styles.groupInlineTitle}>Utility Network Connections</Text>
+            <TouchableOpacity
+              onPress={() => setShowUtilityInfo(!showUtilityInfo)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              testID="utility-info-btn"
+            >
+              <Info size={15} color={Colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+          {showUtilityInfo && (
+            <View style={styles.tooltipCard}>
+              <Text style={styles.tooltipText}>{sanitizeEstimateText(UTILITY_CONNECTION_TOOLTIP)}</Text>
+            </View>
+          )}
+          <View style={styles.card}>
+            {UTILITY_CONNECTION_OPTIONS.map((opt, idx) => {
+              const isSelected = utilityConnectionId === opt.id;
+              return (
+                <React.Fragment key={opt.id}>
+                  {idx > 0 && <View style={styles.divider} />}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
+                    onPress={() => {
+                      if (Platform.OS !== 'web') {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }
+                      setUtilityConnectionId(opt.id);
+                    }}
+                    testID={`utility-${opt.id}`}
+                  >
+                    <View style={styles.optionInfo}>
+                      <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>{opt.name}</Text>
+                      <Text style={styles.optionSubtext}>
+                        {opt.id !== 'custom' ? `${formatCurrency(opt.cost)} ${MIDDLE_DOT} ${opt.description}` : opt.description}
+                      </Text>
+                    </View>
+                    <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+            {utilityConnectionId === 'custom' && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.costInputRow}>
+                  <TextInput
+                    style={styles.costInput}
+                    value={customUtilityCost > 0 ? formatNumber(customUtilityCost) : ''}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9]/g, '');
+                      setCustomUtilityCost(parseInt(cleaned, 10) || 0);
+                    }}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={Colors.textTertiary}
+                    testID="utility-custom-cost"
+                  />
+                  <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+                </View>
+              </>
+            )}
+            <View style={styles.divider} />
+            <View style={styles.effectiveRow}>
+              <Text style={styles.effectiveLabel}>Connection Cost</Text>
+              <Text style={styles.effectiveValue}>{formatCurrency(utilityConnectionCost)}</Text>
+            </View>
+          </View>
+        </View>
+
+      </View>
+    </CollapsibleGroup>
+  );
+
+  const renderOutdoorAdditionsGroup = () => (
+    <CollapsibleGroup
+      title="Outdoor & Additions"
+      icon={<TreePine size={16} color={Colors.accent} />}
+      expanded={showOutdoorAdditionsGroup}
+      onToggle={() => setShowOutdoorAdditionsGroup((prev) => !prev)}
+    >
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Landscape & Outdoor Works</Text>
+        <View style={styles.card}>
+          <SliderInput
+            label="Landscaping Area"
+            subtitle="Garden, driveways, outdoor areas"
+            value={landscapingArea}
+            onChangeValue={setLandscapingArea}
+            min={0}
+            max={1500}
+            step={10}
+            testID="slider-landscaping-area"
+          />
+          {landscapingArea > 0 && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.effectiveRow}>
+                <Text style={styles.effectiveLabel}>Landscaping Cost</Text>
+                <Text style={styles.effectiveValue}>{formatCurrency(landscapingCost)}</Text>
+              </View>
+              <Text style={styles.effectiveFormula}>
+                {`Based on ${formatCurrency(40)} /${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${siteCondition.name}`}
+              </Text>
+            </>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <View style={styles.groupSectionHeader}>
+          <Text style={styles.groupSectionHeaderTitle}>Swimming Pool</Text>
+          <TouchableOpacity
+            onPress={() => setShowPoolInfo(!showPoolInfo)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="pool-info-btn"
+          >
+            <Info size={15} color={Colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+        {showPoolInfo && (
+          <View style={styles.tooltipCard}>
+            <Text style={styles.tooltipText}>{sanitizeEstimateText(POOL_TOOLTIP)}</Text>
+          </View>
+        )}
+        <View style={styles.card}>
+          <View style={styles.optionRow}>
+            <View style={styles.optionInfo}>
+              <Text style={styles.optionLabel}>Include Swimming Pool</Text>
+              <Text style={styles.optionSubtext}>
+                {includePool
+                  ? `${formatCurrency(poolCost)} ${MIDDLE_DOT} ${poolQualityOption.name}`
+                  : 'Not included in estimate'}
+              </Text>
+            </View>
+            <Switch
+              value={includePool}
+              onValueChange={(val) => {
+                if (Platform.OS !== 'web') {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+                setIncludePool(val);
+              }}
+              trackColor={{ false: Colors.border, true: Colors.accent }}
+              thumbColor={Colors.white}
+              testID="pool-toggle"
+            />
+          </View>
+          {includePool && (
+            <>
+              <View style={styles.divider} />
+              <Text style={styles.poolSubsectionTitle}>Pool Size</Text>
+              <View style={styles.poolSizeGrid}>
+                {POOL_SIZE_OPTIONS.map((opt) => {
+                  const isSelected = poolSizeId === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      activeOpacity={0.7}
+                      style={[styles.poolSizeBtn, isSelected && styles.poolSizeBtnSelected]}
+                      onPress={() => {
+                        if (Platform.OS !== 'web') {
+                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                        setPoolSizeId(opt.id);
+                      }}
+                      testID={`pool-size-${opt.id}`}
+                    >
+                      <Text style={[styles.poolSizeName, isSelected && styles.poolSizeNameSelected]}>
+                        {opt.name}
+                      </Text>
+                      {opt.area > 0 && (
+                        <Text style={[styles.poolSizeArea, isSelected && styles.poolSizeAreaSelected]}>
+                          {`${formatNumber(opt.area)} ${SQUARE_METER_UNIT}`}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {poolSizeId === 'custom' && (
+                <View style={styles.poolCustomRow}>
+                  <View style={styles.poolCustomField}>
+                    <Text style={styles.poolCustomLabel}>Pool Area</Text>
+                    <View style={styles.poolCustomInputWrap}>
+                      <TextInput
+                        style={styles.poolCustomInput}
+                        value={poolCustomArea > 0 ? formatNumber(poolCustomArea) : ''}
+                        onChangeText={(text) => {
+                          const cleaned = text.replace(/[^0-9]/g, '');
+                          setPoolCustomArea(parseInt(cleaned, 10) || 0);
+                        }}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={Colors.textTertiary}
+                        testID="pool-custom-area"
+                      />
+                      <Text style={styles.poolCustomUnit}>{SQUARE_METER_UNIT}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.poolCustomField}>
+                    <Text style={styles.poolCustomLabel}>Pool Depth</Text>
+                    <View style={styles.poolCustomInputWrap}>
+                      <TextInput
+                        style={styles.poolCustomInput}
+                        value={poolCustomDepth > 0 ? formatDecimal(poolCustomDepth, 2) : ''}
+                        onChangeText={(text) => {
+                          const cleaned = text.replace(/[^0-9,]/g, '').replace(',', '.');
+                          const num = parseFloat(cleaned);
+                          setPoolCustomDepth(isNaN(num) ? 0 : num);
+                        }}
+                        keyboardType="decimal-pad"
+                        placeholder={formatDecimal(1.4, 2)}
+                        placeholderTextColor={Colors.textTertiary}
+                        testID="pool-custom-depth"
+                      />
+                      <Text style={styles.poolCustomUnit}>m</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+              <View style={styles.divider} />
+              <Text style={styles.poolSubsectionTitle}>Pool Quality</Text>
+              <View style={styles.poolOptionGrid}>
+                {POOL_QUALITY_OPTIONS.map((opt) => {
+                  const isSelected = poolQualityId === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      activeOpacity={0.7}
+                      style={[styles.poolOptionBtn, isSelected && styles.poolOptionBtnSelected]}
+                      onPress={() => {
+                        if (Platform.OS !== 'web') {
+                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                        setPoolQualityId(opt.id);
+                      }}
+                      testID={`pool-quality-${opt.id}`}
+                    >
+                      <Text style={[styles.poolOptionName, isSelected && styles.poolOptionNameSelected]}>
+                        {opt.name}
+                      </Text>
+                      <Text style={[styles.poolOptionDesc, isSelected && styles.poolOptionDescSelected]}>
+                        {opt.description}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={styles.divider} />
+              <Text style={styles.poolSubsectionTitle}>Pool Type</Text>
+              <View style={styles.poolOptionGrid}>
+                {POOL_TYPE_OPTIONS.map((opt) => {
+                  const isSelected = poolTypeId === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      activeOpacity={0.7}
+                      style={[styles.poolOptionBtn, isSelected && styles.poolOptionBtnSelected]}
+                      onPress={() => {
+                        if (Platform.OS !== 'web') {
+                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                        setPoolTypeId(opt.id);
+                      }}
+                      testID={`pool-type-${opt.id}`}
+                    >
+                      <Text style={[styles.poolOptionName, isSelected && styles.poolOptionNameSelected]}>
+                        {opt.name}
+                      </Text>
+                      <Text style={[styles.poolOptionDesc, isSelected && styles.poolOptionDescSelected]}>
+                        {opt.description}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.effectiveRow}>
+                <Text style={styles.effectiveLabel}>Pool Cost</Text>
+                <Text style={styles.effectiveValue}>{formatCurrency(poolCost)}</Text>
+              </View>
+              <Text style={styles.effectiveFormula}>
+                {`${formatNumber(poolArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${formatDecimal(poolDepth, 2)} m depth ${MIDDLE_DOT} ${poolQualityOption.name} ${MIDDLE_DOT} ${poolTypeOption.name}`}
+              </Text>
+            </>
+          )}
+        </View>
+      </View>
+    </CollapsibleGroup>
+  );
+
+  const renderConstructionBenchmarkGroup = () => (
+    <CollapsibleGroup
+      title="Construction Benchmark"
+      icon={<Ruler size={16} color={Colors.accent} />}
+      expanded={showBenchmarkGroup}
+      onToggle={() => setShowBenchmarkGroup((prev) => !prev)}
+    >
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Quality Benchmark Selection</Text>
+        {showCostBasisInfo && (
+          <View style={styles.costBasisCard}>
+            <Text style={styles.costBasisTitle}>{COST_BASIS_TITLE}</Text>
+            <Text style={styles.costBasisText}>{sanitizeEstimateText(COST_BASIS_TEXT)}</Text>
+            <View style={styles.costBasisDivider} />
+            <Text style={styles.costBasisTitle}>{COST_BASIS_SCOPE_TITLE}</Text>
+            <Text style={styles.costBasisText}>{sanitizeEstimateText(COST_BASIS_SCOPE_TEXT)}</Text>
+          </View>
+        )}
+        <View style={styles.card}>
+          <View style={styles.groupInlineHeader}>
+            <Text style={styles.cardTitle}>Quality Benchmark Selection</Text>
+            <TouchableOpacity
+              onPress={() => setShowCostBasisInfo(!showCostBasisInfo)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              testID="cost-basis-info-btn"
+            >
+              <Info size={15} color={Colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.qualityRow}>
+            {qualityBenchmarkOptions.map((option, index) => {
+              const isSelected = option.id === 'custom'
+                ? customCostPerSqm !== null
+                : customCostPerSqm === null && qualityId === option.id;
+              return (
+                <React.Fragment key={option.id}>
+                  {index > 0 && <View style={styles.divider} />}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[styles.qualityCard, isSelected && styles.qualityCardSelected]}
+                    onPress={() => {
+                      if (option.id === 'custom') {
+                        setCustomCostPerSqm(customCostPerSqm ?? quality.baseCostPerSqm);
+                        return;
+                      }
+                      handleQualitySelect(option.id);
+                    }}
+                    testID={`quality-${option.id}`}
+                  >
+                    <View style={styles.qualityCardText}>
+                      <Text style={[styles.qualityName, isSelected && styles.qualityNameSelected]}>
+                        {option.title}
+                      </Text>
+                      <Text style={styles.qualityDescriptor}>{option.descriptor}</Text>
+                    </View>
+                    <View style={styles.qualityCardValue}>
+                      <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
+                        {option.benchmarkLabel}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+          </View>
+
+          {customCostPerSqm !== null && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{`Custom Benchmark per ${SQUARE_METER_UNIT}`}</Text>
+                <TouchableOpacity onPress={() => setCustomCostPerSqm(null)}>
+                  <Text style={styles.resetLink}>Reset</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.costInputRow}>
+                <TextInput
+                  style={styles.costInput}
+                  value={formatNumber(baseCostPerSqm)}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9]/g, '');
+                    const num = parseInt(cleaned, 10);
+                    if (isNaN(num) || num <= 0) {
+                      setCustomCostPerSqm(null);
+                    } else {
+                      setCustomCostPerSqm(num);
+                    }
+                  }}
+                  keyboardType="numeric"
+                  testID="cost-per-sqm-input"
+                />
+                <Text style={styles.costInputUnit}>{` ${EURO_SYMBOL} /${SQUARE_METER_UNIT}`}</Text>
+              </View>
+            </>
+          )}
+        </View>
+
+        <View style={styles.costBasisNote}>
+          <Info size={12} color={Colors.textTertiary} />
+          <Text style={styles.costBasisNoteText}>
+            The selected benchmark mainly applies to KG300, KG400, and KG600. Some parts of KG200 are also benchmark-linked, while other items are calculated separately.
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Automatic Adjustments</Text>
+          <View style={styles.sizeCorrectionRow}>
+            <View style={styles.adjustmentText}>
+              <Text style={styles.sizeCorrectionLabel}>Automatic building size correction</Text>
+              <Text style={styles.optionSubtext}>
+                {`Smaller projects usually cost more per ${SQUARE_METER_UNIT}, while larger projects benefit from scale.`}
+              </Text>
+            </View>
+            <Text style={[
+              styles.sizeCorrectionValue,
+              sizeCorrectionFactor > 1 ? styles.sizeCorrectionUp : styles.sizeCorrectionDown,
+            ]}>
+              {`${displaySizeCorrectionLabel} ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} /${SQUARE_METER_UNIT}`}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.sizeCorrectionRow}>
+            <View style={styles.adjustmentText}>
+              <Text style={styles.sizeCorrectionLabel}>Location adjustment</Text>
+              <Text style={styles.optionSubtext}>
+                Regional benchmark adjustment based on the selected project location.
+              </Text>
+            </View>
+            <Text style={styles.sizeCorrectionValue}>
+              {`${MULTIPLY_SYMBOL}${formatDecimal(location.multiplier, 2)} ${ARROW_SYMBOL} ${formatCurrency(finalCostPerSqm)} /${SQUARE_METER_UNIT}`}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>{`Adjusted Benchmark Cost per ${SQUARE_METER_UNIT}`}</Text>
+          <View style={styles.finalBenchmarkRow}>
+            <Text style={styles.finalBenchmarkValue}>{formatCurrency(finalCostPerSqm)}</Text>
+            <Text style={styles.finalBenchmarkUnit}>{` /${SQUARE_METER_UNIT}`}</Text>
+          </View>
+          <Text style={styles.effectiveFormula}>
+            {`${formatCurrency(baseCostPerSqm)} base benchmark ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} after size correction ${ARROW_SYMBOL} ${formatCurrency(finalCostPerSqm)} after location adjustment`}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Permit / Professional Fees</Text>
+        <View style={styles.groupInlineHeader}>
+          <Text style={styles.groupInlineTitle}>Permit & Design Fees</Text>
+          <TouchableOpacity
+            onPress={() => setShowPermitDesignInfo(!showPermitDesignInfo)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="permit-design-info-btn"
+          >
+            <Info size={15} color={Colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+        {showPermitDesignInfo && (
+          <View style={styles.tooltipCard}>
+            <Text style={styles.tooltipText}>{sanitizeEstimateText(PERMIT_DESIGN_TOOLTIP)}</Text>
+          </View>
+        )}
+        <View style={styles.card}>
+          <View style={styles.effectiveRow}>
+            <Text style={styles.effectiveLabel}>Permit & Design Fees</Text>
+            <Text style={styles.effectiveValue}>{formatCurrency(permitDesignFee)}</Text>
+          </View>
+          <Text style={styles.effectiveFormula}>
+            {`Based on ${quality.name} quality ${MIDDLE_DOT} ${formatNumber(permitDesignEffectiveArea)} ${SQUARE_METER_UNIT} effective project area`}
+          </Text>
+          {isLargeProject && (
+            <View style={styles.permitDesignAdvisory}>
+              <Info size={13} color={Colors.accent} />
+              <Text style={styles.permitDesignAdvisoryText}>{sanitizeEstimateText(PERMIT_DESIGN_LARGE_PROJECT_MESSAGE)}</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.permitDesignLink}
+            onPress={() => Linking.openURL(PERMIT_DESIGN_CONTACT_URL)}
+            activeOpacity={0.7}
+            testID="permit-design-contact-link"
+          >
+            <Text style={styles.permitDesignLinkText}>{PERMIT_DESIGN_CONTACT_LABEL}</Text>
+            <ExternalLink size={14} color={Colors.accent} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Margin & Taxes</Text>
+        <View style={styles.card}>
+          <SliderInput
+            label="Contractor Overhead & Profit"
+            subtitle={`${formatDecimal(contractorPercent, 1)}% of construction = ${formatCurrency(contractorCost)}`}
+            value={contractorPercent}
+            onChangeValue={setContractorPercent}
+            min={CONTRACTOR_MIN_PERCENTAGE}
+            max={CONTRACTOR_MAX_PERCENTAGE}
+            step={CONTRACTOR_STEP}
+            suffix="%"
+            testID="slider-contractor-percent"
+          />
+          <View style={styles.divider} />
+          <View style={styles.costHintRow}>
+            <ShieldAlert size={13} color={Colors.accent} />
+            <Text style={styles.costHint}>
+              {`Construction contingency (${formatNumber(Math.round(contingencyPercent * 100))}%) is applied to KG 300${EN_DASH}600 based on ${quality.name} quality level.`}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </CollapsibleGroup>
+  );
 
   return (
     <View style={styles.outerContainer}>
@@ -591,1230 +1842,11 @@ export default function EstimateScreen() {
         keyboardShouldPersistTaps="handled"
       >
 
-      <View style={styles.sectionHeader}>
-        <MapPin size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Location</Text>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
-        {LOCATIONS.map((loc) => {
-          const isSelected = locationId === loc.id;
-          return (
-            <TouchableOpacity
-              key={loc.id}
-              activeOpacity={0.7}
-              style={[styles.chip, isSelected && styles.chipSelected]}
-              onPress={() => handleLocationSelect(loc.id)}
-              testID={`location-${loc.id}`}
-            >
-              <Text style={[styles.chipName, isSelected && styles.chipNameSelected]}>
-                {loc.name}
-              </Text>
-              <Text style={[styles.chipMult, isSelected && styles.chipMultSelected]}>
-                {MULTIPLY_SYMBOL}{formatDecimal(loc.multiplier, 2)}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      <View style={styles.sectionHeader}>
-        <LandPlot size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Land Acquisition</Text>
-      </View>
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Land Value</Text>
-        </View>
-        <View style={styles.costInputRow}>
-          <TextInput
-            style={styles.costInput}
-            value={landValue > 0 ? formatNumber(landValue) : ''}
-            onChangeText={(text) => {
-              const cleaned = text.replace(/[^0-9]/g, '');
-              setLandValue(parseInt(cleaned, 10) || 0);
-            }}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor={Colors.textTertiary}
-            testID="land-value-input"
-          />
-          <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-        </View>
-
-        <View style={styles.divider} />
-        <Text style={styles.poolSubsectionTitle}>Incidental Land Acquisition Costs</Text>
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'auto' && styles.utilityOptionRowSelected]}
-          onPress={() => {
-            if (Platform.OS !== 'web') {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }
-            setLandAcquisitionCostsMode('auto');
-          }}
-          testID="land-acquisition-mode-auto"
-        >
-          <View style={styles.optionInfo}>
-            <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'auto' && { color: Colors.accent }]}>
-              Auto estimate (6%)
-            </Text>
-            <Text style={styles.optionSubtext}>Derived from land value {MULTIPLY_SYMBOL} {formatDecimal(0.06, 2)}</Text>
-          </View>
-          <View style={[styles.radioOuter, landAcquisitionCostsMode === 'auto' && styles.radioOuterSelected]}>
-            {landAcquisitionCostsMode === 'auto' && <View style={styles.radioInner} />}
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.divider} />
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'manual' && styles.utilityOptionRowSelected]}
-          onPress={() => {
-            if (Platform.OS !== 'web') {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }
-            setLandAcquisitionCostsMode('manual');
-          }}
-          testID="land-acquisition-mode-manual"
-        >
-          <View style={styles.optionInfo}>
-            <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'manual' && { color: Colors.accent }]}>
-              Manual override
-            </Text>
-            <Text style={styles.optionSubtext}>Enter incidental acquisition costs directly</Text>
-          </View>
-          <View style={[styles.radioOuter, landAcquisitionCostsMode === 'manual' && styles.radioOuterSelected]}>
-            {landAcquisitionCostsMode === 'manual' && <View style={styles.radioInner} />}
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.divider} />
-
-        {landAcquisitionCostsMode === 'manual' ? (
-          <>
-            <View style={styles.costInputRow}>
-              <TextInput
-                style={styles.costInput}
-                value={landAcquisitionCosts > 0 ? formatNumber(landAcquisitionCosts) : ''}
-                onChangeText={(text) => {
-                  const cleaned = text.replace(/[^0-9]/g, '');
-                  setLandAcquisitionCosts(parseInt(cleaned, 10) || 0);
-                }}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor={Colors.textTertiary}
-                testID="land-acquisition-costs-input"
-              />
-              <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-            </View>
-            <View style={styles.divider} />
-          </>
-        ) : null}
-
-        <View style={styles.effectiveRow}>
-          <Text style={styles.effectiveLabel}>Estimated Acquisition Costs</Text>
-          <Text style={styles.effectiveValue}>{formatCurrency(displayedLandAcquisitionCosts)}</Text>
-        </View>
-        <Text style={styles.effectiveFormula}>
-          {landAcquisitionCostsMode === 'auto'
-            ? `${formatCurrency(displayedLandAcquisitionCosts)} (6% of ${formatCurrency(landValue)})`
-            : 'Manual override value'}
-        </Text>
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Ruler size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Quality Standard</Text>
-        <TouchableOpacity
-          onPress={() => setShowCostBasisInfo(!showCostBasisInfo)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="cost-basis-info-btn"
-        >
-          <Info size={15} color={Colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-      {showCostBasisInfo && (
-        <View style={styles.costBasisCard}>
-          <Text style={styles.costBasisTitle}>{COST_BASIS_TITLE}</Text>
-          <Text style={styles.costBasisText}>{sanitizeEstimateText(COST_BASIS_TEXT)}</Text>
-          <View style={styles.costBasisDivider} />
-          <Text style={styles.costBasisTitle}>{COST_BASIS_SCOPE_TITLE}</Text>
-          <Text style={styles.costBasisText}>{sanitizeEstimateText(COST_BASIS_SCOPE_TEXT)}</Text>
-        </View>
-      )}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Quality Benchmark Selection</Text>
-        <View style={styles.qualityRow}>
-        {qualityBenchmarkOptions.map((option, index) => {
-          const isSelected = option.id === 'custom'
-            ? customCostPerSqm !== null
-            : customCostPerSqm === null && qualityId === option.id;
-          return (
-            <React.Fragment key={option.id}>
-              {index > 0 && <View style={styles.divider} />}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={[styles.qualityCard, isSelected && styles.qualityCardSelected]}
-                onPress={() => {
-                  if (option.id === 'custom') {
-                    setCustomCostPerSqm(customCostPerSqm ?? quality.baseCostPerSqm);
-                    return;
-                  }
-                  handleQualitySelect(option.id);
-                }}
-                testID={`quality-${option.id}`}
-              >
-                <View style={styles.qualityCardText}>
-                  <Text style={[styles.qualityName, isSelected && styles.qualityNameSelected]}>
-                    {option.title}
-                  </Text>
-                  <Text style={styles.qualityDescriptor}>{option.descriptor}</Text>
-                </View>
-                <View style={styles.qualityCardValue}>
-                  <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
-                    {option.benchmarkLabel}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          );
-        })}
-        </View>
-
-        {customCostPerSqm !== null && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{`Custom Benchmark per ${SQUARE_METER_UNIT}`}</Text>
-              <TouchableOpacity onPress={() => setCustomCostPerSqm(null)}>
-                <Text style={styles.resetLink}>Reset</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.costInputRow}>
-              <TextInput
-                style={styles.costInput}
-                value={formatNumber(baseCostPerSqm)}
-                onChangeText={(text) => {
-                  const cleaned = text.replace(/[^0-9]/g, '');
-                  const num = parseInt(cleaned, 10);
-                  if (isNaN(num) || num <= 0) {
-                    setCustomCostPerSqm(null);
-                  } else {
-                    setCustomCostPerSqm(num);
-                  }
-                }}
-                keyboardType="numeric"
-                testID="cost-per-sqm-input"
-              />
-              <Text style={styles.costInputUnit}>{` ${EURO_SYMBOL} /${SQUARE_METER_UNIT}`}</Text>
-            </View>
-          </>
-        )}
-      </View>
-
-      <View style={styles.costBasisNote}>
-        <Info size={12} color={Colors.textTertiary} />
-        <Text style={styles.costBasisNoteText}>
-          The selected benchmark mainly applies to KG300, KG400, and KG600. Some parts of KG200 are also benchmark-linked, while other items are calculated separately.
-        </Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Automatic Adjustments</Text>
-        <View style={styles.sizeCorrectionRow}>
-          <View style={styles.adjustmentText}>
-            <Text style={styles.sizeCorrectionLabel}>Automatic building size correction</Text>
-            <Text style={styles.optionSubtext}>
-              Smaller projects usually cost more per m², while larger projects benefit from scale.
-            </Text>
-          </View>
-          <Text style={[
-            styles.sizeCorrectionValue,
-            sizeCorrectionFactor > 1 ? styles.sizeCorrectionUp : styles.sizeCorrectionDown,
-          ]}>
-            {`${displaySizeCorrectionLabel} ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} /${SQUARE_METER_UNIT}`}
-          </Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.sizeCorrectionRow}>
-          <View style={styles.adjustmentText}>
-            <Text style={styles.sizeCorrectionLabel}>Location adjustment</Text>
-            <Text style={styles.optionSubtext}>
-              Regional benchmark adjustment based on the selected project location.
-            </Text>
-          </View>
-          <Text style={styles.sizeCorrectionValue}>
-            {`${MULTIPLY_SYMBOL}${formatDecimal(location.multiplier, 2)} ${ARROW_SYMBOL} ${formatCurrency(finalCostPerSqm)} /${SQUARE_METER_UNIT}`}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{`Adjusted Benchmark Cost per ${SQUARE_METER_UNIT}`}</Text>
-        <View style={styles.finalBenchmarkRow}>
-          <Text style={styles.finalBenchmarkValue}>{formatCurrency(finalCostPerSqm)}</Text>
-          <Text style={styles.finalBenchmarkUnit}>{` /${SQUARE_METER_UNIT}`}</Text>
-        </View>
-        <Text style={styles.effectiveFormula}>
-          {`${formatCurrency(baseCostPerSqm)} base benchmark ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} after size correction ${ARROW_SYMBOL} ${formatCurrency(finalCostPerSqm)} after location adjustment`}
-        </Text>
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Home size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Building Size</Text>
-      </View>
-      <View style={styles.card}>
-        <SliderInput
-          label="Living Area (above ground)"
-          subtitle="Total above-ground house area, including walls, measured to the outer face of the exterior structural walls. Basement area is entered separately."
-          value={mainArea}
-          onChangeValue={setMainArea}
-          min={80}
-          max={400}
-          step={5}
-          testID="slider-living-area"
-        />
-        <View style={styles.divider} />
-        <SliderInput
-          label="Covered Terraces"
-          subtitle="Counted at 50% of area"
-          value={terraceArea}
-          onChangeValue={setTerraceArea}
-          badge="50%"
-          min={0}
-          max={120}
-          step={5}
-          testID="slider-terrace-area"
-        />
-        <View style={styles.divider} />
-        <SliderInput
-          label="Balcony Area"
-          subtitle="Open balconies, cantilevered spaces"
-          value={balconyArea}
-          onChangeValue={setBalconyArea}
-          badge="30%"
-          min={0}
-          max={80}
-          step={5}
-          testID="slider-balcony-area"
-        />
-        <View style={styles.divider} />
-        <View style={styles.effectiveRow}>
-          <Text style={styles.effectiveLabel}>Effective Area</Text>
-          <Text style={styles.effectiveValue}>{`${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}</Text>
-        </View>
-        <Text style={styles.optionSubtext}>
-          The weighted project area used to apply the benchmark construction cost. It combines the main living area with other relevant spaces using adjustment factors.
-        </Text>
-        <Text style={styles.effectiveFormula}>
-          {`${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${storageBasementArea > 0 ? ` + (${formatNumber(storageBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})` : ''}${parkingBasementArea > 0 ? ` + (${formatNumber(parkingBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.65, 2)})` : ''}${habitableBasementArea > 0 ? ` + (${formatNumber(habitableBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.85, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
-        </Text>
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Wrench size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Basement</Text>
-      </View>
-      <View style={styles.card}>
-        <SliderInput
-          label="Storage Basement Area"
-          subtitle="Technical rooms, storage, utility spaces"
-          value={storageBasementArea}
-          onChangeValue={setStorageBasementArea}
-          min={0}
-          max={250}
-          step={5}
-          badge="50%"
-          testID="slider-storage-basement-area"
-        />
-        <View style={styles.divider} />
-        <SliderInput
-          label="Parking Basement Area"
-          subtitle="Garage and vehicle storage areas"
-          value={parkingBasementArea}
-          onChangeValue={setParkingBasementArea}
-          min={0}
-          max={250}
-          step={5}
-          badge="65%"
-          testID="slider-parking-basement-area"
-        />
-        <View style={styles.divider} />
-        <SliderInput
-          label="Habitable Basement Area"
-          subtitle="Basement floor area used as habitable interior space. Storage and parking basement areas are treated separately if applicable."
-          value={habitableBasementArea}
-          onChangeValue={setHabitableBasementArea}
-          min={0}
-          max={250}
-          step={5}
-          badge="85%"
-          testID="slider-habitable-basement-area"
-        />
-        {basementArea > 0 && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.effectiveRow}>
-              <Text style={styles.effectiveLabel}>Basement Mix</Text>
-              <Text style={styles.effectiveValue}>{`${formatNumber(basementArea)} ${SQUARE_METER_UNIT}`}</Text>
-            </View>
-            <Text style={styles.effectiveFormula}>
-              {`${storageBasementArea > 0 ? `${formatNumber(storageBasementArea)} ${SQUARE_METER_UNIT} storage` : ''}${storageBasementArea > 0 && (parkingBasementArea > 0 || habitableBasementArea > 0) ? ` ${MIDDLE_DOT} ` : ''}${parkingBasementArea > 0 ? `${formatNumber(parkingBasementArea)} ${SQUARE_METER_UNIT} parking` : ''}${parkingBasementArea > 0 && habitableBasementArea > 0 ? ` ${MIDDLE_DOT} ` : ''}${habitableBasementArea > 0 ? `${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT} habitable` : ''}`}
-            </Text>
-          </>
-        )}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Mountain size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Site Conditions</Text>
-        <TouchableOpacity
-          onPress={() => setShowSiteConditionInfo(!showSiteConditionInfo)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="site-condition-info-btn"
-        >
-          <Info size={15} color={Colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-      {showSiteConditionInfo && (
-        <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{sanitizeEstimateText(SITE_CONDITIONS_TOOLTIP)}</Text>
-        </View>
-      )}
-      <View style={styles.siteConditionsGrid}>
-        {SITE_CONDITIONS.map((cond) => {
-          const isSelected = siteConditionId === cond.id;
-          return (
-            <TouchableOpacity
-              key={cond.id}
-              activeOpacity={0.7}
-              style={[styles.siteCondCard, isSelected && styles.siteCondCardSelected]}
-              onPress={() => handleSiteConditionSelect(cond.id)}
-              testID={`site-condition-${cond.id}`}
-            >
-              <View style={[styles.siteCondIconWrap, isSelected && styles.siteCondIconWrapSelected]}>
-                <SiteConditionIcon
-                  conditionId={cond.id}
-                  size={40}
-                  color={isSelected ? Colors.accent : Colors.primary}
-                />
-              </View>
-              <Text style={[styles.siteCondName, isSelected && styles.siteCondNameSelected]}>
-                {cond.name}
-              </Text>
-              <Text style={[styles.siteCondDesc, isSelected && styles.siteCondDescSelected]}>
-                {cond.description}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-      {siteConditionId === 'inclined_sandy' && (
-        <View style={styles.warningCard}>
-          <AlertTriangle size={16} color={Colors.warning} />
-          <View style={styles.warningContent}>
-            <Text style={styles.warningTitle}>Important notice</Text>
-            <Text style={styles.warningText}>{sanitizeEstimateText(UNSTABLE_SOIL_WARNING)}</Text>
-          </View>
-        </View>
-      )}
-
-      <View style={styles.sectionHeader}>
-        <Droplets size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Groundwater Conditions</Text>
-        <TouchableOpacity
-          onPress={() => setShowGroundwaterInfo(!showGroundwaterInfo)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="groundwater-info-btn"
-        >
-          <Info size={15} color={Colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-      {showGroundwaterInfo && (
-        <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{sanitizeEstimateText(GROUNDWATER_TOOLTIP)}</Text>
-        </View>
-      )}
-      <View style={styles.card}>
-        {GROUNDWATER_CONDITIONS.map((gw, idx) => {
-          const isSelected = groundwaterConditionId === gw.id;
-          return (
-            <React.Fragment key={gw.id}>
-              {idx > 0 && <View style={styles.divider} />}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  setGroundwaterConditionId(gw.id);
-                }}
-                testID={`groundwater-${gw.id}`}
-              >
-                <View style={styles.optionInfo}>
-                  <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>{gw.name}</Text>
-                  <Text style={styles.optionSubtext}>{gw.description}</Text>
-                </View>
-                <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
-                  {isSelected && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          );
-        })}
-      </View>
-      {groundwaterConditionId === 'high' && (
-        <View style={styles.warningCard}>
-          <AlertTriangle size={16} color={Colors.warning} />
-          <View style={styles.warningContent}>
-            <Text style={styles.warningTitle}>Important notice</Text>
-            <Text style={styles.warningText}>{sanitizeEstimateText(HIGH_GROUNDWATER_WARNING)}</Text>
-          </View>
-        </View>
-      )}
-
-      <View style={styles.sectionHeader}>
-        <Ruler size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Plot size</Text>
-      </View>
-      <View style={styles.card}>
-        <SliderInput
-          label="Plot size"
-          subtitle=""
-          value={plotSize}
-          onChangeValue={setPlotSize}
-          min={500}
-          max={10000}
-          step={100}
-          suffix={SQUARE_METER_UNIT}
-          testID="slider-plot-size"
-        />
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Truck size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Site Accessibility</Text>
-        <TouchableOpacity
-          onPress={() => setShowAccessibilityInfo(!showAccessibilityInfo)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="accessibility-info-btn"
-        >
-          <Info size={15} color={Colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-      {showAccessibilityInfo && (
-        <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{sanitizeEstimateText(SITE_ACCESSIBILITY_TOOLTIP)}</Text>
-        </View>
-      )}
-      <View style={styles.card}>
-        {SITE_ACCESSIBILITY_OPTIONS.map((acc, idx) => {
-          const isSelected = siteAccessibilityId === acc.id;
-          return (
-            <React.Fragment key={acc.id}>
-              {idx > 0 && <View style={styles.divider} />}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  setSiteAccessibilityId(acc.id);
-                }}
-                testID={`accessibility-${acc.id}`}
-              >
-                <View style={styles.optionInfo}>
-                  <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>{acc.name}</Text>
-                  <Text style={styles.optionSubtext}>{acc.description}</Text>
-                </View>
-                <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
-                  {isSelected && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          );
-        })}
-      </View>
-      {(siteAccessibilityId === 'difficult' || siteAccessibilityId === 'very_difficult') && (
-        <View style={styles.warningCard}>
-          <AlertTriangle size={16} color={Colors.warning} />
-          <View style={styles.warningContent}>
-            <Text style={styles.warningText}>
-              {sanitizeEstimateText(siteAccessibilityId === 'very_difficult' ? VERY_DIFFICULT_ACCESS_WARNING : DIFFICULT_ACCESS_WARNING)}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      <View style={styles.sectionHeader}>
-        <TreePine size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Landscaping</Text>
-      </View>
-      <View style={styles.card}>
-        <SliderInput
-          label="Landscaping Area"
-          subtitle="Garden, driveways, outdoor areas"
-          value={landscapingArea}
-          onChangeValue={setLandscapingArea}
-          min={0}
-          max={1500}
-          step={10}
-          testID="slider-landscaping-area"
-        />
-        {landscapingArea > 0 && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.effectiveRow}>
-              <Text style={styles.effectiveLabel}>Landscaping Cost</Text>
-              <Text style={styles.effectiveValue}>{formatCurrency(landscapingCost)}</Text>
-            </View>
-            <Text style={styles.effectiveFormula}>
-              {`Based on ${formatCurrency(40)} /${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${siteCondition.name}`}
-            </Text>
-          </>
-        )}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Flame size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>HVAC & Energy Systems</Text>
-        <TouchableOpacity
-          onPress={() => setShowHvacInfo(!showHvacInfo)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="hvac-info-btn"
-        >
-          <Info size={15} color={Colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-      {showHvacInfo && (
-        <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{sanitizeEstimateText(HVAC_TOOLTIP)}</Text>
-        </View>
-      )}
-      <View style={styles.card}>
-        <Text style={styles.hvacBaseNote}>Base: Heat pump + fan-coil / VRV system included</Text>
-        {HVAC_OPTIONS.map((opt, idx) => {
-          const isEnabled = hvacSelections[opt.id] ?? false;
-          const hvacItem = hvacCosts.find((h) => h.option.id === opt.id);
-          return (
-            <React.Fragment key={opt.id}>
-              {idx > 0 && <View style={styles.divider} />}
-              <View style={styles.optionRow}>
-                <View style={styles.optionInfo}>
-                  <Text style={styles.optionLabel}>{opt.name}</Text>
-                  <Text style={styles.optionSubtext}>
-                    {isEnabled && hvacItem
-                      ? `${formatCurrency(hvacItem.cost)} ${MIDDLE_DOT} ${opt.description}`
-                      : opt.description}
-                  </Text>
-                </View>
-                <Switch
-                  value={isEnabled}
-                  onValueChange={() => {
-                    if (Platform.OS !== 'web') {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                    toggleHvacOption(opt.id);
-                  }}
-                  trackColor={{ false: Colors.border, true: Colors.accent }}
-                  thumbColor={Colors.white}
-                  testID={`hvac-toggle-${opt.id}`}
-                />
-              </View>
-            </React.Fragment>
-          );
-        })}
-        {totalHvacCost > 0 && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.effectiveRow}>
-              <Text style={styles.effectiveLabel}>Energy Systems Total</Text>
-              <Text style={styles.effectiveValue}>{formatCurrency(totalHvacCost)}</Text>
-            </View>
-          </>
-        )}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Shield size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Data, Security & Automation</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.poolSubsectionTitle}>Digital Infrastructure & Security</Text>
-        <Text style={styles.optionSubtext}>
-          Essential provision is already benchmark-included. Connected and Integrated add uplift above that baseline. Custom uses your entered amount.
-        </Text>
-        {DATA_SECURITY_LEVEL_OPTIONS.map((option, index) => {
-          const isSelected = dataSecurityPackageLevel === option.id;
-          return (
-            <React.Fragment key={option.id}>
-              {index > 0 && <View style={styles.divider} />}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  setDataSecurityPackageLevel(option.id);
-                }}
-                testID={`data-security-package-${option.id}`}
-              >
-                <View style={styles.optionInfo}>
-                  <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>
-                    {option.label}
-                  </Text>
-                  <Text style={styles.optionSubtext}>{option.description}</Text>
-                </View>
-                <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
-                  {isSelected && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          );
-        })}
-
-        {dataSecurityPackageLevel === 'custom' ? (
-          <>
-            <View style={styles.divider} />
-            <Text style={styles.optionSubtext}>
-              Enter a custom uplift above the benchmark-included baseline for Digital Infrastructure & Security.
-            </Text>
-            <View style={styles.costInputRow}>
-              <TextInput
-                style={styles.costInput}
-                value={dataSecurityManualQuote !== null ? formatNumber(dataSecurityManualQuote) : ''}
-                onChangeText={(text) => {
-                  setDataSecurityManualQuote(parseOptionalCurrencyInput(text));
-                }}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor={Colors.textTertiary}
-                testID="data-security-quote-input"
-              />
-              <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-            </View>
-            <Text style={styles.optionSubtext}>
-              Custom uplift above baseline
-            </Text>
-            <Text style={styles.optionSubtext}>
-              {`Total subgroup amount with custom uplift: ${formatCurrency(dataSecurityAppliedPackageCost)}`}
-            </Text>
-          </>
-        ) : dataSecurityPackageLevel !== 'essential' ? (
-          <>
-            <View style={styles.divider} />
-            <Text style={styles.optionSubtext}>
-              {`Total subgroup amount for selected level: ${formatCurrency(dataSecurityDefaultPackageCost)}.`}
-            </Text>
-          </>
-        ) : null}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.poolSubsectionTitle}>Smart Control & Automation</Text>
-        <Text style={styles.optionSubtext}>
-          None adds no cost. Connected and Integrated apply fixed uplifts. Custom uses your entered amount.
-        </Text>
-        {AUTOMATION_LEVEL_OPTIONS.map((option, index) => {
-          const isSelected = automationPackageLevel === option.id;
-          return (
-            <React.Fragment key={option.id}>
-              {index > 0 && <View style={styles.divider} />}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  setAutomationPackageLevel(option.id);
-                }}
-                testID={`automation-package-${option.id}`}
-              >
-                <View style={styles.optionInfo}>
-                  <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>
-                    {option.label}
-                  </Text>
-                  <Text style={styles.optionSubtext}>{option.description}</Text>
-                </View>
-                <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
-                  {isSelected && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          );
-        })}
-
-        {automationPackageLevel === 'custom' ? (
-          <>
-            <View style={styles.divider} />
-            <Text style={styles.optionSubtext}>
-              Enter a custom amount for Smart Control & Automation.
-            </Text>
-            <View style={styles.costInputRow}>
-              <TextInput
-                style={styles.costInput}
-                value={automationManualQuote !== null ? formatNumber(automationManualQuote) : ''}
-                onChangeText={(text) => {
-                  setAutomationManualQuote(parseOptionalCurrencyInput(text));
-                }}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor={Colors.textTertiary}
-                testID="automation-quote-input"
-              />
-              <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-            </View>
-            <Text style={styles.optionSubtext}>
-              Custom amount used in the calculation
-            </Text>
-            <Text style={styles.optionSubtext}>
-              {`Total subgroup amount with custom input: ${formatCurrency(automationAppliedPackageCost)}`}
-            </Text>
-          </>
-        ) : automationPackageLevel !== 'none' ? (
-          <>
-            <View style={styles.divider} />
-            <Text style={styles.optionSubtext}>
-              {`Fixed uplift amount for selected level: ${formatCurrency(automationDefaultPackageCost)}.`}
-            </Text>
-          </>
-        ) : null}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Bath size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Interior Program</Text>
-      </View>
-      <View style={styles.card}>
-        <IntegerInputRow
-          label="Bedrooms"
-          value={bedroomCount}
-          onChangeValue={setBedroomCount}
-          min={1}
-          subtitle={bedroomSubtitle}
-          infoText="Bedrooms here are used for built-in wardrobes only. Loose bedroom furniture is included in the General Furniture Base Amount."
-        />
-        <View style={styles.divider} />
-        <IntegerInputRow
-          label="Bathrooms"
-          value={bathrooms}
-          onChangeValue={setBathrooms}
-          min={0}
-          subtitle={bathroomSubtitle}
-        />
-        <View style={styles.divider} />
-        <IntegerInputRow
-          label="WCs (guest WC)"
-          value={wcs}
-          onChangeValue={setWcs}
-          min={0}
-          subtitle={wcSubtitle}
-        />
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Sofa size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Furnishings</Text>
-      </View>
-      <View style={styles.card}>
-        <IntegerInputRow
-          label="Kitchens"
-          value={kitchenCount}
-          onChangeValue={setKitchenCount}
-          min={0}
-          subtitle="Kitchens are typically not included in the base contractor offer. Each kitchen is counted separately using the unit cost shown below."
-        />
-        <View style={styles.divider} />
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Kitchen Unit Cost</Text>
-          {customKitchenUnitCost !== null && (
-            <TouchableOpacity onPress={() => setCustomKitchenUnitCost(null)}>
-              <Text style={styles.resetLink}>Reset</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.costInputRow}>
-          <TextInput
-            style={styles.costInput}
-            value={formatNumber(kitchenUnitCost)}
-            onChangeText={(text) => {
-              const cleaned = text.replace(/[^0-9]/g, '');
-              const num = parseInt(cleaned, 10);
-              if (isNaN(num) || num <= 0) {
-                setCustomKitchenUnitCost(null);
-              } else {
-                setCustomKitchenUnitCost(num);
-              }
-            }}
-            keyboardType="numeric"
-            testID="kitchen-unit-cost-input"
-          />
-          <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-        </View>
-        <Text style={styles.optionSubtext}>
-          {`Suggested ${formatCurrency(suggestedKitchenUnitCost)} ${MIDDLE_DOT} quality and area adjusted`}
-        </Text>
-        <View style={styles.divider} />
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>General Furniture Base Amount</Text>
-        </View>
-        <View style={styles.costInputRow}>
-          <TextInput
-            style={styles.costInput}
-            value={generalFurnitureBaseAmount > 0 ? formatNumber(generalFurnitureBaseAmount) : ''}
-            onChangeText={(text) => {
-              const cleaned = text.replace(/[^0-9]/g, '');
-              setGeneralFurnitureBaseAmount(parseInt(cleaned, 10) || 0);
-            }}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor={Colors.textTertiary}
-            testID="general-furniture-base-input"
-          />
-          <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-        </View>
-        <Text style={styles.optionSubtext}>
-          {`Loose furniture package. Recommended amount is based on bedrooms and effective area. This value is editable.`}
-        </Text>
-        <View style={styles.divider} />
-        <View style={styles.effectiveRow}>
-          <Text style={styles.effectiveLabel}>KG600 Furnishings Total</Text>
-          <Text style={styles.effectiveValue}>{formatCurrency(kg600Cost)}</Text>
-        </View>
-        <Text style={styles.effectiveFormula}>
-          {`${formatCurrency(kitchenPackageCost)} kitchen${wardrobePackageCost > 0 ? ` + ${formatCurrency(wardrobePackageCost)} wardrobes (${includedWardrobes})` : ''}${generalFurniturePackageCost > 0 ? ` + ${formatCurrency(generalFurniturePackageCost)} general furniture` : ''}${bathroomWcFurnishingSliceCost > 0 ? ` + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices` : ''}`}
-        </Text>
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Waves size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Swimming Pool</Text>
-        <TouchableOpacity
-          onPress={() => setShowPoolInfo(!showPoolInfo)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="pool-info-btn"
-        >
-          <Info size={15} color={Colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-      {showPoolInfo && (
-        <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{sanitizeEstimateText(POOL_TOOLTIP)}</Text>
-        </View>
-      )}
-      <View style={styles.card}>
-        <View style={styles.optionRow}>
-          <View style={styles.optionInfo}>
-            <Text style={styles.optionLabel}>Include Swimming Pool</Text>
-            <Text style={styles.optionSubtext}>
-              {includePool
-                ? `${formatCurrency(poolCost)} ${MIDDLE_DOT} ${poolQualityOption.name}`
-                : 'Not included in estimate'}
-            </Text>
-          </View>
-          <Switch
-            value={includePool}
-            onValueChange={(val) => {
-              if (Platform.OS !== 'web') {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
-              setIncludePool(val);
-            }}
-            trackColor={{ false: Colors.border, true: Colors.accent }}
-            thumbColor={Colors.white}
-            testID="pool-toggle"
-          />
-        </View>
-        {includePool && (
-          <>
-            <View style={styles.divider} />
-            <Text style={styles.poolSubsectionTitle}>Pool Size</Text>
-            <View style={styles.poolSizeGrid}>
-              {POOL_SIZE_OPTIONS.map((opt) => {
-                const isSelected = poolSizeId === opt.id;
-                return (
-                  <TouchableOpacity
-                    key={opt.id}
-                    activeOpacity={0.7}
-                    style={[styles.poolSizeBtn, isSelected && styles.poolSizeBtnSelected]}
-                    onPress={() => {
-                      if (Platform.OS !== 'web') {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }
-                      setPoolSizeId(opt.id);
-                    }}
-                    testID={`pool-size-${opt.id}`}
-                  >
-                    <Text style={[styles.poolSizeName, isSelected && styles.poolSizeNameSelected]}>
-                      {opt.name}
-                    </Text>
-                    {opt.area > 0 && (
-                      <Text style={[styles.poolSizeArea, isSelected && styles.poolSizeAreaSelected]}>
-                        {`${formatNumber(opt.area)} ${SQUARE_METER_UNIT}`}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            {poolSizeId === 'custom' && (
-              <View style={styles.poolCustomRow}>
-                <View style={styles.poolCustomField}>
-                  <Text style={styles.poolCustomLabel}>Pool Area</Text>
-                  <View style={styles.poolCustomInputWrap}>
-                    <TextInput
-                      style={styles.poolCustomInput}
-                      value={poolCustomArea > 0 ? formatNumber(poolCustomArea) : ''}
-                      onChangeText={(text) => {
-                        const cleaned = text.replace(/[^0-9]/g, '');
-                        setPoolCustomArea(parseInt(cleaned, 10) || 0);
-                      }}
-                      keyboardType="numeric"
-                      placeholder="0"
-                      placeholderTextColor={Colors.textTertiary}
-                      testID="pool-custom-area"
-                    />
-                    <Text style={styles.poolCustomUnit}>{SQUARE_METER_UNIT}</Text>
-                  </View>
-                </View>
-                <View style={styles.poolCustomField}>
-                  <Text style={styles.poolCustomLabel}>Pool Depth</Text>
-                  <View style={styles.poolCustomInputWrap}>
-                    <TextInput
-                      style={styles.poolCustomInput}
-                      value={poolCustomDepth > 0 ? formatDecimal(poolCustomDepth, 2) : ''}
-                      onChangeText={(text) => {
-                        const cleaned = text.replace(/[^0-9,]/g, '').replace(',', '.');
-                        const num = parseFloat(cleaned);
-                        setPoolCustomDepth(isNaN(num) ? 0 : num);
-                      }}
-                      keyboardType="decimal-pad"
-                      placeholder={formatDecimal(1.4, 2)}
-                      placeholderTextColor={Colors.textTertiary}
-                      testID="pool-custom-depth"
-                    />
-                    <Text style={styles.poolCustomUnit}>m</Text>
-                  </View>
-                </View>
-              </View>
-            )}
-            <View style={styles.divider} />
-            <Text style={styles.poolSubsectionTitle}>Pool Quality</Text>
-            <View style={styles.poolOptionGrid}>
-              {POOL_QUALITY_OPTIONS.map((opt) => {
-                const isSelected = poolQualityId === opt.id;
-                return (
-                  <TouchableOpacity
-                    key={opt.id}
-                    activeOpacity={0.7}
-                    style={[styles.poolOptionBtn, isSelected && styles.poolOptionBtnSelected]}
-                    onPress={() => {
-                      if (Platform.OS !== 'web') {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }
-                      setPoolQualityId(opt.id);
-                    }}
-                    testID={`pool-quality-${opt.id}`}
-                  >
-                    <Text style={[styles.poolOptionName, isSelected && styles.poolOptionNameSelected]}>
-                      {opt.name}
-                    </Text>
-                    <Text style={[styles.poolOptionDesc, isSelected && styles.poolOptionDescSelected]}>
-                      {opt.description}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <View style={styles.divider} />
-            <Text style={styles.poolSubsectionTitle}>Pool Type</Text>
-            <View style={styles.poolOptionGrid}>
-              {POOL_TYPE_OPTIONS.map((opt) => {
-                const isSelected = poolTypeId === opt.id;
-                return (
-                  <TouchableOpacity
-                    key={opt.id}
-                    activeOpacity={0.7}
-                    style={[styles.poolOptionBtn, isSelected && styles.poolOptionBtnSelected]}
-                    onPress={() => {
-                      if (Platform.OS !== 'web') {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }
-                      setPoolTypeId(opt.id);
-                    }}
-                    testID={`pool-type-${opt.id}`}
-                  >
-                    <Text style={[styles.poolOptionName, isSelected && styles.poolOptionNameSelected]}>
-                      {opt.name}
-                    </Text>
-                    <Text style={[styles.poolOptionDesc, isSelected && styles.poolOptionDescSelected]}>
-                      {opt.description}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.effectiveRow}>
-              <Text style={styles.effectiveLabel}>Pool Cost</Text>
-              <Text style={styles.effectiveValue}>{formatCurrency(poolCost)}</Text>
-            </View>
-            <Text style={styles.effectiveFormula}>
-              {`${formatNumber(poolArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${formatDecimal(poolDepth, 2)} m depth ${MIDDLE_DOT} ${poolQualityOption.name} ${MIDDLE_DOT} ${poolTypeOption.name}`}
-            </Text>
-          </>
-        )}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Plug size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Utility Network Connections</Text>
-        <TouchableOpacity
-          onPress={() => setShowUtilityInfo(!showUtilityInfo)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="utility-info-btn"
-        >
-          <Info size={15} color={Colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-      {showUtilityInfo && (
-        <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{sanitizeEstimateText(UTILITY_CONNECTION_TOOLTIP)}</Text>
-        </View>
-      )}
-      <View style={styles.card}>
-        {UTILITY_CONNECTION_OPTIONS.map((opt, idx) => {
-          const isSelected = utilityConnectionId === opt.id;
-          return (
-            <React.Fragment key={opt.id}>
-              {idx > 0 && <View style={styles.divider} />}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={[styles.utilityOptionRow, isSelected && styles.utilityOptionRowSelected]}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  setUtilityConnectionId(opt.id);
-                }}
-                testID={`utility-${opt.id}`}
-              >
-                <View style={styles.optionInfo}>
-                  <Text style={[styles.optionLabel, isSelected && { color: Colors.accent }]}>{opt.name}</Text>
-                  <Text style={styles.optionSubtext}>
-                    {opt.id !== 'custom' ? `${formatCurrency(opt.cost)} ${MIDDLE_DOT} ${opt.description}` : opt.description}
-                  </Text>
-                </View>
-                <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
-                  {isSelected && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          );
-        })}
-        {utilityConnectionId === 'custom' && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.costInputRow}>
-              <TextInput
-                style={styles.costInput}
-                value={customUtilityCost > 0 ? formatNumber(customUtilityCost) : ''}
-                onChangeText={(text) => {
-                  const cleaned = text.replace(/[^0-9]/g, '');
-                  setCustomUtilityCost(parseInt(cleaned, 10) || 0);
-                }}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor={Colors.textTertiary}
-                testID="utility-custom-cost"
-              />
-              <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-            </View>
-          </>
-        )}
-        <View style={styles.divider} />
-        <View style={styles.effectiveRow}>
-          <Text style={styles.effectiveLabel}>Connection Cost</Text>
-          <Text style={styles.effectiveValue}>{formatCurrency(utilityConnectionCost)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <FileText size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Permit & Design Fees</Text>
-        <TouchableOpacity
-          onPress={() => setShowPermitDesignInfo(!showPermitDesignInfo)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="permit-design-info-btn"
-        >
-          <Info size={15} color={Colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-      {showPermitDesignInfo && (
-        <View style={styles.tooltipCard}>
-          <Text style={styles.tooltipText}>{sanitizeEstimateText(PERMIT_DESIGN_TOOLTIP)}</Text>
-        </View>
-      )}
-      <View style={styles.card}>
-        <View style={styles.effectiveRow}>
-          <Text style={styles.effectiveLabel}>Permit & Design Fees</Text>
-          <Text style={styles.effectiveValue}>{formatCurrency(permitDesignFee)}</Text>
-        </View>
-        <Text style={styles.effectiveFormula}>
-          {`Based on ${quality.name} quality ${MIDDLE_DOT} ${formatNumber(permitDesignEffectiveArea)} ${SQUARE_METER_UNIT} effective project area`}
-        </Text>
-        {isLargeProject && (
-          <View style={styles.permitDesignAdvisory}>
-            <Info size={13} color={Colors.accent} />
-            <Text style={styles.permitDesignAdvisoryText}>{sanitizeEstimateText(PERMIT_DESIGN_LARGE_PROJECT_MESSAGE)}</Text>
-          </View>
-        )}
-        <TouchableOpacity
-          style={styles.permitDesignLink}
-          onPress={() => Linking.openURL(PERMIT_DESIGN_CONTACT_URL)}
-          activeOpacity={0.7}
-          testID="permit-design-contact-link"
-        >
-          <Text style={styles.permitDesignLinkText}>{PERMIT_DESIGN_CONTACT_LABEL}</Text>
-          <ExternalLink size={14} color={Colors.accent} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Settings size={16} color={Colors.accent} />
-        <Text style={styles.sectionTitle}>Contractor & Contingency</Text>
-      </View>
-      <View style={styles.card}>
-        <SliderInput
-          label="Contractor Overhead & Profit"
-          subtitle={`${formatDecimal(contractorPercent, 1)}% of construction = ${formatCurrency(contractorCost)}`}
-          value={contractorPercent}
-          onChangeValue={setContractorPercent}
-          min={CONTRACTOR_MIN_PERCENTAGE}
-          max={CONTRACTOR_MAX_PERCENTAGE}
-          step={CONTRACTOR_STEP}
-          suffix="%"
-          testID="slider-contractor-percent"
-        />
-        <View style={styles.divider} />
-        <View style={styles.costHintRow}>
-          <ShieldAlert size={13} color={Colors.accent} />
-          <Text style={styles.costHint}>
-            {`Construction contingency (${formatNumber(Math.round(contingencyPercent * 100))}%) is applied to KG 300${EN_DASH}600 based on ${quality.name} quality level.`}
-          </Text>
-        </View>
-      </View>
+      {renderSiteParametersGroup()}
+      {renderConstructionBenchmarkGroup()}
+      {renderBuildingDefinitionGroup()}
+      {renderOutdoorAdditionsGroup()}
+      {renderSystemsUpgradesGroup()}
 
       <TouchableOpacity
         style={styles.transparencyLink}
@@ -1830,31 +1862,6 @@ export default function EstimateScreen() {
         <Info size={14} color={Colors.textTertiary} style={styles.disclaimerIcon} />
         <Text style={styles.disclaimerText}>{sanitizeEstimateText(DISCLAIMER_TEXT)}</Text>
       </View>
-
-      <TouchableOpacity
-        style={styles.resetBtn}
-        activeOpacity={0.7}
-        testID="reset-project-btn"
-        onPress={() => {
-          Alert.alert(
-            'Reset Project',
-            'This will delete all scenarios and restore the default configuration. This action cannot be undone.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Reset',
-                style: 'destructive',
-                onPress: () => {
-                  void resetAllData();
-                },
-              },
-            ],
-          );
-        }}
-      >
-        <RotateCcw size={14} color={Colors.danger ?? '#DC2626'} />
-        <Text style={styles.resetBtnText}>Reset Project</Text>
-      </TouchableOpacity>
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -1887,6 +1894,134 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: Colors.text,
     letterSpacing: 0.3,
+  },
+  groupWrap: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+    overflow: 'hidden' as const,
+  },
+  groupHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  groupHeaderLeft: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    flex: 1,
+    paddingRight: 12,
+  },
+  groupIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: Colors.accentBg,
+  },
+  groupTitle: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: Colors.text,
+  },
+  groupBody: {
+    paddingBottom: 6,
+  },
+  groupSection: {
+    marginTop: 4,
+  },
+  groupSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  groupSectionSubtitle: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+    marginHorizontal: 16,
+    marginBottom: 4,
+  },
+  groupSectionHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    gap: 8,
+  },
+  groupSectionHeaderTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  groupNestedBlock: {
+    marginTop: 2,
+  },
+  groupInlineHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    gap: 8,
+  },
+  groupInlineTitle: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: Colors.textSecondary,
+  },
+  inlineSubsectionLabel: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  summaryHighlightCard: {
+    backgroundColor: Colors.accentBg,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  summaryHighlightHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    gap: 12,
+  },
+  summaryHighlightLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.accent,
+  },
+  summaryHighlightValue: {
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: Colors.accent,
+  },
+  summaryHighlightSubtext: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 6,
+    lineHeight: 16,
+  },
+  summarySpacer: {
+    height: 10,
   },
   chipsRow: {
     paddingHorizontal: 16,

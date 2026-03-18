@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { Copy, Pencil, X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useEstimate } from '@/contexts/EstimateContext';
+import { formatNumber } from '@/utils/format';
 
 function getScenarioQualityMeta(scenario: { qualityId: string; customCostPerSqm: number | null }) {
   if (scenario.customCostPerSqm !== null) {
@@ -153,6 +154,9 @@ export default function ScenarioBar() {
                         <View style={[s.qualityBadgeDot, { backgroundColor: qualityMeta.tone }]} />
                         <Text style={[s.qualityBadgeText, { color: qualityMeta.tone }]}>{qualityMeta.label}</Text>
                       </View>
+                      <Text style={[s.tabMetaValue, isActive && s.tabMetaValueActive]}>
+                        {`${formatNumber(scenario.effectiveArea ?? 0)} m${String.fromCharCode(0x00B2)}`}
+                      </Text>
                     </View>
                   </View>
                 )}
@@ -319,6 +323,14 @@ const s = StyleSheet.create({
   qualityBadgeText: {
     fontSize: 10,
     fontWeight: '700' as const,
+  },
+  tabMetaValue: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: Colors.textTertiary,
+  },
+  tabMetaValueActive: {
+    color: Colors.accent,
   },
   tabActions: {
     flexDirection: 'row' as const,
