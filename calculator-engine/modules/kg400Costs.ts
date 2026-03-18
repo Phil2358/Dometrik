@@ -4,7 +4,7 @@ import {
   KG400_AUTOMATION_PACKAGE_COSTS,
   KG400_BATHROOM_DELTA_BASE_COST,
   KG400_BEDROOM_DELTA_BASE_COST,
-  KG400_DATA_SECURITY_BASELINE_ALLOWANCE,
+  KG400_DATA_SECURITY_BASELINE_COST_PER_SQM,
   KG400_WC_DELTA_BASE_COST,
   QUALITY_LEVELS,
 } from "../../constants/construction"
@@ -73,8 +73,10 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       hvacSelections: input.hvacSelections,
     })
 
-  // 450 = minimal baseline weak-current allowance + optional extras.
+  // 450 = small main-area-based baseline for minimal weak-current/security infrastructure.
   const dataSecurityOptionalExtrasCost = 0
+  const dataSecurityBaselineCost =
+    Math.round(Math.max(0, input.mainArea) * KG400_DATA_SECURITY_BASELINE_COST_PER_SQM)
   // 480 = automation only via explicit optional package / extras.
   const automationPackageId: keyof typeof KG400_AUTOMATION_PACKAGE_COSTS = "none"
   const automationCategoryCost =
@@ -123,7 +125,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     ),
     data_security: Math.max(
       0,
-      KG400_DATA_SECURITY_BASELINE_ALLOWANCE + dataSecurityOptionalExtrasCost
+      dataSecurityBaselineCost + dataSecurityOptionalExtrasCost
     ),
     automation: Math.max(0, automationCategoryCost),
   }
