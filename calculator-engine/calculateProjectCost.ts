@@ -69,7 +69,7 @@ export interface ProjectCalculationInput {
   wcs?: number
   kitchenCount?: number
   customKitchenUnitCost?: number | null
-  generalFurnitureBaseAmount?: number | null
+  generalFurniture?: number | null
   dataSecurityPackageLevel?: DataSecurityPackageLevel
   dataSecurityPackageSelection?: Kg400PackageSelection
   dataSecurityManualQuote?: number | null
@@ -265,7 +265,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       bedroomCount,
       kitchenCount: input.kitchenCount ?? 0,
       customKitchenUnitCost: input.customKitchenUnitCost,
-      generalFurnitureBaseAmount: input.generalFurnitureBaseAmount,
+      generalFurniture: input.generalFurniture,
       bathroomDelta,
       wcDelta,
     })

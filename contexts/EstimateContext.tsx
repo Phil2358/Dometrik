@@ -30,7 +30,7 @@ import {
   type Kg400PackageSelection,
   type QualityId,
   getResidentialProgramBaseline,
-  getSuggestedGeneralFurnitureBaseAmount,
+  getSuggestedGeneralFurniture,
   normalizeQualityId,
 } from '@/constants/construction';
 
@@ -83,8 +83,8 @@ export interface ScenarioConfig {
   kitchenCount: number;
   kitchenCountCustomized?: boolean;
   customKitchenUnitCost: number | null;
-  generalFurnitureBaseAmount: number;
-  generalFurnitureBaseAmountCustomized?: boolean;
+  generalFurniture: number;
+  generalFurnitureCustomized?: boolean;
   dataSecurityPackageSelection?: Kg400PackageSelection;
   dataSecurityManualQuote?: number | null;
   automationPackageSelection?: Kg400PackageSelection;
@@ -101,6 +101,8 @@ export interface ScenarioConfig {
 type PersistedScenarioConfig = Omit<ScenarioConfig, 'qualityId'> & {
   qualityId?: CompatibleQualityId | string;
   effectiveArea?: number;
+  generalFurnitureBaseAmount?: number;
+  generalFurnitureBaseAmountCustomized?: boolean;
 };
 
 const DEFAULT_LAND_ACQUISITION_PERCENTAGE = 0.06;
@@ -252,14 +254,14 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
     ? (config.kitchenCount ?? 0)
     : 0;
   const customKitchenUnitCost = config.customKitchenUnitCost ?? null;
-  const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(defaultBuildingArea, bedroomCount);
-  const generalFurnitureBaseAmountCustomized = config.generalFurnitureBaseAmountCustomized ?? (
-    config.generalFurnitureBaseAmount !== undefined &&
-    config.generalFurnitureBaseAmount !== suggestedGeneralFurnitureBaseAmount
+  const suggestedGeneralFurniture = getSuggestedGeneralFurniture(defaultBuildingArea, bedroomCount);
+  const generalFurnitureCustomized = config.generalFurnitureCustomized ?? config.generalFurnitureBaseAmountCustomized ?? (
+    (config.generalFurniture ?? config.generalFurnitureBaseAmount) !== undefined &&
+    (config.generalFurniture ?? config.generalFurnitureBaseAmount) !== suggestedGeneralFurniture
   );
-  const generalFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
-    ? (config.generalFurnitureBaseAmount ?? suggestedGeneralFurnitureBaseAmount)
-    : suggestedGeneralFurnitureBaseAmount;
+  const generalFurniture = generalFurnitureCustomized
+    ? (config.generalFurniture ?? config.generalFurnitureBaseAmount ?? suggestedGeneralFurniture)
+    : suggestedGeneralFurniture;
   const dataSecurityPackageLevel = normalizeDataSecurityPackageLevel(
     config.dataSecurityPackageLevel,
     config.dataSecurityPackageSelection,
@@ -304,8 +306,8 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
     kitchenCount,
     kitchenCountCustomized,
     customKitchenUnitCost,
-    generalFurnitureBaseAmount,
-    generalFurnitureBaseAmountCustomized,
+    generalFurniture,
+    generalFurnitureCustomized,
     dataSecurityPackageLevel,
     dataSecurityPackageSelection,
     dataSecurityManualQuote,
@@ -386,8 +388,8 @@ function createDefaultConfig(name: string): ScenarioConfig {
     kitchenCount: 0,
     kitchenCountCustomized: false,
     customKitchenUnitCost: null,
-    generalFurnitureBaseAmount: getSuggestedGeneralFurnitureBaseAmount(defaultBuildingArea, defaultProgramBaseline.bedrooms),
-    generalFurnitureBaseAmountCustomized: false,
+    generalFurniture: getSuggestedGeneralFurniture(defaultBuildingArea, defaultProgramBaseline.bedrooms),
+    generalFurnitureCustomized: false,
     dataSecurityPackageSelection: 'no',
     dataSecurityManualQuote: null,
     automationPackageSelection: 'no',
@@ -490,10 +492,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [kitchenCount, setKitchenCountState] = useState<number>(0);
   const [kitchenCountCustomized, setKitchenCountCustomized] = useState<boolean>(false);
   const [customKitchenUnitCost, setCustomKitchenUnitCost] = useState<number | null>(null);
-  const [generalFurnitureBaseAmount, setGeneralFurnitureBaseAmountState] = useState<number>(
-    getSuggestedGeneralFurnitureBaseAmount(initialProgramDefaultBuildingArea, initialResidentialProgramBaseline.bedrooms)
+  const [generalFurniture, setGeneralFurnitureState] = useState<number>(
+    getSuggestedGeneralFurniture(initialProgramDefaultBuildingArea, initialResidentialProgramBaseline.bedrooms)
   );
-  const [generalFurnitureBaseAmountCustomized, setGeneralFurnitureBaseAmountCustomized] = useState<boolean>(false);
+  const [generalFurnitureCustomized, setGeneralFurnitureCustomized] = useState<boolean>(false);
   const [dataSecurityPackageLevel, setDataSecurityPackageLevel] = useState<DataSecurityPackageLevel>('essential');
   const [dataSecurityPackageSelection, setDataSecurityPackageSelection] = useState<Kg400PackageSelection>('no');
   const [dataSecurityManualQuote, setDataSecurityManualQuote] = useState<number | null>(null);
@@ -569,8 +571,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       kitchenCount,
       kitchenCountCustomized,
       customKitchenUnitCost,
-      generalFurnitureBaseAmount,
-      generalFurnitureBaseAmountCustomized,
+      generalFurniture,
+      generalFurnitureCustomized,
       dataSecurityPackageLevel,
       dataSecurityPackageSelection: dataSecurityPackageLevel !== 'essential' ? 'yes' : 'no',
       dataSecurityManualQuote,
@@ -589,7 +591,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, bathroomsMode, bathroomsManualValue, wcsMode, wcsManualValue, bedroomCountMode, bedroomCountManualValue,
-    kitchenCount, kitchenCountCustomized, customKitchenUnitCost, generalFurnitureBaseAmount, generalFurnitureBaseAmountCustomized,
+    kitchenCount, kitchenCountCustomized, customKitchenUnitCost, generalFurniture, generalFurnitureCustomized,
     dataSecurityPackageLevel, dataSecurityManualQuote, automationPackageLevel, automationManualQuote,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId,
@@ -632,8 +634,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setKitchenCountState(normalizedConfig.kitchenCount);
     setKitchenCountCustomized(normalizedConfig.kitchenCountCustomized ?? false);
     setCustomKitchenUnitCost(normalizedConfig.customKitchenUnitCost);
-    setGeneralFurnitureBaseAmountState(normalizedConfig.generalFurnitureBaseAmount);
-    setGeneralFurnitureBaseAmountCustomized(normalizedConfig.generalFurnitureBaseAmountCustomized ?? false);
+    setGeneralFurnitureState(normalizedConfig.generalFurniture);
+    setGeneralFurnitureCustomized(normalizedConfig.generalFurnitureCustomized ?? false);
     setDataSecurityPackageLevel(normalizedConfig.dataSecurityPackageLevel ?? 'essential');
     setDataSecurityPackageSelection(normalizedConfig.dataSecurityPackageSelection ?? 'no');
     setDataSecurityManualQuote(normalizedConfig.dataSecurityManualQuote ?? null);
@@ -713,7 +715,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, vatPercent,
     efkaInsuranceManualCost, manualContingencyPercent, manualContingencyCost, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
-    bathrooms, wcs, bedroomCount, kitchenCount, customKitchenUnitCost, generalFurnitureBaseAmount,
+    bathrooms, wcs, bedroomCount, kitchenCount, customKitchenUnitCost, generalFurniture,
     dataSecurityPackageLevel, dataSecurityManualQuote, automationPackageLevel, automationManualQuote,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId, persistState,
@@ -922,7 +924,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     bedroomCount,
     kitchenCount,
     customKitchenUnitCost,
-    generalFurnitureBaseAmount,
+    generalFurniture,
     bathroomDelta,
     wcDelta,
   }), [
@@ -931,17 +933,17 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     bedroomCount,
     kitchenCount,
     customKitchenUnitCost,
-    generalFurnitureBaseAmount,
+    generalFurniture,
     bathroomDelta,
     wcDelta,
   ]);
   const includedWardrobes = kg600CostsResult.includedWardrobes;
   const totalWardrobeCount = kg600CostsResult.totalWardrobeCount;
   const suggestedKitchenUnitCost = kg600CostsResult.suggestedKitchenUnitCost;
-  const suggestedGeneralFurnitureBaseAmount = kg600CostsResult.suggestedGeneralFurnitureBaseAmount;
+  const suggestedGeneralFurniture = kg600CostsResult.suggestedGeneralFurniture;
   const kitchenUnitCost = kg600CostsResult.kitchenUnitCost;
   const generalFurnitureBedroomIncrement = kg600CostsResult.generalFurnitureBedroomIncrement;
-  const generalFurniturePackageCost = kg600CostsResult.generalFurniturePackageCost;
+  const generalFurnitureCost = kg600CostsResult.generalFurnitureCost;
   const kitchenPackageCost = kg600CostsResult.kitchenPackageCost;
   const wardrobePackageCost = kg600CostsResult.wardrobePackageCost;
   const bathroomWcFurnishingSliceCost = kg600CostsResult.bathroomWcFurnishingSliceCost;
@@ -1018,13 +1020,13 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   }, [kitchenCount, kitchenCountCustomized]);
 
   useEffect(() => {
-    if (!generalFurnitureBaseAmountCustomized && generalFurnitureBaseAmount !== suggestedGeneralFurnitureBaseAmount) {
-      setGeneralFurnitureBaseAmountState(suggestedGeneralFurnitureBaseAmount);
+    if (!generalFurnitureCustomized && generalFurniture !== suggestedGeneralFurniture) {
+      setGeneralFurnitureState(suggestedGeneralFurniture);
     }
   }, [
-    generalFurnitureBaseAmount,
-    generalFurnitureBaseAmountCustomized,
-    suggestedGeneralFurnitureBaseAmount,
+    generalFurniture,
+    generalFurnitureCustomized,
+    suggestedGeneralFurniture,
   ]);
 
   const setBathrooms = useCallback((value: number) => {
@@ -1047,17 +1049,17 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setKitchenCountState(value);
   }, []);
 
-  const setGeneralFurnitureBaseAmount = useCallback((value: number) => {
-    setGeneralFurnitureBaseAmountCustomized(true);
-    setGeneralFurnitureBaseAmountState(value);
+  const setGeneralFurniture = useCallback((value: number) => {
+    setGeneralFurnitureCustomized(true);
+    setGeneralFurnitureState(value);
   }, []);
 
-  const setGeneralFurnitureBaseAmountMode = useCallback((isManual: boolean) => {
-    setGeneralFurnitureBaseAmountCustomized(isManual);
+  const setGeneralFurnitureMode = useCallback((isManual: boolean) => {
+    setGeneralFurnitureCustomized(isManual);
     if (!isManual) {
-      setGeneralFurnitureBaseAmountState(suggestedGeneralFurnitureBaseAmount);
+      setGeneralFurnitureState(suggestedGeneralFurniture);
     }
-  }, [suggestedGeneralFurnitureBaseAmount]);
+  }, [suggestedGeneralFurniture]);
   const poolSizeOption = useMemo(
     () => POOL_SIZE_OPTIONS.find((p) => p.id === poolSizeId) ?? POOL_SIZE_OPTIONS[1],
     [poolSizeId],
@@ -1152,7 +1154,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     wcs,
     kitchenCount,
     customKitchenUnitCost,
-    generalFurnitureBaseAmount,
+    generalFurniture,
     dataSecurityPackageLevel,
     dataSecurityPackageSelection,
     dataSecurityManualQuote,
@@ -1198,7 +1200,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     wcs,
     kitchenCount,
     customKitchenUnitCost,
-    generalFurnitureBaseAmount,
+    generalFurniture,
     dataSecurityPackageLevel,
     dataSecurityPackageSelection,
     dataSecurityManualQuote,
@@ -1324,10 +1326,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setKitchenCount,
     customKitchenUnitCost,
     setCustomKitchenUnitCost,
-    generalFurnitureBaseAmount,
-    setGeneralFurnitureBaseAmount,
-    generalFurnitureBaseAmountCustomized,
-    setGeneralFurnitureBaseAmountMode,
+    generalFurniture,
+    setGeneralFurniture,
+    generalFurnitureCustomized,
+    setGeneralFurnitureMode,
     dataSecurityPackageLevel,
     setDataSecurityPackageLevel,
     dataSecurityPackageSelection,
@@ -1452,11 +1454,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     bathroomDelta,
     wcDelta,
     suggestedKitchenUnitCost,
-    suggestedGeneralFurnitureBaseAmount,
+    suggestedGeneralFurniture,
     kitchenUnitCost,
     kitchenPackageCost,
     wardrobePackageCost,
-    generalFurniturePackageCost,
+    generalFurnitureCost,
     generalFurnitureBedroomIncrement,
     bathroomWcFurnishingSliceCost,
     includedWardrobes,
@@ -1498,8 +1500,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     bathrooms, setBathrooms, wcs, setWcs,
     bedroomCount, setBedroomCount, kitchenCount, setKitchenCount,
     customKitchenUnitCost, setCustomKitchenUnitCost,
-    generalFurnitureBaseAmount, setGeneralFurnitureBaseAmount,
-    generalFurnitureBaseAmountCustomized, setGeneralFurnitureBaseAmountMode,
+    generalFurniture, setGeneralFurniture,
+    generalFurnitureCustomized, setGeneralFurnitureMode,
     dataSecurityPackageLevel, setDataSecurityPackageLevel,
     dataSecurityPackageSelection, setDataSecurityPackageSelection,
     dataSecurityManualQuote, setDataSecurityManualQuote,
@@ -1536,7 +1538,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg200Total, kg300Cost, kg300Total, kg300SubgroupCosts, kg400Cost, kg400Total, kg500Total, kg600Cost,
     baseBuildingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation,
     kg600SubgroupCosts, residentialProgramBaseline, bedroomDelta, bathroomDelta, wcDelta,
-    suggestedKitchenUnitCost, suggestedGeneralFurnitureBaseAmount, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
+    suggestedKitchenUnitCost, suggestedGeneralFurniture, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurnitureCost,
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, basementBenchmarkRate, storageTechnicalBasementCost, parkingBasementCost, habitableBasementCost, basementBaseCost,
     basementKg300Total, basementKg300ModifierCost, basementKg300BaseSubgroupCosts, basementKg300SubgroupCosts, basementKg300ModifierDetails,

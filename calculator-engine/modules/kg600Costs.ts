@@ -8,7 +8,7 @@ import {
   QUALITY_LEVELS,
   type QualityId,
   getKitchenAreaFactor,
-  getSuggestedGeneralFurnitureBaseAmount,
+  getSuggestedGeneralFurniture,
 } from "../../constants/construction"
 
 interface Kg600CostsInput {
@@ -17,7 +17,7 @@ interface Kg600CostsInput {
   bedroomCount: number
   kitchenCount?: number
   customKitchenUnitCost?: number | null
-  generalFurnitureBaseAmount?: number | null
+  generalFurniture?: number | null
   bathroomDelta?: number
   wcDelta?: number
 }
@@ -34,7 +34,7 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
   const suggestedKitchenUnitCost = Math.round(
     KG600_KITCHEN_PACKAGE_BASE_COST * kitchenAreaFactor * qualityPackageMultiplier
   )
-  const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(
+  const suggestedGeneralFurniture = getSuggestedGeneralFurniture(
     input.buildingArea,
     totalWardrobeCount
   )
@@ -44,8 +44,8 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
   )
   const generalFurnitureBedroomIncrement =
     Math.max(0, totalWardrobeCount - 1) * KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT
-  const generalFurniturePackageCost =
-    input.generalFurnitureBaseAmount ?? suggestedGeneralFurnitureBaseAmount
+  const generalFurnitureCost =
+    input.generalFurniture ?? suggestedGeneralFurniture
   const extraBathroomFurnishingSliceCost =
     Math.max(0, input.bathroomDelta ?? 0) *
     Math.round(KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier)
@@ -58,7 +58,7 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
     extraBathroomFurnishingSliceCost + extraWcFurnishingSliceCost
   const kg600SpecialFurnishingsCost =
     kitchenPackageCost + wardrobePackageCost + bathroomWcFurnishingSliceCost
-  const kg600GeneralFurnishingsCost = generalFurniturePackageCost
+  const kg600GeneralFurnishingsCost = generalFurnitureCost
   const kg600Cost = kg600GeneralFurnishingsCost + kg600SpecialFurnishingsCost
 
   return {
@@ -67,11 +67,11 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
     totalWardrobeCount,
     kitchenAreaFactor,
     suggestedKitchenUnitCost,
-    suggestedGeneralFurnitureBaseAmount,
+    suggestedGeneralFurniture,
     kitchenUnitCost,
     wardrobeUnitCost,
     generalFurnitureBedroomIncrement,
-    generalFurniturePackageCost,
+    generalFurnitureCost,
     extraBathroomFurnishingSliceCost,
     extraWcFurnishingSliceCost,
     kitchenPackageCost,

@@ -552,10 +552,10 @@ export default function EstimateScreen() {
     setKitchenCount,
     customKitchenUnitCost,
     setCustomKitchenUnitCost,
-    generalFurnitureBaseAmount,
-    setGeneralFurnitureBaseAmount,
-    generalFurnitureBaseAmountCustomized,
-    setGeneralFurnitureBaseAmountMode,
+    generalFurniture,
+    setGeneralFurniture,
+    generalFurnitureCustomized,
+    setGeneralFurnitureMode,
     dataSecurityPackageLevel,
     setDataSecurityPackageLevel,
     dataSecurityManualQuote,
@@ -603,11 +603,11 @@ export default function EstimateScreen() {
     contingencyCost,
     residentialProgramBaseline,
     suggestedKitchenUnitCost,
-    suggestedGeneralFurnitureBaseAmount,
+    suggestedGeneralFurniture,
     kitchenUnitCost,
     kitchenPackageCost,
     wardrobePackageCost,
-    generalFurniturePackageCost,
+    generalFurnitureCost,
     bathroomWcFurnishingSliceCost,
     includedWardrobes,
   } = useEstimate();
@@ -621,10 +621,10 @@ export default function EstimateScreen() {
     ? landValue * 0.06
     : landAcquisitionCosts;
   const feesQualityLabel = getFeesQualityLabel(qualityId);
-  const appliedGeneralFurnitureBaseAmount = generalFurnitureBaseAmountCustomized
-    ? generalFurnitureBaseAmount
-    : suggestedGeneralFurnitureBaseAmount;
-  const furnishingBreakdownText = `${formatCurrency(kitchenPackageCost)} kitchen + ${formatCurrency(wardrobePackageCost)} wardrobes (${includedWardrobes}) + ${formatCurrency(generalFurniturePackageCost)} general furniture + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices`;
+  const appliedGeneralFurniture = generalFurnitureCustomized
+    ? generalFurniture
+    : suggestedGeneralFurniture;
+  const furnishingBreakdownText = `${formatCurrency(kitchenPackageCost)} kitchen + ${formatCurrency(wardrobePackageCost)} wardrobes (${includedWardrobes}) + ${formatCurrency(generalFurnitureCost)} general furniture + ${formatCurrency(bathroomWcFurnishingSliceCost)} bath/WC furnishing slices`;
   const bedroomSubtitle = formatProgramSubtitle({
     baseline: residentialProgramBaseline.bedrooms,
     actual: bedroomCount,
@@ -824,7 +824,7 @@ export default function EstimateScreen() {
             onChangeValue={setBedroomCount}
             min={1}
             subtitle={bedroomSubtitle}
-            infoText="Bedrooms here are used for built-in wardrobes only. Loose bedroom furniture is included in the General Furniture Base Amount."
+            infoText="Bedrooms here are used for built-in wardrobes only. Loose bedroom furniture is included in General Furniture."
           />
           <View style={styles.divider} />
           <IntegerInputRow
@@ -882,24 +882,24 @@ export default function EstimateScreen() {
           />
           <View style={styles.divider} />
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>General Furniture Base Amount</Text>
+            <Text style={styles.cardTitle}>General Furniture</Text>
           </View>
           <OverrideValueField
-            value={formatNumber(appliedGeneralFurnitureBaseAmount)}
+            value={formatNumber(appliedGeneralFurniture)}
             onChangeText={(text) => {
               const cleaned = text.replace(/[^0-9]/g, '');
-              setGeneralFurnitureBaseAmount(parseInt(cleaned, 10) || 0);
+              setGeneralFurniture(parseInt(cleaned, 10) || 0);
             }}
-            editable={generalFurnitureBaseAmountCustomized}
+            editable={generalFurnitureCustomized}
             unit={` ${EURO_SYMBOL}`}
-            helperText={generalFurnitureBaseAmountCustomized
-              ? `Automatic reference: ${formatCurrency(suggestedGeneralFurnitureBaseAmount)} based on bedrooms and building area.`
+            helperText={generalFurnitureCustomized
+              ? `Automatic reference: ${formatCurrency(suggestedGeneralFurniture)} based on bedrooms and building area.`
               : 'Automatically recommended based on bedrooms and building area.'}
             onSetEditable={(nextEditable) => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
-              setGeneralFurnitureBaseAmountMode(nextEditable);
+              setGeneralFurnitureMode(nextEditable);
             }}
             inputTestID="general-furniture-base-input"
             actionTestID="general-furniture-manual-toggle"

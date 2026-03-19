@@ -228,7 +228,7 @@ export function getKitchenAreaFactor(buildingArea: number): number {
   return 1.65;
 }
 
-export function getSuggestedGeneralFurnitureBaseAmount(buildingArea: number, bedroomCount: number): number {
+export function getSuggestedGeneralFurniture(buildingArea: number, bedroomCount: number): number {
   let areaBase = 4500;
 
   if (buildingArea > 80) areaBase = 5500;
