@@ -3,17 +3,13 @@ import {
   GROUNDWATER_CONDITIONS,
   SITE_ACCESSIBILITY_OPTIONS,
   UTILITY_CONNECTION_OPTIONS,
-  BASE_EXCAVATION_COST_PER_SQM,
-  clampSitePreparationMultiplier,
   getBasementExcavationCost,
-  getPlotSizeFactor,
   getUtilityConnectionGroupCosts
 } from "../../constants/construction"
 
 interface SiteCostsInput {
-  kg200Base: number
-  plotSize: number
-  mainArea: number
+  effectiveArea: number
+  landscapingArea?: number | null
   basementArea: number
 
   siteConditionId: string
@@ -22,6 +18,23 @@ interface SiteCostsInput {
 
   utilityConnectionId: string
   customUtilityCost?: number | null
+}
+
+const SUBGROUP_210_MINIMUM_BASE_COST = 300
+
+const SUBGROUP_210_ACCESS_SURCHARGES: Record<string, number> = {
+  normal: 0,
+  limited: 250,
+  difficult: 600,
+  very_difficult: 1000,
+}
+
+const SUBGROUP_210_SITE_CONDITION_RATES: Record<string, number> = {
+  flat_normal: 0,
+  flat_rocky: 0.10,
+  inclined_normal: 0.20,
+  inclined_rocky: 0.35,
+  inclined_sandy: 0.50,
 }
 
 export function calculateSiteCosts(input: SiteCostsInput) {
@@ -47,13 +60,6 @@ export function calculateSiteCosts(input: SiteCostsInput) {
     accessibilityOptions.find((a: any) => a.id === input.accessibilityId)
     ?? accessibilityOptions[0]
 
-  const sitePreparationMultiplier =
-    clampSitePreparationMultiplier(
-      getPlotSizeFactor(input.plotSize) *
-      siteCondition.sitePreparationFactor *
-      accessibility.sitePreparationFactor
-    )
-
   // basement excavation
   const basementExcavationCost =
     getBasementExcavationCost(
@@ -76,8 +82,21 @@ export function calculateSiteCosts(input: SiteCostsInput) {
   const accessibilityCost = 0
   const group250Cost = accessibilityCost
 
+  const landscapingArea = Math.max(0, input.landscapingArea ?? 0)
+  const sitePrepBaseArea = Math.max(0, input.effectiveArea) + landscapingArea
+  const siteExcavationBaseCost = Math.max(
+    SUBGROUP_210_MINIMUM_BASE_COST,
+    Math.round(sitePrepBaseArea)
+  )
+  const siteExcavationAccessExtra =
+    SUBGROUP_210_ACCESS_SURCHARGES[accessibility.id] ?? 0
+  const siteExcavationConditionExtra = Math.round(
+    siteExcavationBaseCost * (SUBGROUP_210_SITE_CONDITION_RATES[siteCondition.id] ?? 0)
+  )
   const siteExcavationCost =
-    Math.round(input.kg200Base * sitePreparationMultiplier)
+    siteExcavationBaseCost +
+    siteExcavationAccessExtra +
+    siteExcavationConditionExtra
 
   const kg200Total =
     siteExcavationCost +
@@ -87,6 +106,9 @@ export function calculateSiteCosts(input: SiteCostsInput) {
 
   return {
     siteExcavationCost,
+    siteExcavationBaseCost,
+    siteExcavationAccessExtra,
+    siteExcavationConditionExtra,
     basementExcavationCost: Math.round(basementExcavationCost),
     utilityConnectionCost: Math.round(utilityConnectionCost),
     group220Cost: utilityGroupCosts.group220Cost,

@@ -268,9 +268,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
 
   const siteCosts =
     calculateSiteCosts({
-      kg200Base: buildingCost.kg200Base,
-      plotSize: input.plotSize,
-      mainArea: input.mainArea,
+      effectiveArea,
+      landscapingArea: input.landscapingArea,
       basementArea: resolvedBasementArea,
       siteConditionId: input.siteConditionId,
       groundwaterConditionId: input.groundwaterConditionId,

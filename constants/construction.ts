@@ -54,15 +54,15 @@ export const LOCATIONS: Location[] = [
 export const QUALITY_LEVELS: QualityLevel[] = [
   {
     id: 'standard',
-    name: 'Standard',
-    description: 'Good quality materials, energy-efficient, standard finishes',
+    name: 'Economy',
+    description: 'Cost-conscious materials, energy-efficient, practical finishes',
     baseCostPerSqm: Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * 0.90),
     benchmarkFactor: 0.90,
   },
   {
     id: 'premium',
-    name: 'Premium',
-    description: 'High-end materials, smart home ready, premium finishes',
+    name: 'Mid-Range',
+    description: 'Balanced materials, smart-home ready, mid-range finishes',
     baseCostPerSqm: PREMIUM_BENCHMARK_BASE_COST_PER_SQM,
     benchmarkFactor: 1.00,
   },
@@ -513,19 +513,19 @@ export const UTILITY_CONNECTION_OPTIONS: UtilityConnectionOption[] = [
     id: 'standard',
     name: 'Standard connection',
     description: 'Typical urban or suburban utility hookup',
-    cost: 4000,
+    cost: 1500,
   },
   {
     id: 'difficult',
     name: 'Difficult connection',
     description: 'Extended infrastructure or complex terrain',
-    cost: 8000,
+    cost: 2200,
   },
   {
     id: 'remote',
     name: 'Remote location',
     description: 'Long-distance utility extension required',
-    cost: 15000,
+    cost: 3000,
   },
   {
     id: 'custom',

@@ -1,7 +1,6 @@
 import {
   QUALITY_LEVELS,
   LOCATIONS,
-  BASE_GROUP_SHARE_KG200,
   BASE_GROUP_SHARE_KG300,
   BASE_GROUP_SHARE_KG400,
   getSizeCorrectionFactor
@@ -43,9 +42,6 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
   const rawBuildingCost =
     Math.round(input.effectiveArea * correctedCostPerSqm)
 
-  const kg200Base =
-    Math.round(rawBuildingCost * BASE_GROUP_SHARE_KG200)
-
   const kg300Base =
     Math.round(rawBuildingCost * BASE_GROUP_SHARE_KG300)
 
@@ -59,7 +55,6 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
     correctedCostPerSqm,
     rawBuildingCost: kg300Base + kg400Base,
     baseConstructionCost: rawBuildingCost,
-    kg200Base,
     kg300Base,
     kg400Base
   }
