@@ -1244,8 +1244,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kg500Total = projectRollupResult.kg500Total;
   const kg600Cost = projectRollupResult.kg600Cost;
   const kg600SubgroupCosts = projectRollupResult.kg600SubgroupCosts;
-  const coveredTerracesBaseCost = projectRollupResult.coveredTerracesBaseCost;
-  const balconyAreaBaseCost = projectRollupResult.balconyAreaBaseCost;
+  const baseLivingAreaBenchmarkContribution = projectRollupResult.baseLivingAreaBenchmarkContribution;
+  const coveredTerracesBenchmarkContribution = projectRollupResult.coveredTerracesBenchmarkContribution;
+  const balconyAreaBenchmarkContribution = projectRollupResult.balconyAreaBenchmarkContribution;
+  const totalBenchmarkContributionBeforeGroupAllocation = projectRollupResult.totalBenchmarkContributionBeforeGroupAllocation;
   const constructionSubtotal = projectRollupResult.constructionSubtotal;
   const basementBenchmarkRate = projectRollupResult.basementBenchmarkRate;
   const storageTechnicalBasementCost = projectRollupResult.storageTechnicalBasementCost;
@@ -1454,8 +1456,10 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg500Total,
     kg600Cost,
     kg600SubgroupCosts,
-    coveredTerracesBaseCost,
-    balconyAreaBaseCost,
+    baseLivingAreaBenchmarkContribution,
+    coveredTerracesBenchmarkContribution,
+    balconyAreaBenchmarkContribution,
+    totalBenchmarkContributionBeforeGroupAllocation,
     residentialProgramBaseline,
     bedroomDelta,
     bathroomDelta,
@@ -1544,7 +1548,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
     kg200Total, kg300Cost, kg300Total, kg300SubgroupCosts, kg400Cost, kg400Total, kg500Total, kg600Cost,
-    coveredTerracesBaseCost, balconyAreaBaseCost,
+    baseLivingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation,
     kg600SubgroupCosts, residentialProgramBaseline, bedroomDelta, bathroomDelta, wcDelta,
     suggestedKitchenUnitCost, suggestedGeneralFurnitureBaseAmount, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,

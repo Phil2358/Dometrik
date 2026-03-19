@@ -23,8 +23,10 @@ export interface ComputedScenarioCosts {
   habitableBasementArea: number
 
   rawBuildingCost: number
-  coveredTerracesBaseCost: number
-  balconyAreaBaseCost: number
+  baseLivingAreaBenchmarkContribution: number
+  coveredTerracesBenchmarkContribution: number
+  balconyAreaBenchmarkContribution: number
+  totalBenchmarkContributionBeforeGroupAllocation: number
   basementBaseCost: number
   permitFee: number
   permitDesignFee: number
@@ -109,8 +111,10 @@ export function computeScenarioCosts(config: any): ComputedScenarioCosts {
     habitableBasementArea,
 
     rawBuildingCost: result.rawBuildingCost ?? 0,
-    coveredTerracesBaseCost: result.coveredTerracesBaseCost ?? 0,
-    balconyAreaBaseCost: result.balconyAreaBaseCost ?? 0,
+    baseLivingAreaBenchmarkContribution: result.baseLivingAreaBenchmarkContribution ?? 0,
+    coveredTerracesBenchmarkContribution: result.coveredTerracesBenchmarkContribution ?? 0,
+    balconyAreaBenchmarkContribution: result.balconyAreaBenchmarkContribution ?? 0,
+    totalBenchmarkContributionBeforeGroupAllocation: result.totalBenchmarkContributionBeforeGroupAllocation ?? 0,
     basementBaseCost: result.basementBaseCost ?? 0,
     permitFee: result.permitFee ?? 0,
     permitDesignFee: result.permitFee ?? 0,

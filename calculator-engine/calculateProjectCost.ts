@@ -5,7 +5,7 @@ import {
   calculateCategoryCosts,
   calculateLevel1BenchmarkAllocation,
 } from "./modules/categoryCosts"
-import { calculateKg200Costs, calculateSiteExcavationBaseCost } from "./modules/kg200Costs"
+import { calculateKg200Costs } from "./modules/kg200Costs"
 import { calculateKg400Costs } from "./modules/kg400Costs"
 import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
@@ -119,8 +119,10 @@ export interface ProjectCostResult {
   kg400Total: number
   kg500Total: number
   kg600Cost: number
-  coveredTerracesBaseCost: number
-  balconyAreaBaseCost: number
+  baseLivingAreaBenchmarkContribution: number
+  coveredTerracesBenchmarkContribution: number
+  balconyAreaBenchmarkContribution: number
+  totalBenchmarkContributionBeforeGroupAllocation: number
   rawBuildingCost: number
   basementBenchmarkRate: number
   basementBaseCost: number
@@ -191,13 +193,17 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       qualityId,
       customCostPerSqm: input.customCostPerSqm
     })
-  const coveredTerracesBaseCost = Math.round(
+  const baseLivingAreaBenchmarkContribution = buildingCost.baseConstructionCost
+  const coveredTerracesBenchmarkContribution = Math.round(
     input.terraceArea * buildingCost.correctedCostPerSqm * 0.50
   )
-  const balconyAreaBaseCost = Math.round(
+  const balconyAreaBenchmarkContribution = Math.round(
     input.balconyArea * buildingCost.correctedCostPerSqm * 0.30
   )
-  const areaAddOnCosts = coveredTerracesBaseCost + balconyAreaBaseCost
+  const totalBenchmarkContributionBeforeGroupAllocation =
+    baseLivingAreaBenchmarkContribution +
+    coveredTerracesBenchmarkContribution +
+    balconyAreaBenchmarkContribution
   const basementBaseCosts =
     calculateBasementBaseCosts({
       correctedBenchmarkRate: buildingCost.correctedCostPerSqm,
@@ -280,7 +286,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     })
   const level1BenchmarkAllocation =
     calculateLevel1BenchmarkAllocation({
-      benchmarkTotal: buildingCost.baseConstructionCost,
+      benchmarkTotal: totalBenchmarkContributionBeforeGroupAllocation,
       siteExcavationBaseCost: kg200Costs.siteExcavationBaseCost,
       wardrobePackageCost: kg600Costs.wardrobePackageCost,
       qualityId,
@@ -309,24 +315,9 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       habitableBasementArea: input.habitableBasementArea,
       hvacSelections: input.hvacSelections,
     })
-  const kg300BenchmarkArea = input.mainArea
-  const kg300BenchmarkConstructionCost =
-    Math.round(kg300BenchmarkArea * buildingCost.correctedCostPerSqm)
-  const kg300BenchmarkSiteExcavationBaseCost =
-    calculateSiteExcavationBaseCost({
-      effectiveArea: kg300BenchmarkArea,
-      landscapingArea: input.landscapingArea,
-    })
-  const kg300Level1Allocation =
-    calculateLevel1BenchmarkAllocation({
-      benchmarkTotal: kg300BenchmarkConstructionCost,
-      siteExcavationBaseCost: kg300BenchmarkSiteExcavationBaseCost,
-      wardrobePackageCost: kg600Costs.wardrobePackageCost,
-      qualityId,
-    })
   const categoryCosts =
     calculateCategoryCosts({
-      benchmarkBucket300: kg300Level1Allocation.benchmarkBucket300
+      benchmarkBucket300: level1BenchmarkAllocation.benchmarkBucket300
     })
   const kg300AllocationResult =
     calculateDetailedKg300SubgroupCosts({
@@ -411,7 +402,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const coreProjectTotal =
       kg200Costs.kg200Total
     + constructionSubtotal
-    + areaAddOnCosts
     + basementBaseCost
     + kg500Total
     + permitCosts.permitFee
@@ -428,8 +418,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     + permitCosts.permitFee
 
   const nonDinAdditionsSubtotal =
-      areaAddOnCosts
-    + basementBaseCost
+      basementBaseCost
     + contractorMarginCosts.contractorCost
     + contingencyCosts.contingencyCost
     + efkaCosts.appliedCost
@@ -511,8 +500,10 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg400Total: kg400Costs.kg400Total,
     kg500Total,
     kg600Cost: kg600Costs.kg600Cost,
-    coveredTerracesBaseCost,
-    balconyAreaBaseCost,
+    baseLivingAreaBenchmarkContribution,
+    coveredTerracesBenchmarkContribution,
+    balconyAreaBenchmarkContribution,
+    totalBenchmarkContributionBeforeGroupAllocation,
 
     rawBuildingCost: buildingCost.rawBuildingCost,
     basementBenchmarkRate: basementBaseCosts.basementBenchmarkRate,

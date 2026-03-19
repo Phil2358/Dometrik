@@ -5,10 +5,12 @@ export interface ReportData {
   location: string;
   effectiveArea: number;
   terraceArea: number;
+  baseLivingAreaBenchmarkContribution: number;
   qualityName: string;
   balconyArea: number;
-  coveredTerracesBaseCost: number;
-  balconyAreaBaseCost: number;
+  coveredTerracesBenchmarkContribution: number;
+  balconyAreaBenchmarkContribution: number;
+  totalBenchmarkContributionBeforeGroupAllocation: number;
   basementArea: number;
   storageBasementArea: number;
   parkingBasementArea: number;
@@ -87,8 +89,6 @@ function buildChartSegments(data: ReportData): ChartSegment[] {
     { label: 'Structure', value: data.kg300Cost },
     { label: 'Technical systems', value: data.kg400Total },
     { label: 'Interior fit-out', value: data.kg600Cost },
-    { label: 'Covered Terraces', value: data.coveredTerracesBaseCost },
-    { label: 'Balcony Area', value: data.balconyAreaBaseCost },
     { label: 'External works', value: data.kg500Total },
     { label: 'Planning & fees', value: data.permitDesignFee },
   ];
@@ -165,8 +165,6 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
     { label: 'Structure', value: data.kg300Cost },
     { label: 'Technical systems', value: data.kg400Total },
     { label: 'Interior fit-out', value: data.kg600Cost },
-    { label: 'Covered Terraces', value: data.coveredTerracesBaseCost },
-    { label: 'Balcony Area', value: data.balconyAreaBaseCost },
     { label: 'External works', value: data.kg500Total },
     { label: 'Planning & permit fees', value: data.permitDesignFee },
     { label: 'Construction contingency', value: data.contingencyCost },
@@ -182,11 +180,13 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
     { label: 'Site access', value: data.siteAccessibilityName },
   ];
   if (data.terraceArea > 0) {
-    overviewItems.push({ label: 'Covered Terraces', value: `${data.terraceArea} m² (50% factor)` });
+    overviewItems.push({ label: 'Covered Terraces', value: `${data.terraceArea} m² (50% factor) · ${formatEuro(data.coveredTerracesBenchmarkContribution)} benchmark contribution` });
   }
   if (data.balconyArea > 0) {
-    overviewItems.push({ label: 'Balcony Area', value: `${data.balconyArea} m² (30% factor)` });
+    overviewItems.push({ label: 'Balcony Area', value: `${data.balconyArea} m² (30% factor) · ${formatEuro(data.balconyAreaBenchmarkContribution)} benchmark contribution` });
   }
+  overviewItems.push({ label: 'Living area benchmark', value: formatEuro(data.baseLivingAreaBenchmarkContribution) });
+  overviewItems.push({ label: 'Total benchmark before allocation', value: formatEuro(data.totalBenchmarkContributionBeforeGroupAllocation) });
   if (data.basementArea > 0) {
     overviewItems.push({ label: 'Basement', value: formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea) });
   }
@@ -225,7 +225,7 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
     )
     .join('');
 
-  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300–600) from above-ground living area only. Covered Terraces, Balcony Area, and Basement are calculated separately as explicit area-based extras using the corrected benchmark rate. Contractor margin, planning costs, external works, and VAT are calculated separately.`;
+  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300–600) from above-ground living area only. Covered Terraces and Balcony Area do not count into effective area; instead, they feed upstream into the benchmark allocation as weighted benchmark contributions using the corrected benchmark rate. Basement remains a separate bucket. Contractor margin, planning costs, external works, and VAT are calculated separately.`;
 
   return `<!DOCTYPE html>
 <html>
