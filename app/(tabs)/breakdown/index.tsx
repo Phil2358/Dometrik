@@ -304,11 +304,11 @@ function GenerateReportButton() {
   const {
     location,
     quality,
-    effectiveArea,
+    buildingArea,
     mainArea,
     terraceArea,
     balconyArea,
-    baseLivingAreaBenchmarkContribution,
+    baseBuildingAreaBenchmarkContribution,
     coveredTerracesBenchmarkContribution,
     balconyAreaBenchmarkContribution,
     totalBenchmarkContributionBeforeGroupAllocation,
@@ -352,12 +352,12 @@ function GenerateReportButton() {
 
       const reportData: ClientReportData = {
         location: location.name,
-        effectiveArea,
+        buildingArea,
         mainArea,
         terraceArea,
         qualityName: quality.name,
         balconyArea,
-        baseLivingAreaBenchmarkContribution,
+        baseBuildingAreaBenchmarkContribution,
         coveredTerracesBenchmarkContribution,
         balconyAreaBenchmarkContribution,
         totalBenchmarkContributionBeforeGroupAllocation,
@@ -419,11 +419,11 @@ function GenerateReportButton() {
       setGenerating(false);
     }
   }, [
-    generating, location, quality, effectiveArea, mainArea, terraceArea, balconyArea, basementArea,
+    generating, location, quality, buildingArea, mainArea, terraceArea, balconyArea, basementArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea,
     includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption,
     siteCondition, groundwaterCondition, siteAccessibility, hvacCosts, kg200Total, kg300Total, kg400Total, kg500Total,
-    kg600Cost, baseLivingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation, permitDesignFee, contingencyCost, contractorCost, totalCost,
+    kg600Cost, baseBuildingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation, permitDesignFee, contingencyCost, contractorCost, totalCost,
     constructionSubtotal, basementBaseCost, contingencyPercent, sizeCorrectionFactor,
     userMode,
   ]);
@@ -472,13 +472,13 @@ export default function BreakdownScreen() {
     wcs,
     hvacCosts,
     mainArea,
-    effectiveArea,
+    buildingArea,
     correctedCostPerSqm,
     basementBenchmarkRate,
     storageTechnicalBasementCost,
     parkingBasementCost,
     habitableBasementCost,
-    baseLivingAreaBenchmarkContribution,
+    baseBuildingAreaBenchmarkContribution,
     coveredTerracesBenchmarkContribution,
     balconyAreaBenchmarkContribution,
     totalBenchmarkContributionBeforeGroupAllocation,
@@ -625,8 +625,8 @@ export default function BreakdownScreen() {
             </View>
           )}
           <View style={styles.assumptionItem}>
-            <Text style={styles.assumptionLabel}>Effective Area</Text>
-            <Text style={styles.assumptionValue}>{formatNumber(effectiveArea)} {SQUARE_METER_UNIT}</Text>
+            <Text style={styles.assumptionLabel}>Building Area</Text>
+            <Text style={styles.assumptionValue}>{formatNumber(buildingArea)} {SQUARE_METER_UNIT}</Text>
           </View>
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>{`Corrected €/${SQUARE_METER_UNIT}`}</Text>
@@ -702,8 +702,8 @@ export default function BreakdownScreen() {
             {`Benchmark rate source: ${formatCurrency(correctedCostPerSqm)}/${SQUARE_METER_UNIT}`}
           </Text>
           <View style={styles.basementRow}>
-            <Text style={styles.basementLabel}>Base Living Area Benchmark Contribution</Text>
-            <Text style={styles.basementValue}>{formatCurrency(baseLivingAreaBenchmarkContribution)}</Text>
+            <Text style={styles.basementLabel}>Base Building Area Benchmark Contribution</Text>
+            <Text style={styles.basementValue}>{formatCurrency(baseBuildingAreaBenchmarkContribution)}</Text>
           </View>
           {coveredTerracesBenchmarkContribution > 0 && (
             <View style={styles.basementRow}>

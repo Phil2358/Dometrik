@@ -9,8 +9,7 @@ import {
 } from "../../constants/construction"
 
 interface RawBuildingCostInput {
-  livingArea: number
-  effectiveArea: number
+  buildingArea: number
   locationId: string
   qualityId: QualityId
   customCostPerSqm?: number | null
@@ -37,13 +36,13 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
     Math.round(baseCostPerSqm * location.multiplier)
 
   const sizeCorrectionFactor =
-    getSizeCorrectionFactor(input.livingArea)
+    getSizeCorrectionFactor(input.buildingArea)
 
   const correctedCostPerSqm =
     Math.round(costPerSqm * sizeCorrectionFactor)
 
   const rawBuildingCost =
-    Math.round(input.effectiveArea * correctedCostPerSqm)
+    Math.round(input.buildingArea * correctedCostPerSqm)
 
   const kg300Base =
     Math.round(rawBuildingCost * BASE_GROUP_SHARE_KG300)

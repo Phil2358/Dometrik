@@ -3,9 +3,9 @@ import { formatBasementSummary } from '@/utils/computeScenarioCosts';
 
 export interface ReportData {
   location: string;
-  effectiveArea: number;
+  buildingArea: number;
   terraceArea: number;
-  baseLivingAreaBenchmarkContribution: number;
+  baseBuildingAreaBenchmarkContribution: number;
   qualityName: string;
   balconyArea: number;
   coveredTerracesBenchmarkContribution: number;
@@ -173,7 +173,7 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
 
   const overviewItems: { label: string; value: string }[] = [
     { label: 'Location', value: data.location },
-    { label: 'House size', value: `${data.effectiveArea.toFixed(0)} m²` },
+    { label: 'Building Area', value: `${data.buildingArea.toFixed(0)} m²` },
     { label: 'Quality level', value: data.qualityName },
     { label: 'Site conditions', value: data.siteConditionName },
     { label: 'Groundwater', value: data.groundwaterConditionName },
@@ -185,7 +185,7 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
   if (data.balconyArea > 0) {
     overviewItems.push({ label: 'Balcony Area', value: `${data.balconyArea} m² (30% factor) · ${formatEuro(data.balconyAreaBenchmarkContribution)} benchmark contribution` });
   }
-  overviewItems.push({ label: 'Living area benchmark', value: formatEuro(data.baseLivingAreaBenchmarkContribution) });
+  overviewItems.push({ label: 'Building Area benchmark', value: formatEuro(data.baseBuildingAreaBenchmarkContribution) });
   overviewItems.push({ label: 'Total benchmark before allocation', value: formatEuro(data.totalBenchmarkContributionBeforeGroupAllocation) });
   if (data.basementArea > 0) {
     overviewItems.push({ label: 'Basement', value: formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea) });
@@ -225,7 +225,7 @@ export function generateReportHtml(data: ReportData, reportTitle?: string): stri
     )
     .join('');
 
-  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300–600) from above-ground living area only. Covered Terraces and Balcony Area do not count into effective area; instead, they feed upstream into the benchmark allocation as weighted benchmark contributions using the corrected benchmark rate. Basement remains a separate bucket. Contractor margin, planning costs, external works, and VAT are calculated separately.`;
+  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300–600) from above-ground building area only. Covered Terraces and Balcony Area do not count into building area; instead, they feed upstream into the benchmark allocation as weighted benchmark contributions using the corrected benchmark rate. Basement remains a separate bucket. Contractor margin, planning costs, external works, and VAT are calculated separately.`;
 
   return `<!DOCTYPE html>
 <html>

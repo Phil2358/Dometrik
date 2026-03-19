@@ -69,8 +69,8 @@ function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
     },
 
     {
-      label: 'Effective area',
-      getter: (s) => `${formatNumber((s as any).effectiveArea ?? 0)} ${SQUARE_METER_UNIT}`,
+      label: 'Building area',
+      getter: (s) => `${formatNumber((s as any).buildingArea ?? 0)} ${SQUARE_METER_UNIT}`,
     },
 
     {

@@ -220,21 +220,21 @@ export function getResidentialProgramBaseline(livingArea: number): ResidentialPr
   };
 }
 
-export function getKitchenAreaFactor(effectiveArea: number): number {
-  if (effectiveArea <= 80) return 0.85;
-  if (effectiveArea <= 140) return 1.00;
-  if (effectiveArea <= 220) return 1.20;
-  if (effectiveArea <= 320) return 1.40;
+export function getKitchenAreaFactor(buildingArea: number): number {
+  if (buildingArea <= 80) return 0.85;
+  if (buildingArea <= 140) return 1.00;
+  if (buildingArea <= 220) return 1.20;
+  if (buildingArea <= 320) return 1.40;
   return 1.65;
 }
 
-export function getSuggestedGeneralFurnitureBaseAmount(effectiveArea: number, bedroomCount: number): number {
+export function getSuggestedGeneralFurnitureBaseAmount(buildingArea: number, bedroomCount: number): number {
   let areaBase = 4500;
 
-  if (effectiveArea > 80) areaBase = 5500;
-  if (effectiveArea > 140) areaBase = 7000;
-  if (effectiveArea > 220) areaBase = 8500;
-  if (effectiveArea > 320) areaBase = 10000;
+  if (buildingArea > 80) areaBase = 5500;
+  if (buildingArea > 140) areaBase = 7000;
+  if (buildingArea > 220) areaBase = 8500;
+  if (buildingArea > 320) areaBase = 10000;
 
   const bedroomAdjustment = Math.max(0, bedroomCount - 1) * 500;
   return areaBase + bedroomAdjustment;

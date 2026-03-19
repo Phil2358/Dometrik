@@ -12,7 +12,7 @@ import {
 } from "../../constants/construction"
 
 interface Kg600CostsInput {
-  effectiveArea: number
+  buildingArea: number
   qualityId: QualityId
   bedroomCount: number
   kitchenCount?: number
@@ -30,12 +30,12 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
   const qualityPackageMultiplier = quality.benchmarkFactor
   const totalWardrobeCount = Math.max(0, input.bedroomCount)
   const includedWardrobes = totalWardrobeCount
-  const kitchenAreaFactor = getKitchenAreaFactor(input.effectiveArea)
+  const kitchenAreaFactor = getKitchenAreaFactor(input.buildingArea)
   const suggestedKitchenUnitCost = Math.round(
     KG600_KITCHEN_PACKAGE_BASE_COST * kitchenAreaFactor * qualityPackageMultiplier
   )
   const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(
-    input.effectiveArea,
+    input.buildingArea,
     totalWardrobeCount
   )
   const kitchenUnitCost = input.customKitchenUnitCost ?? suggestedKitchenUnitCost

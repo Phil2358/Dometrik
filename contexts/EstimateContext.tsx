@@ -42,7 +42,7 @@ export interface ScenarioConfig {
   locationId: string;
   qualityId: QualityId;
   customCostPerSqm: number | null;
-  effectiveArea?: number;
+  buildingArea?: number;
   vatPercent?: number;
   // Deprecated compatibility bridge for older saved scenarios. Live e-EFKA
   // calculations now use efkaInsuranceManualCost plus engine defaults.
@@ -100,6 +100,7 @@ export interface ScenarioConfig {
 
 type PersistedScenarioConfig = Omit<ScenarioConfig, 'qualityId'> & {
   qualityId?: CompatibleQualityId | string;
+  effectiveArea?: number;
 };
 
 const DEFAULT_LAND_ACQUISITION_PERCENTAGE = 0.06;
@@ -108,21 +109,7 @@ function getAutoEstimatedLandAcquisitionCosts(landValue: number): number {
   return landValue * DEFAULT_LAND_ACQUISITION_PERCENTAGE;
 }
 
-function getWeightedBasementAreaForProgramDefaults(
-  storageBasementArea: number,
-  parkingBasementArea: number,
-  habitableBasementArea: number,
-): number {
-  const storageBasementType = BASEMENT_TYPES.find((b) => b.id === 'storage') ?? BASEMENT_TYPES[0];
-  const parkingBasementType = BASEMENT_TYPES.find((b) => b.id === 'parking') ?? BASEMENT_TYPES[0];
-  const habitableBasementType = BASEMENT_TYPES.find((b) => b.id === 'habitable') ?? BASEMENT_TYPES[0];
-
-  return storageBasementArea * storageBasementType.costFactor
-    + parkingBasementArea * parkingBasementType.costFactor
-    + habitableBasementArea * habitableBasementType.costFactor;
-}
-
-function getProgramDefaultEffectiveArea(config: {
+function getProgramDefaultBuildingArea(config: {
   mainArea?: number;
   terraceArea?: number;
   balconyArea?: number;
@@ -133,7 +120,7 @@ function getProgramDefaultEffectiveArea(config: {
   return config.mainArea ?? 0;
 }
 
-function getProgramBaselineLivingArea(config: {
+function getProgramBaselineBuildingArea(config: {
   mainArea?: number;
 }): number {
   return config.mainArea ?? 0;
@@ -182,8 +169,12 @@ function normalizeAutomationPackageLevel(
 function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
   const qualityId = normalizeQualityId(config.qualityId);
-  const effectiveArea = getProgramDefaultEffectiveArea({
-    mainArea: config.mainArea,
+  const persistedBuildingArea =
+    config.buildingArea ??
+    config.effectiveArea ??
+    config.mainArea;
+  const buildingArea = getProgramDefaultBuildingArea({
+    mainArea: persistedBuildingArea,
     terraceArea: config.terraceArea,
     balconyArea: config.balconyArea,
     storageBasementArea: config.storageBasementArea ?? 0,
@@ -221,14 +212,17 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
   const manualContingencyCost = config.manualContingencyCost === null || config.manualContingencyCost === undefined
     ? null
     : Math.max(0, config.manualContingencyCost);
-  const defaultEffectiveArea = getProgramDefaultEffectiveArea({
+  const defaultBuildingArea = getProgramDefaultBuildingArea({
     ...config,
+    mainArea: persistedBuildingArea,
     storageBasementArea,
     parkingBasementArea,
     habitableBasementArea,
   });
   const defaultProgramBaseline = getResidentialProgramBaseline(
-    getProgramBaselineLivingArea(config)
+    getProgramBaselineBuildingArea({
+      mainArea: persistedBuildingArea,
+    })
   );
   const bathroomsMode = config.bathroomsMode ?? 'auto';
   const bathroomsManualValue = bathroomsMode === 'manual'
@@ -258,7 +252,7 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
     ? (config.kitchenCount ?? 0)
     : 0;
   const customKitchenUnitCost = config.customKitchenUnitCost ?? null;
-  const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(defaultEffectiveArea, bedroomCount);
+  const suggestedGeneralFurnitureBaseAmount = getSuggestedGeneralFurnitureBaseAmount(defaultBuildingArea, bedroomCount);
   const generalFurnitureBaseAmountCustomized = config.generalFurnitureBaseAmountCustomized ?? (
     config.generalFurnitureBaseAmount !== undefined &&
     config.generalFurnitureBaseAmount !== suggestedGeneralFurnitureBaseAmount
@@ -284,7 +278,7 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
   return {
     ...config,
     qualityId,
-    effectiveArea,
+    buildingArea,
     vatPercent,
     efkaInsuranceManualCost,
     manualContingencyPercent,
@@ -339,7 +333,7 @@ function generateId(): string {
 }
 
 function createDefaultConfig(name: string): ScenarioConfig {
-  const defaultEffectiveArea = getProgramDefaultEffectiveArea({
+  const defaultBuildingArea = getProgramDefaultBuildingArea({
     mainArea: 150,
     terraceArea: 30,
     balconyArea: 0,
@@ -354,7 +348,7 @@ function createDefaultConfig(name: string): ScenarioConfig {
     locationId: 'corfu',
     qualityId: DEFAULT_QUALITY_ID,
     customCostPerSqm: null,
-    effectiveArea: defaultEffectiveArea,
+    buildingArea: defaultBuildingArea,
     vatPercent: 24,
     efkaInsuranceManualCost: null,
     manualContingencyPercent: null,
@@ -392,7 +386,7 @@ function createDefaultConfig(name: string): ScenarioConfig {
     kitchenCount: 0,
     kitchenCountCustomized: false,
     customKitchenUnitCost: null,
-    generalFurnitureBaseAmount: getSuggestedGeneralFurnitureBaseAmount(defaultEffectiveArea, defaultProgramBaseline.bedrooms),
+    generalFurnitureBaseAmount: getSuggestedGeneralFurnitureBaseAmount(defaultBuildingArea, defaultProgramBaseline.bedrooms),
     generalFurnitureBaseAmountCustomized: false,
     dataSecurityPackageSelection: 'no',
     dataSecurityManualQuote: null,
@@ -445,7 +439,7 @@ async function saveScenarios(scenarios: ScenarioConfig[], activeIndex: number): 
 }
 
 export const [EstimateProvider, useEstimate] = createContextHook(() => {
-  const initialProgramDefaultEffectiveArea = getProgramDefaultEffectiveArea({
+  const initialProgramDefaultBuildingArea = getProgramDefaultBuildingArea({
     mainArea: 150,
     terraceArea: 30,
     balconyArea: 0,
@@ -497,7 +491,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [kitchenCountCustomized, setKitchenCountCustomized] = useState<boolean>(false);
   const [customKitchenUnitCost, setCustomKitchenUnitCost] = useState<number | null>(null);
   const [generalFurnitureBaseAmount, setGeneralFurnitureBaseAmountState] = useState<number>(
-    getSuggestedGeneralFurnitureBaseAmount(initialProgramDefaultEffectiveArea, initialResidentialProgramBaseline.bedrooms)
+    getSuggestedGeneralFurnitureBaseAmount(initialProgramDefaultBuildingArea, initialResidentialProgramBaseline.bedrooms)
   );
   const [generalFurnitureBaseAmountCustomized, setGeneralFurnitureBaseAmountCustomized] = useState<boolean>(false);
   const [dataSecurityPackageLevel, setDataSecurityPackageLevel] = useState<DataSecurityPackageLevel>('essential');
@@ -515,7 +509,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [customUtilityCost, setCustomUtilityCost] = useState<number>(4000);
   const [groundwaterConditionId, setGroundwaterConditionId] = useState<string>('normal');
   const [siteAccessibilityId, setSiteAccessibilityId] = useState<string>('normal');
-  const effectiveArea = useMemo(
+  const buildingArea = useMemo(
     () => mainArea,
     [mainArea],
   );
@@ -535,7 +529,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       locationId,
       qualityId,
       customCostPerSqm,
-      effectiveArea,
+      buildingArea,
       plotSize,
       mainArea,
       terraceArea,
@@ -590,7 +584,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       siteAccessibilityId,
     };
   }, [
-    locationId, qualityId, customCostPerSqm, plotSize, mainArea, terraceArea, balconyArea,
+    locationId, qualityId, customCostPerSqm, buildingArea, plotSize, mainArea, terraceArea, balconyArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
@@ -714,7 +708,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   useEffect(() => {
     persistState();
   }, [
-    locationId, qualityId, customCostPerSqm, effectiveArea, plotSize, mainArea, terraceArea, balconyArea,
+    locationId, qualityId, customCostPerSqm, buildingArea, plotSize, mainArea, terraceArea, balconyArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, vatPercent,
     efkaInsuranceManualCost, manualContingencyPercent, manualContingencyCost, siteConditionId,
@@ -923,7 +917,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms;
   const wcDelta = wcs - residentialProgramBaseline.wcs;
   const kg600CostsResult = useMemo(() => calculateKg600Costs({
-    effectiveArea,
+    buildingArea,
     qualityId,
     bedroomCount,
     kitchenCount,
@@ -932,7 +926,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     bathroomDelta,
     wcDelta,
   }), [
-    effectiveArea,
+    buildingArea,
     qualityId,
     bedroomCount,
     kitchenCount,
@@ -952,21 +946,19 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const wardrobePackageCost = kg600CostsResult.wardrobePackageCost;
   const bathroomWcFurnishingSliceCost = kg600CostsResult.bathroomWcFurnishingSliceCost;
   const benchmarkBuildingCost = useMemo(() => calculateRawBuildingCost({
-    livingArea: mainArea,
-    effectiveArea,
+    buildingArea,
     locationId,
     qualityId,
     customCostPerSqm,
   }), [
-    mainArea,
-    effectiveArea,
+    buildingArea,
     locationId,
     qualityId,
     customCostPerSqm,
   ]);
   const siteExcavationBaseCost = useMemo(
-    () => Math.max(300, Math.round(Math.max(0, effectiveArea) + Math.max(0, landscapingArea))),
-    [effectiveArea, landscapingArea],
+    () => Math.max(300, Math.round(Math.max(0, buildingArea) + Math.max(0, landscapingArea))),
+    [buildingArea, landscapingArea],
   );
   const level1BenchmarkAllocation = useMemo(
     () => calculateLevel1BenchmarkAllocation({
@@ -1106,11 +1098,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setHvacSelections((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
-  const mainBuildingArea = useMemo(
-    () => mainArea + terraceArea * 0.5,
-    [mainArea, terraceArea],
-  );
-
   const hvacCosts = useMemo(() => {
     return HVAC_OPTIONS.map((opt) => ({
       option: opt,
@@ -1130,9 +1117,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const automationAppliedPackageCost = kg400EngineResult.packageCosts.automation.appliedCost;
   const automationManualOverrideActive = kg400EngineResult.packageCosts.automation.manualOverrideActive;
 
-  const permitDesignEffectiveArea = useMemo(
-    () => effectiveArea,
-    [effectiveArea],
+  const permitDesignBuildingArea = useMemo(
+    () => buildingArea,
+    [buildingArea],
   );
 
   const projectRollupResult = useMemo(() => calculateProjectCost({
@@ -1244,7 +1231,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kg500Total = projectRollupResult.kg500Total;
   const kg600Cost = projectRollupResult.kg600Cost;
   const kg600SubgroupCosts = projectRollupResult.kg600SubgroupCosts;
-  const baseLivingAreaBenchmarkContribution = projectRollupResult.baseLivingAreaBenchmarkContribution;
+  const baseBuildingAreaBenchmarkContribution = projectRollupResult.baseBuildingAreaBenchmarkContribution;
   const coveredTerracesBenchmarkContribution = projectRollupResult.coveredTerracesBenchmarkContribution;
   const balconyAreaBenchmarkContribution = projectRollupResult.balconyAreaBenchmarkContribution;
   const totalBenchmarkContributionBeforeGroupAllocation = projectRollupResult.totalBenchmarkContributionBeforeGroupAllocation;
@@ -1418,7 +1405,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     appliedContingencyPercent,
     location,
     quality,
-    effectiveArea,
+    buildingArea,
     baseCostPerSqm,
     costPerSqm,
     sizeCorrectionFactor,
@@ -1456,7 +1443,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg500Total,
     kg600Cost,
     kg600SubgroupCosts,
-    baseLivingAreaBenchmarkContribution,
+    baseBuildingAreaBenchmarkContribution,
     coveredTerracesBenchmarkContribution,
     balconyAreaBenchmarkContribution,
     totalBenchmarkContributionBeforeGroupAllocation,
@@ -1488,8 +1475,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     contingencyPercent,
     recommendedContingencyCost,
     contingencyCost,
-    mainBuildingArea,
-    permitDesignEffectiveArea,
+    permitDesignBuildingArea,
     basementTotalCost,
     siteExcavationCost,
     breakdownGroups,
@@ -1541,20 +1527,20 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     efkaInsuranceManualCost, setEfkaInsuranceManualCost, efkaInsuranceAutoCost, efkaInsuranceAmount, efkaInsuranceManualOverrideActive,
     manualContingencyPercent, setManualContingencyPercent,
     manualContingencyCost, setManualContingencyCost, contingencyManualOverrideActive, appliedContingencyPercent,
-    location, quality, effectiveArea, baseCostPerSqm, costPerSqm,
+    location, quality, buildingArea, baseCostPerSqm, costPerSqm,
     sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm,
     constructionCost, contractorCost, poolCost, permitDesignFee, totalCost, group100Total, projectTotalBeforeVat,
     utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, utilityConnectionCost, utilityGroup220Cost, utilityGroup230Cost,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
     kg200Total, kg300Cost, kg300Total, kg300SubgroupCosts, kg400Cost, kg400Total, kg500Total, kg600Cost,
-    baseLivingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation,
+    baseBuildingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation,
     kg600SubgroupCosts, residentialProgramBaseline, bedroomDelta, bathroomDelta, wcDelta,
     suggestedKitchenUnitCost, suggestedGeneralFurnitureBaseAmount, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, basementBenchmarkRate, storageTechnicalBasementCost, parkingBasementCost, habitableBasementCost, basementBaseCost,
     basementKg300Total, basementKg300ModifierCost, basementKg300BaseSubgroupCosts, basementKg300SubgroupCosts, basementKg300ModifierDetails,
-    contingencyPercent, recommendedContingencyCost, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
+    contingencyPercent, recommendedContingencyCost, contingencyCost, permitDesignBuildingArea,
     basementTotalCost, siteExcavationCost, breakdownGroups,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
     getAllScenarioConfigs, resetAllData,

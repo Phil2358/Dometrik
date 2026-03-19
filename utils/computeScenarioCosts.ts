@@ -14,6 +14,7 @@ export interface ComputedScenarioCosts {
   locationName: string
   qualityName: string
 
+  buildingArea: number
   mainArea: number
   terraceArea: number
   balconyArea: number
@@ -23,7 +24,7 @@ export interface ComputedScenarioCosts {
   habitableBasementArea: number
 
   rawBuildingCost: number
-  baseLivingAreaBenchmarkContribution: number
+  baseBuildingAreaBenchmarkContribution: number
   coveredTerracesBenchmarkContribution: number
   balconyAreaBenchmarkContribution: number
   totalBenchmarkContributionBeforeGroupAllocation: number
@@ -102,6 +103,7 @@ export function computeScenarioCosts(config: any): ComputedScenarioCosts {
     locationName: config.locationName ?? "",
     qualityName: config.qualityName ?? "",
 
+    buildingArea: result.buildingArea ?? config.buildingArea ?? config.mainArea ?? 0,
     mainArea: config.mainArea ?? 0,
     terraceArea: config.terraceArea ?? 0,
     balconyArea: config.balconyArea ?? 0,
@@ -111,7 +113,7 @@ export function computeScenarioCosts(config: any): ComputedScenarioCosts {
     habitableBasementArea,
 
     rawBuildingCost: result.rawBuildingCost ?? 0,
-    baseLivingAreaBenchmarkContribution: result.baseLivingAreaBenchmarkContribution ?? 0,
+    baseBuildingAreaBenchmarkContribution: result.baseBuildingAreaBenchmarkContribution ?? 0,
     coveredTerracesBenchmarkContribution: result.coveredTerracesBenchmarkContribution ?? 0,
     balconyAreaBenchmarkContribution: result.balconyAreaBenchmarkContribution ?? 0,
     totalBenchmarkContributionBeforeGroupAllocation: result.totalBenchmarkContributionBeforeGroupAllocation ?? 0,

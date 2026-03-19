@@ -6,7 +6,7 @@ import {
 } from "../../constants/construction"
 
 interface Kg200CostsInput {
-  effectiveArea: number
+  buildingArea: number
   landscapingArea?: number | null
 
   siteConditionId: string
@@ -34,11 +34,11 @@ const SUBGROUP_210_SITE_CONDITION_RATES: Record<string, number> = {
 }
 
 export function calculateSiteExcavationBaseCost(input: {
-  effectiveArea: number
+  buildingArea: number
   landscapingArea?: number | null
 }) {
   const landscapingArea = Math.max(0, input.landscapingArea ?? 0)
-  const sitePrepBaseArea = Math.max(0, input.effectiveArea) + landscapingArea
+  const sitePrepBaseArea = Math.max(0, input.buildingArea) + landscapingArea
 
   return Math.max(
     SUBGROUP_210_MINIMUM_BASE_COST,
@@ -69,7 +69,7 @@ export function calculateKg200Costs(input: Kg200CostsInput) {
 
   const subgroup210BaseCost =
     calculateSiteExcavationBaseCost({
-      effectiveArea: input.effectiveArea,
+      buildingArea: input.buildingArea,
       landscapingArea: input.landscapingArea,
     })
   const subgroup210AccessExtra =

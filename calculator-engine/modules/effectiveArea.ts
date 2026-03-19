@@ -1,4 +1,4 @@
-interface EffectiveAreaInput {
+interface BuildingAreaInput {
   mainArea: number
   terraceArea: number
   balconyArea: number
@@ -9,6 +9,6 @@ interface EffectiveAreaInput {
   habitableBasementArea?: number
 }
 
-export function calculateEffectiveArea(input: EffectiveAreaInput): number {
+export function calculateBuildingArea(input: BuildingAreaInput): number {
   return input.mainArea
 }

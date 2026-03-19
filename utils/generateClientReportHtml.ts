@@ -3,10 +3,10 @@ import { formatBasementSummary } from '@/utils/computeScenarioCosts';
 
 export interface ClientReportData {
   location: string;
-  effectiveArea: number;
+  buildingArea: number;
   mainArea: number;
   terraceArea: number;
-  baseLivingAreaBenchmarkContribution: number;
+  baseBuildingAreaBenchmarkContribution: number;
   qualityName: string;
   balconyArea: number;
   coveredTerracesBenchmarkContribution: number;
@@ -85,7 +85,7 @@ function buildAssumptions(data: ClientReportData): string[] {
   assumptions.push('Standard HVAC system (heat pump + fan-coil/VRV)');
   const corrText = getSizeCorrectionText(data.sizeCorrectionFactor);
   if (corrText !== 'none') {
-    assumptions.push(`Size correction: ${corrText} (living area ${data.mainArea} m²)`);
+    assumptions.push(`Size correction: ${corrText} (building area ${data.buildingArea} m²)`);
   }
   if (data.basementArea > 0) {
     assumptions.push(`Basement mix: ${formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea)}`);
@@ -200,8 +200,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
 
   const overviewItems: { label: string; value: string }[] = [
     { label: 'Location', value: data.location },
-    { label: 'Living area', value: `${data.mainArea} m²` },
-    { label: 'Effective area', value: `${data.effectiveArea.toFixed(0)} m²` },
+    { label: 'Building Area', value: `${data.buildingArea.toFixed(0)} m²` },
     { label: 'Quality level', value: data.qualityName },
     { label: 'Site conditions', value: data.siteConditionName },
     { label: 'Groundwater', value: data.groundwaterConditionName },
@@ -217,7 +216,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
   if (data.balconyArea > 0) {
     overviewItems.push({ label: 'Balcony Area', value: `${data.balconyArea} m² (30% factor) · ${formatEuro(data.balconyAreaBenchmarkContribution)} benchmark contribution` });
   }
-  overviewItems.push({ label: 'Living area benchmark', value: formatEuro(data.baseLivingAreaBenchmarkContribution) });
+  overviewItems.push({ label: 'Building Area benchmark', value: formatEuro(data.baseBuildingAreaBenchmarkContribution) });
   overviewItems.push({ label: 'Total benchmark before allocation', value: formatEuro(data.totalBenchmarkContributionBeforeGroupAllocation) });
   if (data.basementArea > 0) {
     overviewItems.push({ label: 'Basement', value: formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea) });
@@ -257,7 +256,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     )
     .join('');
 
-  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300 + KG 400 + KG 600) from above-ground living area only. Covered Terraces and Balcony Area do not count into effective area; instead, they feed upstream into the benchmark allocation as weighted benchmark contributions using the corrected benchmark rate. Basement is calculated separately as its own bucket. Site preparation (KG 200), external works (KG 500), contractor margin, planning costs, and VAT are calculated separately. A size-dependent cost correction is applied to reflect economies of scale.`;
+  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300 + KG 400 + KG 600) from above-ground building area only. Covered Terraces and Balcony Area do not count into building area; instead, they feed upstream into the benchmark allocation as weighted benchmark contributions using the corrected benchmark rate. Basement is calculated separately as its own bucket. Site preparation (KG 200), external works (KG 500), contractor margin, planning costs, and VAT are calculated separately. A size-dependent cost correction is applied to reflect economies of scale.`;
 
   return `<!DOCTYPE html>
 <html>

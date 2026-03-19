@@ -57,7 +57,7 @@ export default function HowItWorksScreen() {
         <SectionCard title="Cost Calculation Structure" icon={Layers}>
           <View style={styles.formulaCard}>
             <Text style={styles.formulaLine}>Base building cost</Text>
-            <Text style={styles.formulaDetail}>= € /m² × living area (+ size correction)</Text>
+            <Text style={styles.formulaDetail}>= € /m² × building area (+ size correction)</Text>
             <View style={styles.formulaDivider} />
             <Text style={styles.formulaLine}>+ Site preparation costs (KG 200)</Text>
             <Text style={styles.formulaDetail}>Excavation, utilities, basement excavation</Text>
@@ -114,7 +114,7 @@ export default function HowItWorksScreen() {
           </Text>
           <View style={styles.correctionTable}>
             <View style={styles.correctionHeaderRow}>
-              <Text style={styles.correctionHeaderCell}>Living Area</Text>
+              <Text style={styles.correctionHeaderCell}>Building Area</Text>
               <Text style={styles.correctionHeaderCell}>Correction</Text>
             </View>
             {SIZE_CORRECTION_TABLE.map((row, idx) => (
@@ -128,15 +128,15 @@ export default function HowItWorksScreen() {
 
         <SectionCard title="Area Definitions" icon={Ruler}>
           <View style={styles.definitionItem}>
-            <Text style={styles.definitionLabel}>Living Area</Text>
+            <Text style={styles.definitionLabel}>Building Area</Text>
             <Text style={styles.definitionValue}>
-              Full interior floor area measured to the outside face of structural walls. Excludes external insulation thickness. Habitable basements count as living area. Storage basements, terraces, and balconies do not.
+              Total above-ground building area, including walls, measured to the outer face of the exterior structural walls. Basement, covered terraces, and balconies are entered separately.
             </Text>
           </View>
           <View style={styles.definitionItem}>
-            <Text style={styles.definitionLabel}>Effective Area</Text>
+            <Text style={styles.definitionLabel}>Benchmark Contributions</Text>
             <Text style={styles.definitionValue}>
-              Living area + terraces (50%) + balconies (30%) + basement (weighted by type). Used for base building cost calculation.
+              Building Area feeds the core benchmark directly. Covered Terraces contribute at 50% of area and Balcony Area at 30% of area as separate upstream benchmark contributions. Basement remains a separate cost bucket.
             </Text>
           </View>
         </SectionCard>

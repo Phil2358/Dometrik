@@ -574,7 +574,7 @@ export default function EstimateScreen() {
     totalHvacCost,
     location,
     quality,
-    effectiveArea,
+    buildingArea,
     baseCostPerSqm,
     plotSize,
     setPlotSize,
@@ -592,7 +592,7 @@ export default function EstimateScreen() {
     utilityConnectionCost,
     contingencyPercent,
     recommendedContingencyCost,
-    permitDesignEffectiveArea,
+    permitDesignBuildingArea,
     groundwaterConditionId,
     setGroundwaterConditionId,
     siteAccessibilityId,
@@ -612,7 +612,7 @@ export default function EstimateScreen() {
     includedWardrobes,
   } = useEstimate();
 
-  const isLargeProject = permitDesignEffectiveArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
+  const isLargeProject = permitDesignBuildingArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
   const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
   const displaySizeCorrectionLabel = sizeCorrectionLabel.toLowerCase() === 'base'
     ? '0%'
@@ -730,8 +730,8 @@ export default function EstimateScreen() {
         <Text style={styles.groupSectionTitle}>Building Size</Text>
         <View style={[styles.card, styles.cardCompactTop]}>
           <SliderInput
-            label="Living Area (above ground)"
-            subtitle="Total above-ground house area, including walls, measured to the outer face of the exterior structural walls. Basement area is entered separately."
+            label="Building Area"
+            subtitle="Total above-ground building area, including walls, measured to the outer face of the exterior structural walls. Basement, covered terraces, and balconies are entered separately."
             value={mainArea}
             onChangeValue={setMainArea}
             min={80}
@@ -813,16 +813,6 @@ export default function EstimateScreen() {
             testID="slider-balcony-area"
           />
         </View>
-        <View style={[styles.card, styles.cardEmphasis]}>
-          <Text style={styles.cardTitle}>Effective Area</Text>
-          <View style={styles.finalBenchmarkRow}>
-            <Text style={styles.finalBenchmarkValue}>{formatNumber(effectiveArea)}</Text>
-            <Text style={styles.finalBenchmarkUnit}>{` ${SQUARE_METER_UNIT}`}</Text>
-          </View>
-          <Text style={styles.effectiveFormula}>
-            {`The core benchmark area now uses above-ground living area only. ${formatNumber(mainArea)} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}. Covered Terraces (${formatDecimal(0.5, 1)}) and Balcony Area (${formatDecimal(0.3, 2)}) feed into the benchmark bucket upstream as weighted benchmark contributions, while basement areas remain separate.`}
-          </Text>
-        </View>
       </View>
 
       <View style={styles.groupSection}>
@@ -903,8 +893,8 @@ export default function EstimateScreen() {
             editable={generalFurnitureBaseAmountCustomized}
             unit={` ${EURO_SYMBOL}`}
             helperText={generalFurnitureBaseAmountCustomized
-              ? `Automatic reference: ${formatCurrency(suggestedGeneralFurnitureBaseAmount)} based on bedrooms and effective area.`
-              : 'Automatically recommended based on bedrooms and effective area.'}
+              ? `Automatic reference: ${formatCurrency(suggestedGeneralFurnitureBaseAmount)} based on bedrooms and building area.`
+              : 'Automatically recommended based on bedrooms and building area.'}
             onSetEditable={(nextEditable) => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1944,7 +1934,7 @@ export default function EstimateScreen() {
           </TouchableOpacity>
         </View>
         <Text style={styles.groupSectionSubtitle}>
-          {`Based on ${feesQualityLabel} quality ${MIDDLE_DOT} ${formatNumber(permitDesignEffectiveArea)} ${SQUARE_METER_UNIT} effective project area`}
+          {`Based on ${feesQualityLabel} quality ${MIDDLE_DOT} ${formatNumber(permitDesignBuildingArea)} ${SQUARE_METER_UNIT} building area`}
         </Text>
         {showPermitDesignInfo && (
           <View style={styles.tooltipCard}>
@@ -2010,7 +2000,7 @@ export default function EstimateScreen() {
           <View style={styles.divider} />
           <Text style={styles.cardTitle}>e-EFKA worker insurance</Text>
           <Text style={styles.optionSubtext}>
-            Automatic estimate for mandatory owner-paid worker insurance based on effective area.
+            Automatic estimate for mandatory owner-paid worker insurance based on building area.
           </Text>
           <OverrideValueField
             value={formatNumber(efkaInsuranceAmount)}

@@ -1,4 +1,4 @@
-import { calculateEffectiveArea } from "./modules/effectiveArea"
+import { calculateBuildingArea } from "./modules/effectiveArea"
 import { calculateRawBuildingCost } from "./modules/rawBuildingCost"
 import { calculateBasementBaseCosts } from "./modules/basementBaseCosts"
 import {
@@ -100,6 +100,7 @@ export interface ProjectCostResult {
   totalCostInclVat: number
   vatPercent: number
   constructionSubtotal: number
+  buildingArea: number
   contractorMargin: number
   contractorCost: number
   contingency: number
@@ -119,7 +120,7 @@ export interface ProjectCostResult {
   kg400Total: number
   kg500Total: number
   kg600Cost: number
-  baseLivingAreaBenchmarkContribution: number
+  baseBuildingAreaBenchmarkContribution: number
   coveredTerracesBenchmarkContribution: number
   balconyAreaBenchmarkContribution: number
   totalBenchmarkContributionBeforeGroupAllocation: number
@@ -166,11 +167,11 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const qualityId = normalizeQualityId(input.qualityId)
 
   // -----------------------------------------
-  // Effective area
+  // Building area
   // -----------------------------------------
 
-  const effectiveArea =
-    calculateEffectiveArea({
+  const buildingArea =
+    calculateBuildingArea({
       mainArea: input.mainArea,
       terraceArea: input.terraceArea,
       balconyArea: input.balconyArea,
@@ -187,13 +188,12 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
 
   const buildingCost =
     calculateRawBuildingCost({
-      livingArea: input.mainArea,
-      effectiveArea,
+      buildingArea,
       locationId: input.locationId,
       qualityId,
       customCostPerSqm: input.customCostPerSqm
     })
-  const baseLivingAreaBenchmarkContribution = buildingCost.baseConstructionCost
+  const baseBuildingAreaBenchmarkContribution = buildingCost.baseConstructionCost
   const coveredTerracesBenchmarkContribution = Math.round(
     input.terraceArea * buildingCost.correctedCostPerSqm * 0.50
   )
@@ -201,7 +201,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     input.balconyArea * buildingCost.correctedCostPerSqm * 0.30
   )
   const totalBenchmarkContributionBeforeGroupAllocation =
-    baseLivingAreaBenchmarkContribution +
+    baseBuildingAreaBenchmarkContribution +
     coveredTerracesBenchmarkContribution +
     balconyAreaBenchmarkContribution
   const basementBaseCosts =
@@ -254,13 +254,13 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
 
   const permitCosts =
     calculatePermitCosts({
-      effectiveArea,
+      buildingArea,
       qualityId
     })
 
   const kg600Costs =
     calculateKg600Costs({
-      effectiveArea,
+      buildingArea,
       qualityId,
       bedroomCount,
       kitchenCount: input.kitchenCount ?? 0,
@@ -277,7 +277,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
 
   const kg200Costs =
     calculateKg200Costs({
-      effectiveArea,
+      buildingArea,
       landscapingArea: input.landscapingArea,
       siteConditionId: input.siteConditionId,
       accessibilityId: resolvedAccessibilityId,
@@ -395,7 +395,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
 
   const efkaCosts =
     calculateEfkaCosts({
-      effectiveArea,
+      buildingArea,
       manualCost: input.efkaInsuranceManualCost,
     })
 
@@ -481,6 +481,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     totalCostInclVat: vatCosts.totalIncludingVat,
     vatPercent: vatCosts.vatPercent,
     constructionSubtotal,
+    buildingArea,
     contractorMargin: contractorMarginCosts.contractorCost,
     contractorCost: contractorMarginCosts.contractorCost,
     contingency: contingencyCosts.contingencyCost,
@@ -500,7 +501,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg400Total: kg400Costs.kg400Total,
     kg500Total,
     kg600Cost: kg600Costs.kg600Cost,
-    baseLivingAreaBenchmarkContribution,
+    baseBuildingAreaBenchmarkContribution,
     coveredTerracesBenchmarkContribution,
     balconyAreaBenchmarkContribution,
     totalBenchmarkContributionBeforeGroupAllocation,
