@@ -5,8 +5,11 @@ export interface ClientReportData {
   location: string;
   effectiveArea: number;
   mainArea: number;
+  terraceArea: number;
   qualityName: string;
   balconyArea: number;
+  coveredTerracesBaseCost: number;
+  balconyAreaBaseCost: number;
   basementArea: number;
   storageBasementArea: number;
   parkingBasementArea: number;
@@ -109,6 +112,8 @@ function buildChartSegments(data: ClientReportData): ChartSegment[] {
     { label: 'Structure', value: data.kg300Cost },
     { label: 'Technical systems', value: data.kg400Total },
     { label: 'Interior fit-out', value: data.kg600Cost },
+    { label: 'Covered Terraces', value: data.coveredTerracesBaseCost },
+    { label: 'Balcony Area', value: data.balconyAreaBaseCost },
     { label: 'Basement', value: data.basementBaseCost },
     { label: 'External works', value: data.kg500Total },
     { label: 'Planning & fees', value: data.permitDesignFee },
@@ -186,6 +191,8 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     { label: 'Building construction (KG 300)', value: data.kg300Cost },
     { label: 'Technical systems (KG 400)', value: data.kg400Total },
     { label: 'Built-in equipment (KG 600)', value: data.kg600Cost },
+    { label: 'Covered Terraces', value: data.coveredTerracesBaseCost },
+    { label: 'Balcony Area', value: data.balconyAreaBaseCost },
     { label: 'Basement (separate bucket)', value: data.basementBaseCost },
     { label: 'External works (KG 500)', value: data.kg500Total },
     { label: 'Planning & professional fees (KG 700)', value: data.permitDesignFee },
@@ -206,8 +213,11 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
   if (corrText !== 'none') {
     overviewItems.push({ label: 'Size correction', value: corrText });
   }
+  if (data.terraceArea > 0) {
+    overviewItems.push({ label: 'Covered Terraces', value: `${data.terraceArea} m² (50% factor)` });
+  }
   if (data.balconyArea > 0) {
-    overviewItems.push({ label: 'Balconies', value: `${data.balconyArea} m² (30% weighting)` });
+    overviewItems.push({ label: 'Balcony Area', value: `${data.balconyArea} m² (30% factor)` });
   }
   if (data.basementArea > 0) {
     overviewItems.push({ label: 'Basement', value: formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea) });
@@ -247,7 +257,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     )
     .join('');
 
-  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300 + KG 400 + KG 600). Basement is calculated separately as its own bucket using the adjusted benchmark rate. Site preparation (KG 200), external works (KG 500), contractor margin, planning costs, and VAT are calculated separately. A size-dependent cost correction is applied to reflect economies of scale.`;
+  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300 + KG 400 + KG 600) from above-ground living area only. Covered Terraces, Balcony Area, and Basement are calculated separately as explicit area-based extras using the corrected benchmark rate. Site preparation (KG 200), external works (KG 500), contractor margin, planning costs, and VAT are calculated separately. A size-dependent cost correction is applied to reflect economies of scale.`;
 
   return `<!DOCTYPE html>
 <html>

@@ -143,6 +143,10 @@ function getGroupedCostRows(scenarios: ComputedScenarioCosts[]): CostGroupRow[] 
   rows.push(makeRow('Technical systems', (s) => s.kg400Total));
   rows.push(makeRow('Built-in equipment', (s) => s.kg600Cost));
 
+  rows.push(makeRow('Area extras', (s) => s.coveredTerracesBaseCost + s.balconyAreaBaseCost, { isGroupHeader: true }));
+  rows.push(makeRow('Covered Terraces', (s) => s.coveredTerracesBaseCost));
+  rows.push(makeRow('Balcony Area', (s) => s.balconyAreaBaseCost));
+
   rows.push(makeRow('Basement', (s) => s.basementBaseCost, { isGroupHeader: true }));
   rows.push(makeRow('Basement base bucket', (s) => s.basementBaseCost));
 
@@ -176,6 +180,7 @@ function getLargestCostDriver(
     { label: 'Building construction', getter: (s) => (s as any).kg300Cost ?? 0 },
     { label: 'Technical systems', getter: (s) => (s as any).kg400Total ?? 0 },
     { label: 'Built-in equipment', getter: (s) => (s as any).kg600Cost ?? 0 },
+    { label: 'Area extras', getter: (s) => ((s as any).coveredTerracesBaseCost ?? 0) + ((s as any).balconyAreaBaseCost ?? 0) },
     { label: 'Basement', getter: (s) => (s as any).basementBaseCost ?? 0 },
     { label: 'Site preparation', getter: (s) => (s as any).kg200Total ?? 0 },
     { label: 'External works', getter: (s) => (s as any).kg500Total ?? 0 },

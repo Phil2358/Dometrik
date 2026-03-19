@@ -306,7 +306,10 @@ function GenerateReportButton() {
     quality,
     effectiveArea,
     mainArea,
+    terraceArea,
     balconyArea,
+    coveredTerracesBaseCost,
+    balconyAreaBaseCost,
     storageBasementArea,
     parkingBasementArea,
     habitableBasementArea,
@@ -349,8 +352,11 @@ function GenerateReportButton() {
         location: location.name,
         effectiveArea,
         mainArea,
+        terraceArea,
         qualityName: quality.name,
         balconyArea,
+        coveredTerracesBaseCost,
+        balconyAreaBaseCost,
         basementArea,
         storageBasementArea,
         parkingBasementArea,
@@ -409,11 +415,11 @@ function GenerateReportButton() {
       setGenerating(false);
     }
   }, [
-    generating, location, quality, effectiveArea, mainArea, balconyArea, basementArea,
+    generating, location, quality, effectiveArea, mainArea, terraceArea, balconyArea, basementArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea,
     includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption,
     siteCondition, groundwaterCondition, siteAccessibility, hvacCosts, kg200Total, kg300Total, kg400Total, kg500Total,
-    kg600Cost, permitDesignFee, contingencyCost, contractorCost, totalCost,
+    kg600Cost, coveredTerracesBaseCost, balconyAreaBaseCost, permitDesignFee, contingencyCost, contractorCost, totalCost,
     constructionSubtotal, basementBaseCost, contingencyPercent, sizeCorrectionFactor,
     userMode,
   ]);
@@ -452,6 +458,7 @@ export default function BreakdownScreen() {
     siteCondition,
     groundwaterCondition,
     landscapingArea,
+    terraceArea,
     balconyArea,
     storageBasementArea,
     parkingBasementArea,
@@ -462,11 +469,15 @@ export default function BreakdownScreen() {
     hvacCosts,
     mainArea,
     effectiveArea,
+    correctedCostPerSqm,
     basementBenchmarkRate,
     storageTechnicalBasementCost,
     parkingBasementCost,
     habitableBasementCost,
+    coveredTerracesBaseCost,
+    balconyAreaBaseCost,
     basementBaseCost,
+    basementKg300ModifierCost,
     breakdownGroups,
     contractorCost,
     contractorPercent,
@@ -498,6 +509,7 @@ export default function BreakdownScreen() {
   );
   const investmentTotal = projectTotalBeforeVat;
   const group100Total = breakdownGroups.find((group) => group.code === '100')?.subtotal ?? 0;
+  const areaAddOnCosts = coveredTerracesBaseCost + balconyAreaBaseCost;
 
   const dinGroups = useMemo<DinGroup[]>(() => {
     const enabledHvacIds = new Set(enabledHvac.map((item) => item.option.id));
@@ -567,9 +579,15 @@ export default function BreakdownScreen() {
               <Text style={styles.assumptionValue}>{basementSummary}</Text>
             </View>
           )}
+          {terraceArea > 0 && (
+            <View style={styles.assumptionItem}>
+              <Text style={styles.assumptionLabel}>Covered Terraces</Text>
+              <Text style={styles.assumptionValue}>{formatNumber(terraceArea)} {SQUARE_METER_UNIT} (${formatPercent(50)})</Text>
+            </View>
+          )}
           {balconyArea > 0 && (
             <View style={styles.assumptionItem}>
-              <Text style={styles.assumptionLabel}>Balconies</Text>
+              <Text style={styles.assumptionLabel}>Balcony Area</Text>
               <Text style={styles.assumptionValue}>{formatNumber(balconyArea)} {SQUARE_METER_UNIT} (${formatPercent(30)})</Text>
             </View>
           )}
@@ -632,7 +650,7 @@ export default function BreakdownScreen() {
             <Text style={styles.basementTotal}>{formatCurrency(basementBaseCost)}</Text>
           </View>
           <Text style={styles.basementRate}>
-            {`Benchmark rate source: ${formatCurrency(basementBenchmarkRate)}/${SQUARE_METER_UNIT}`}
+            {`Benchmark rate source: ${formatCurrency(correctedCostPerSqm)}/${SQUARE_METER_UNIT}`}
           </Text>
           {storageBasementArea > 0 && (
             <View style={styles.basementRow}>
@@ -656,6 +674,40 @@ export default function BreakdownScreen() {
                 {`Habitable Basement Area ${MIDDLE_DOT} ${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} 85%`}
               </Text>
               <Text style={styles.basementValue}>{formatCurrency(habitableBasementCost)}</Text>
+            </View>
+          )}
+          {basementKg300ModifierCost > 0 && (
+            <View style={styles.basementRow}>
+              <Text style={styles.basementLabel}>Basement KG300 modifiers</Text>
+              <Text style={styles.basementValue}>{formatCurrency(basementKg300ModifierCost)}</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {areaAddOnCosts > 0 && (
+        <View style={styles.basementCard}>
+          <View style={styles.basementHeaderRow}>
+            <Text style={styles.basementTitle}>Area-Based Construction Extras</Text>
+            <Text style={styles.basementTotal}>{formatCurrency(areaAddOnCosts)}</Text>
+          </View>
+          <Text style={styles.basementRate}>
+            {`Benchmark rate source: ${formatCurrency(basementBenchmarkRate)}/${SQUARE_METER_UNIT}`}
+          </Text>
+          {coveredTerracesBaseCost > 0 && (
+            <View style={styles.basementRow}>
+              <Text style={styles.basementLabel}>
+                {`Covered Terraces ${MIDDLE_DOT} ${formatNumber(terraceArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} 50%`}
+              </Text>
+              <Text style={styles.basementValue}>{formatCurrency(coveredTerracesBaseCost)}</Text>
+            </View>
+          )}
+          {balconyAreaBaseCost > 0 && (
+            <View style={styles.basementRow}>
+              <Text style={styles.basementLabel}>
+                {`Balcony Area ${MIDDLE_DOT} ${formatNumber(balconyArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} 30%`}
+              </Text>
+              <Text style={styles.basementValue}>{formatCurrency(balconyAreaBaseCost)}</Text>
             </View>
           )}
         </View>
@@ -706,7 +758,7 @@ export default function BreakdownScreen() {
         </View>
         <View style={styles.grandTotalBreakdown}>
           <Text style={styles.grandTotalBreakdownText}>
-            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + Basement ${formatCurrency(basementBaseCost)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + e-EFKA ${formatCurrency(efkaInsuranceAmount)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
+            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)}${coveredTerracesBaseCost > 0 ? ` + Covered Terraces ${formatCurrency(coveredTerracesBaseCost)}` : ''}${balconyAreaBaseCost > 0 ? ` + Balcony Area ${formatCurrency(balconyAreaBaseCost)}` : ''} + Basement ${formatCurrency(basementBaseCost)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + e-EFKA ${formatCurrency(efkaInsuranceAmount)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
           </Text>
         </View>
       </View>

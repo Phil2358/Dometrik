@@ -820,7 +820,7 @@ export default function EstimateScreen() {
             <Text style={styles.finalBenchmarkUnit}>{` ${SQUARE_METER_UNIT}`}</Text>
           </View>
           <Text style={styles.effectiveFormula}>
-            {`The weighted project area used to apply the benchmark construction cost. ${formatNumber(mainArea)} + (${formatNumber(terraceArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})${balconyArea > 0 ? ` + (${formatNumber(balconyArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.3, 2)})` : ''}${storageBasementArea > 0 ? ` + (${formatNumber(storageBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.5, 1)})` : ''}${parkingBasementArea > 0 ? ` + (${formatNumber(parkingBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.65, 2)})` : ''}${habitableBasementArea > 0 ? ` + (${formatNumber(habitableBasementArea)} ${MULTIPLY_SYMBOL} ${formatDecimal(0.85, 2)})` : ''} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}`}
+            {`The core benchmark area now uses above-ground living area only. ${formatNumber(mainArea)} = ${formatNumber(effectiveArea)} ${SQUARE_METER_UNIT}. Covered Terraces (${formatDecimal(0.5, 1)}), Balcony Area (${formatDecimal(0.3, 2)}), and basement areas are priced separately as explicit extra-cost paths.`}
           </Text>
         </View>
       </View>

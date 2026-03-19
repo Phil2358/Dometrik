@@ -130,14 +130,7 @@ function getProgramDefaultEffectiveArea(config: {
   parkingBasementArea?: number;
   habitableBasementArea?: number;
 }): number {
-  return (config.mainArea ?? 0)
-    + (config.terraceArea ?? 0) * 0.5
-    + (config.balconyArea ?? 0) * 0.30
-    + getWeightedBasementAreaForProgramDefaults(
-      config.storageBasementArea ?? 0,
-      config.parkingBasementArea ?? 0,
-      config.habitableBasementArea ?? 0,
-    );
+  return config.mainArea ?? 0;
 }
 
 function getProgramBaselineLivingArea(config: {
@@ -291,7 +284,7 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
   return {
     ...config,
     qualityId,
-    effectiveArea: config.effectiveArea ?? effectiveArea,
+    effectiveArea,
     vatPercent,
     efkaInsuranceManualCost,
     manualContingencyPercent,
@@ -523,12 +516,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [groundwaterConditionId, setGroundwaterConditionId] = useState<string>('normal');
   const [siteAccessibilityId, setSiteAccessibilityId] = useState<string>('normal');
   const effectiveArea = useMemo(
-    () => mainArea + terraceArea * 0.5 + balconyArea * 0.30 + getWeightedBasementAreaForProgramDefaults(
-      storageBasementArea,
-      parkingBasementArea,
-      habitableBasementArea,
-    ),
-    [mainArea, terraceArea, balconyArea, storageBasementArea, parkingBasementArea, habitableBasementArea],
+    () => mainArea,
+    [mainArea],
   );
   const residentialProgramBaseline = getResidentialProgramBaseline(mainArea);
   const bathrooms = bathroomsMode === 'manual'
@@ -1142,8 +1131,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const automationManualOverrideActive = kg400EngineResult.packageCosts.automation.manualOverrideActive;
 
   const permitDesignEffectiveArea = useMemo(
-    () => mainBuildingArea + balconyArea * 0.30 + weightedBasementArea,
-    [mainBuildingArea, balconyArea, weightedBasementArea],
+    () => effectiveArea,
+    [effectiveArea],
   );
 
   const projectRollupResult = useMemo(() => calculateProjectCost({
@@ -1255,12 +1244,19 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kg500Total = projectRollupResult.kg500Total;
   const kg600Cost = projectRollupResult.kg600Cost;
   const kg600SubgroupCosts = projectRollupResult.kg600SubgroupCosts;
+  const coveredTerracesBaseCost = projectRollupResult.coveredTerracesBaseCost;
+  const balconyAreaBaseCost = projectRollupResult.balconyAreaBaseCost;
   const constructionSubtotal = projectRollupResult.constructionSubtotal;
   const basementBenchmarkRate = projectRollupResult.basementBenchmarkRate;
   const storageTechnicalBasementCost = projectRollupResult.storageTechnicalBasementCost;
   const parkingBasementCost = projectRollupResult.parkingBasementCost;
   const habitableBasementCost = projectRollupResult.habitableBasementCost;
   const basementBaseCost = projectRollupResult.basementBaseCost;
+  const basementKg300Total = projectRollupResult.basementKg300Total;
+  const basementKg300ModifierCost = projectRollupResult.basementKg300ModifierCost;
+  const basementKg300BaseSubgroupCosts = projectRollupResult.basementKg300BaseSubgroupCosts;
+  const basementKg300SubgroupCosts = projectRollupResult.basementKg300SubgroupCosts;
+  const basementKg300ModifierDetails = projectRollupResult.basementKg300ModifierDetails;
   const basementTotalCost = basementBaseCost;
   const constructionCost = constructionSubtotal;
   const permitDesignFee = projectRollupResult.permitFee;
@@ -1458,6 +1454,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg500Total,
     kg600Cost,
     kg600SubgroupCosts,
+    coveredTerracesBaseCost,
+    balconyAreaBaseCost,
     residentialProgramBaseline,
     bedroomDelta,
     bathroomDelta,
@@ -1478,6 +1476,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     parkingBasementCost,
     habitableBasementCost,
     basementBaseCost,
+    basementKg300Total,
+    basementKg300ModifierCost,
+    basementKg300BaseSubgroupCosts,
+    basementKg300SubgroupCosts,
+    basementKg300ModifierDetails,
     contingencyPercent,
     recommendedContingencyCost,
     contingencyCost,
@@ -1541,10 +1544,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
     siteAccessibilityId, setSiteAccessibilityId, siteAccessibility, siteAccessibilityCost, group240Cost, group250Cost,
     kg200Total, kg300Cost, kg300Total, kg300SubgroupCosts, kg400Cost, kg400Total, kg500Total, kg600Cost,
+    coveredTerracesBaseCost, balconyAreaBaseCost,
     kg600SubgroupCosts, residentialProgramBaseline, bedroomDelta, bathroomDelta, wcDelta,
     suggestedKitchenUnitCost, suggestedGeneralFurnitureBaseAmount, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, basementBenchmarkRate, storageTechnicalBasementCost, parkingBasementCost, habitableBasementCost, basementBaseCost,
+    basementKg300Total, basementKg300ModifierCost, basementKg300BaseSubgroupCosts, basementKg300SubgroupCosts, basementKg300ModifierDetails,
     contingencyPercent, recommendedContingencyCost, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
     basementTotalCost, siteExcavationCost, breakdownGroups,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
