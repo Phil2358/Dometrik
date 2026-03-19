@@ -1,4 +1,4 @@
-import { calculateBuildingArea } from "./modules/effectiveArea"
+import { calculateBuildingArea } from "./modules/buildingArea"
 import { calculateRawBuildingCost } from "./modules/rawBuildingCost"
 import { calculateBasementBaseCosts } from "./modules/basementBaseCosts"
 import {
