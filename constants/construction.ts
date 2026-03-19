@@ -493,8 +493,8 @@ export interface PoolQualityOption {
 }
 
 export const POOL_QUALITY_OPTIONS: PoolQualityOption[] = [
-  { id: 'standard', name: 'Standard Pool', description: 'Reinforced concrete pool with standard finishes', baseCostPerSqm: 1000 },
-  { id: 'enhanced', name: 'Enhanced Pool', description: 'Higher-grade finishes and equipment', baseCostPerSqm: 1350 },
+  { id: 'standard', name: 'Standard Pool', description: 'Reinforced concrete pool with standard finishes', baseCostPerSqm: 500 },
+  { id: 'enhanced', name: 'Enhanced Pool', description: 'Higher-grade finishes and equipment', baseCostPerSqm: 675 },
 ];
 
 export interface PoolTypeOption {
@@ -524,7 +524,7 @@ export const POOL_TERRAIN_MULTIPLIERS: Record<string, number> = {
   inclined_sandy: 1.35,
 };
 
-export const POOL_MINIMUM_COST = 15000;
+export const POOL_MINIMUM_COST = 7500;
 
 export const POOL_TOOLTIP = `Pool cost depends on size, depth, construction type, and site terrain conditions. Infinity pools require additional hydraulic systems and overflow structures.`;
 
