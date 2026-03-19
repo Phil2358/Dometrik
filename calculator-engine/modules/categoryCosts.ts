@@ -5,11 +5,19 @@ import {
   DEFAULT_QUALITY_ID,
   KG300_CATEGORY_IDS,
   KG600_CATEGORY_IDS,
+  LEVEL_1_BENCHMARK_RAW_SHARES,
   type QualityId,
 } from "../../constants/construction"
 
 interface CategoryCostsInput {
-  kg300Base: number
+  benchmarkBucket300: number
+}
+
+interface Level1BenchmarkAllocationInput {
+  benchmarkTotal: number
+  siteExcavationBaseCost: number
+  wardrobePackageCost: number
+  qualityId: QualityId
 }
 
 interface Kg300SubgroupShareSet {
@@ -82,11 +90,27 @@ export function calculateWeightedBasementArea(input: {
     + (input.habitableBasementArea ?? 0) * habitableBasementType.costFactor
 }
 
-export function getAdjustedKg300Share(weightedBasementRatio: number): number {
-  if (weightedBasementRatio <= 0) return BASE_GROUP_SHARE_KG300
-  if (weightedBasementRatio <= 0.15) return 0.655
-  if (weightedBasementRatio <= 0.30) return 0.67
-  return 0.685
+export function calculateLevel1BenchmarkAllocation(input: Level1BenchmarkAllocationInput) {
+  const rawShares =
+    LEVEL_1_BENCHMARK_RAW_SHARES[input.qualityId]
+    ?? LEVEL_1_BENCHMARK_RAW_SHARES[DEFAULT_QUALITY_ID]
+  const fixedBenchmarkIncluded =
+    Math.max(0, input.siteExcavationBaseCost) + Math.max(0, input.wardrobePackageCost)
+  const remainingBenchmarkPool =
+    Math.max(0, Math.round(input.benchmarkTotal) - fixedBenchmarkIncluded)
+  const rawShareTotal = rawShares.kg300 + rawShares.kg400 || 1
+  const benchmarkBucket300 = Math.round(
+    remainingBenchmarkPool * (rawShares.kg300 / rawShareTotal)
+  )
+  const benchmarkBucket400 =
+    Math.max(0, remainingBenchmarkPool - benchmarkBucket300)
+
+  return {
+    fixedBenchmarkIncluded,
+    remainingBenchmarkPool,
+    benchmarkBucket300,
+    benchmarkBucket400,
+  }
 }
 
 export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg300SubgroupCosts {
@@ -159,7 +183,7 @@ export function calculateCategoryCosts(input: CategoryCostsInput) {
   const categoryCosts = COST_CATEGORIES.map(category => {
     const groupBase =
       category.din276 === 'KG 300'
-        ? input.kg300Base
+        ? input.benchmarkBucket300
         : 0
 
     const groupPercentage =

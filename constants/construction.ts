@@ -21,6 +21,11 @@ export interface QualityLevel {
   benchmarkFactor: number;
 }
 
+export interface Level1BenchmarkRawShare {
+  kg300: number;
+  kg400: number;
+}
+
 export interface CostCategory {
   id: string;
   din276: string;
@@ -55,6 +60,12 @@ export const BASE_GROUP_SHARE_KG400 = 0.345;
 export const KG300_BASE_SHARE = BASE_GROUP_SHARE_KG300;
 export const KG400_BASE_SHARE = BASE_GROUP_SHARE_KG400;
 export const KG600_BASE_SHARE = 0;
+
+export const LEVEL_1_BENCHMARK_RAW_SHARES: Record<QualityId, Level1BenchmarkRawShare> = {
+  economy: { kg300: 68, kg400: 32 },
+  midRange: { kg300: 66, kg400: 34 },
+  luxury: { kg300: 64, kg400: 36 },
+};
 
 export const LOCATIONS: Location[] = [
   { id: 'corfu', name: 'Corfu', region: 'Ionian Islands', multiplier: 1.15 },
@@ -139,7 +150,6 @@ export const KG400_DATA_SECURITY_UPLIFT_PER_SQM: Record<DataSecurityPackageLevel
   integrated: 6.5,
   custom: 0,
 };
-export const KG400_DATA_SECURITY_BASELINE_SHARE_PERCENT = 0.75;
 export const KG400_AUTOMATION_UPLIFT_PER_SQM: Record<AutomationPackageLevel, number> = {
   none: 0,
   connected: 50.0,

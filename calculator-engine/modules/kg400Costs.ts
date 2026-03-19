@@ -1,13 +1,11 @@
 import {
   type AutomationPackageLevel,
-  BASE_GROUP_SHARE_KG400,
   COST_CATEGORIES,
   DEFAULT_QUALITY_ID,
   type DataSecurityPackageLevel,
   KG400_AUTOMATION_UPLIFT_PER_SQM,
   KG400_BATHROOM_DELTA_BASE_COST,
   KG400_BEDROOM_DELTA_BASE_COST,
-  KG400_DATA_SECURITY_BASELINE_SHARE_PERCENT,
   KG400_DATA_SECURITY_UPLIFT_PER_SQM,
   KG400_OPTION_PACKAGE_QUALITY_FACTORS,
   type Kg400PackageSelection,
@@ -17,8 +15,8 @@ import {
 import { calculateHvacExtras } from "./hvacExtras"
 
 interface Kg400CostsInput {
+  benchmarkBucket400: number
   mainArea: number
-  finalCostPerSqm: number
   qualityId: QualityId
   siteAccessibilityFactor: number
   bedroomDelta: number
@@ -52,7 +50,19 @@ interface Kg400CostsResult {
 }
 
 const KG400_ACCESSIBILITY_WEIGHT = 0.22
-const KG400_CATEGORY_PERCENTAGE_DENOMINATOR = 24
+const KG400_BENCHMARK_CATEGORY_IDS = [
+  "plumbing",
+  "heating",
+  "ventilation_cooling",
+  "electrical",
+] as const
+const KG400_CATEGORY_PERCENTAGE_DENOMINATOR = COST_CATEGORIES
+  .filter((category) =>
+    KG400_BENCHMARK_CATEGORY_IDS.includes(
+      category.id as typeof KG400_BENCHMARK_CATEGORY_IDS[number]
+    )
+  )
+  .reduce((sum, category) => sum + category.percentage, 0)
 
 function getKg400CategoryPercentage(categoryId: string): number {
   return COST_CATEGORIES.find((category) => category.id === categoryId)?.percentage ?? 0
@@ -64,9 +74,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     KG400_OPTION_PACKAGE_QUALITY_FACTORS[DEFAULT_QUALITY_ID]
   const kg400AccessibilityMultiplier =
     1 + Math.max(0, input.siteAccessibilityFactor - 1) * KG400_ACCESSIBILITY_WEIGHT
-
-  const mainAreaConstructionCost = input.mainArea * input.finalCostPerSqm
-  const mainAreaKg400Envelope = Math.round(mainAreaConstructionCost * BASE_GROUP_SHARE_KG400)
+  const benchmarkBucket400 = Math.max(0, input.benchmarkBucket400)
 
   const kg400BedroomDeltaCost =
     Math.round(input.bedroomDelta * KG400_BEDROOM_DELTA_BASE_COST * qualityPackageMultiplier)
@@ -98,16 +106,13 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
   const dataSecurityUpliftPerSqm =
     KG400_DATA_SECURITY_UPLIFT_PER_SQM[dataSecurityPackageLevel]
   const dataSecurityManualQuote = input.dataSecurityManualQuote ?? null
-  const dataSecurityBaselineCost = Math.round(
-    mainAreaKg400Envelope * (KG400_DATA_SECURITY_BASELINE_SHARE_PERCENT / 100)
-  )
   const dataSecurityDefaultPackageCost = Math.round(
     Math.max(0, input.mainArea) * dataSecurityUpliftPerSqm
   )
   const dataSecurityExtraCost = dataSecurityPackageLevel === "custom"
     ? Math.max(0, dataSecurityManualQuote ?? 0)
     : dataSecurityDefaultPackageCost
-  const dataSecurityCategoryCost = dataSecurityBaselineCost + dataSecurityExtraCost
+  const dataSecurityCategoryCost = dataSecurityExtraCost
   const automationPackageLevel =
     input.automationPackageLevel
     ?? ((input.automationPackageSelection ?? "no") === "yes" ? "connected" : "none")
@@ -127,7 +132,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       0,
       Math.round(
         Math.round(
-          mainAreaKg400Envelope
+          benchmarkBucket400
           * (getKg400CategoryPercentage("plumbing") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       ) + kg400BathroomPlumbingAdjustment + kg400WcPlumbingAdjustment
@@ -136,7 +141,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       0,
       Math.round(
         Math.round(
-          mainAreaKg400Envelope
+          benchmarkBucket400
           * (getKg400CategoryPercentage("heating") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       ) + kg400BathroomHeatingAdjustment + (hvacCosts.adjustmentsByCategory.heating ?? 0)
@@ -145,7 +150,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       0,
       Math.round(
         Math.round(
-          mainAreaKg400Envelope
+          benchmarkBucket400
           * (getKg400CategoryPercentage("ventilation_cooling") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       ) + kg400BedroomVentilationAdjustment
@@ -154,7 +159,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       0,
       Math.round(
         Math.round(
-          mainAreaKg400Envelope
+          benchmarkBucket400
           * (getKg400CategoryPercentage("electrical") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
         ) * kg400AccessibilityMultiplier
       )
@@ -177,7 +182,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     hvacExtrasCost: hvacCosts.hvacExtrasCost,
     packageCosts: {
       dataSecurity: {
-        defaultCost: dataSecurityBaselineCost + dataSecurityDefaultPackageCost,
+        defaultCost: dataSecurityDefaultPackageCost,
         appliedCost: dataSecurityCategoryCost,
         manualOverrideActive: dataSecurityPackageLevel === "custom",
       },

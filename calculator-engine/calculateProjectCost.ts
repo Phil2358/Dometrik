@@ -2,8 +2,7 @@ import { calculateEffectiveArea } from "./modules/effectiveArea"
 import { calculateRawBuildingCost } from "./modules/rawBuildingCost"
 import {
   calculateCategoryCosts,
-  calculateWeightedBasementArea,
-  getAdjustedKg300Share
+  calculateLevel1BenchmarkAllocation,
 } from "./modules/categoryCosts"
 import { calculateSiteCosts } from "./modules/siteCosts"
 import { calculateKg400Costs } from "./modules/kg400Costs"
@@ -20,9 +19,9 @@ import { calculateDetailedKg300SubgroupCosts } from "./modules/kg300SubgroupCost
 import { buildProjectCostBreakdown, type ProjectBreakdownGroup } from "./buildProjectCostBreakdown"
 import {
   type AutomationPackageLevel,
-  BASE_GROUP_SHARE_KG300,
   type CompatibleQualityId,
   type DataSecurityPackageLevel,
+  KG600_WARDROBE_PACKAGE_BASE_COST,
   type Kg400PackageSelection,
   LOCATIONS,
   MID_RANGE_BENCHMARK_BASE_COST_PER_SQM,
@@ -164,17 +163,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       habitableBasementArea: input.habitableBasementArea
     })
 
-  const weightedBasementArea =
-    calculateWeightedBasementArea({
-      storageBasementArea: input.storageBasementArea,
-      parkingBasementArea: input.parkingBasementArea,
-      habitableBasementArea: input.habitableBasementArea
-    })
-
-  const weightedBasementRatio =
-    weightedBasementArea / Math.max(input.mainArea, 1)
-
-
   // -----------------------------------------
   // Raw building cost
   // -----------------------------------------
@@ -212,35 +200,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     LOCATIONS[0]
   const accessibilityExecutionDelta =
     Math.max(0, siteAccessibility.sitePreparationFactor - 1)
-  const kg400Costs =
-    calculateKg400Costs({
-      mainArea: input.mainArea,
-      finalCostPerSqm: buildingCost.correctedCostPerSqm,
-      qualityId,
-      siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
-      bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
-      bathroomDelta,
-      wcDelta,
-      dataSecurityPackageLevel: input.dataSecurityPackageLevel,
-      dataSecurityPackageSelection: input.dataSecurityPackageSelection,
-      dataSecurityManualQuote: input.dataSecurityManualQuote,
-      automationPackageLevel: input.automationPackageLevel,
-      automationPackageSelection: input.automationPackageSelection,
-      automationManualQuote: input.automationManualQuote,
-      habitableBasementArea: input.habitableBasementArea,
-      hvacSelections: input.hvacSelections,
-    })
-
-
-  // -----------------------------------------
-  // Category costs (DIN276 groups)
-  // -----------------------------------------
-
-  const categoryCosts =
-    calculateCategoryCosts({
-      kg300Base: Math.round(buildingCost.baseConstructionCost * getAdjustedKg300Share(weightedBasementRatio))
-    })
-
 
   // -----------------------------------------
   // Permit costs
@@ -280,6 +239,41 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       utilityConnectionId: input.utilityConnectionId,
       customUtilityCost: input.customUtilityCost
     })
+  const level1BenchmarkAllocation =
+    calculateLevel1BenchmarkAllocation({
+      benchmarkTotal: buildingCost.baseConstructionCost,
+      siteExcavationBaseCost: siteCosts.siteExcavationBaseCost,
+      wardrobePackageCost: kg600Costs.wardrobePackageCost,
+      qualityId,
+    })
+
+
+  // -----------------------------------------
+  // Category costs (DIN276 groups)
+  // -----------------------------------------
+
+  const categoryCosts =
+    calculateCategoryCosts({
+      benchmarkBucket300: level1BenchmarkAllocation.benchmarkBucket300
+    })
+  const kg400Costs =
+    calculateKg400Costs({
+      benchmarkBucket400: level1BenchmarkAllocation.benchmarkBucket400,
+      mainArea: input.mainArea,
+      qualityId,
+      siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
+      bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
+      bathroomDelta,
+      wcDelta,
+      dataSecurityPackageLevel: input.dataSecurityPackageLevel,
+      dataSecurityPackageSelection: input.dataSecurityPackageSelection,
+      dataSecurityManualQuote: input.dataSecurityManualQuote,
+      automationPackageLevel: input.automationPackageLevel,
+      automationPackageSelection: input.automationPackageSelection,
+      automationManualQuote: input.automationManualQuote,
+      habitableBasementArea: input.habitableBasementArea,
+      hvacSelections: input.hvacSelections,
+    })
   const midRangeReferenceCorrectedCostPerSqm =
     Math.round(MID_RANGE_BENCHMARK_BASE_COST_PER_SQM * buildingCost.sizeCorrectionFactor)
   const midRangeReferenceFinalCostPerSqm =
@@ -290,10 +284,24 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     noBasementEffectiveArea * buildingCost.correctedCostPerSqm
   const midRangeReferenceConstructionCost =
     effectiveArea * midRangeReferenceCorrectedCostPerSqm
+  const midRangeReferenceLevel1Allocation =
+    calculateLevel1BenchmarkAllocation({
+      benchmarkTotal: midRangeReferenceConstructionCost,
+      siteExcavationBaseCost: siteCosts.siteExcavationBaseCost,
+      wardrobePackageCost: Math.max(0, bedroomCount) * KG600_WARDROBE_PACKAGE_BASE_COST,
+      qualityId: "midRange",
+    })
   const midRangeReferenceKg300Base =
-    Math.round(midRangeReferenceConstructionCost * BASE_GROUP_SHARE_KG300)
+    midRangeReferenceLevel1Allocation.benchmarkBucket300
+  const noBasementLevel1Allocation =
+    calculateLevel1BenchmarkAllocation({
+      benchmarkTotal: noBasementConstructionCost,
+      siteExcavationBaseCost: siteCosts.siteExcavationBaseCost,
+      wardrobePackageCost: kg600Costs.wardrobePackageCost,
+      qualityId,
+    })
   const noBasementKg300Base =
-    Math.round(noBasementConstructionCost * BASE_GROUP_SHARE_KG300)
+    noBasementLevel1Allocation.benchmarkBucket300
   const kg300DetailResult =
     calculateDetailedKg300SubgroupCosts({
       basementArea: resolvedBasementArea,

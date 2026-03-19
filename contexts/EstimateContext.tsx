@@ -2,9 +2,11 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculateProjectCost } from '@/calculator-engine/calculateProjectCost';
+import { calculateRawBuildingCost } from '@/calculator-engine/modules/rawBuildingCost';
 import { calculateKg400Costs } from '@/calculator-engine/modules/kg400Costs';
 import { calculatePoolCosts } from '@/calculator-engine/modules/poolCosts';
 import { calculateKg600Costs } from '@/calculator-engine/modules/kg600Costs';
+import { calculateLevel1BenchmarkAllocation } from '@/calculator-engine/modules/categoryCosts';
 import {
   DEFAULT_QUALITY_ID,
   LOCATIONS,
@@ -944,44 +946,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms;
   const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms;
   const wcDelta = wcs - residentialProgramBaseline.wcs;
-  // KG400 is sourced only from calculator-engine. EstimateContext consumes engine output.
-  const kg400EngineResult = useMemo(
-    () => calculateKg400Costs({
-      mainArea,
-      finalCostPerSqm,
-      qualityId,
-      siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
-      bedroomDelta,
-      bathroomDelta,
-      wcDelta,
-      dataSecurityPackageLevel,
-      dataSecurityPackageSelection,
-      dataSecurityManualQuote,
-      automationPackageLevel,
-      automationPackageSelection,
-      automationManualQuote,
-      habitableBasementArea,
-      hvacSelections,
-    }),
-    [
-      mainArea,
-      effectiveArea,
-      finalCostPerSqm,
-      qualityId,
-      siteAccessibility,
-      bedroomDelta,
-      bathroomDelta,
-      wcDelta,
-      dataSecurityPackageLevel,
-      dataSecurityPackageSelection,
-      dataSecurityManualQuote,
-      automationPackageLevel,
-      automationPackageSelection,
-      automationManualQuote,
-      habitableBasementArea,
-      hvacSelections,
-    ],
-  );
   const kg600CostsResult = useMemo(() => calculateKg600Costs({
     effectiveArea,
     qualityId,
@@ -1011,6 +975,74 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kitchenPackageCost = kg600CostsResult.kitchenPackageCost;
   const wardrobePackageCost = kg600CostsResult.wardrobePackageCost;
   const bathroomWcFurnishingSliceCost = kg600CostsResult.bathroomWcFurnishingSliceCost;
+  const benchmarkBuildingCost = useMemo(() => calculateRawBuildingCost({
+    livingArea: mainArea,
+    effectiveArea,
+    locationId,
+    qualityId,
+    customCostPerSqm,
+  }), [
+    mainArea,
+    effectiveArea,
+    locationId,
+    qualityId,
+    customCostPerSqm,
+  ]);
+  const siteExcavationBaseCost = useMemo(
+    () => Math.max(300, Math.round(Math.max(0, effectiveArea) + Math.max(0, landscapingArea))),
+    [effectiveArea, landscapingArea],
+  );
+  const level1BenchmarkAllocation = useMemo(
+    () => calculateLevel1BenchmarkAllocation({
+      benchmarkTotal: benchmarkBuildingCost.baseConstructionCost,
+      siteExcavationBaseCost,
+      wardrobePackageCost,
+      qualityId,
+    }),
+    [
+      benchmarkBuildingCost.baseConstructionCost,
+      siteExcavationBaseCost,
+      wardrobePackageCost,
+      qualityId,
+    ],
+  );
+  // KG400 is sourced only from calculator-engine. EstimateContext consumes engine output.
+  const kg400EngineResult = useMemo(
+    () => calculateKg400Costs({
+      benchmarkBucket400: level1BenchmarkAllocation.benchmarkBucket400,
+      mainArea,
+      qualityId,
+      siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
+      bedroomDelta,
+      bathroomDelta,
+      wcDelta,
+      dataSecurityPackageLevel,
+      dataSecurityPackageSelection,
+      dataSecurityManualQuote,
+      automationPackageLevel,
+      automationPackageSelection,
+      automationManualQuote,
+      habitableBasementArea,
+      hvacSelections,
+    }),
+    [
+      level1BenchmarkAllocation,
+      mainArea,
+      qualityId,
+      siteAccessibility,
+      bedroomDelta,
+      bathroomDelta,
+      wcDelta,
+      dataSecurityPackageLevel,
+      dataSecurityPackageSelection,
+      dataSecurityManualQuote,
+      automationPackageLevel,
+      automationPackageSelection,
+      automationManualQuote,
+      habitableBasementArea,
+      hvacSelections,
+    ],
+  );
   useEffect(() => {
     if (!kitchenCountCustomized && kitchenCount !== 0) {
       setKitchenCountState(0);
