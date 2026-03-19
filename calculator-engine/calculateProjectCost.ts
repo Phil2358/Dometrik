@@ -17,14 +17,13 @@ import { calculateEfkaCosts } from "./modules/efkaCosts"
 import { calculateVatCosts } from "./modules/vatCosts"
 import { calculateKg100Costs } from "./modules/kg100Costs"
 import { calculateDetailedKg300SubgroupCosts } from "./modules/kg300SubgroupCosts"
+import { calculateKg300Modifiers } from "./modules/kg300Modifiers"
 import { buildProjectCostBreakdown, type ProjectBreakdownGroup } from "./buildProjectCostBreakdown"
 import {
   type AutomationPackageLevel,
   type CompatibleQualityId,
   type DataSecurityPackageLevel,
-  KG600_WARDROBE_PACKAGE_BASE_COST,
   type Kg400PackageSelection,
-  MID_RANGE_BENCHMARK_BASE_COST_PER_SQM,
   normalizeQualityId,
   getResidentialProgramBaseline,
   SITE_ACCESSIBILITY_OPTIONS,
@@ -129,7 +128,8 @@ export interface ProjectCostResult {
   parkingBasementCost: number
   habitableBasementCost: number
   basementCostItems: ReturnType<typeof calculateBasementBaseCosts>["breakdownItems"]
-  kg300SubgroupCosts: ReturnType<typeof calculateDetailedKg300SubgroupCosts>["kg300SubgroupCosts"]
+  kg300SubgroupCosts: ReturnType<typeof calculateKg300Modifiers>["kg300SubgroupCosts"]
+  kg300ModifierDetails: ReturnType<typeof calculateKg300Modifiers>["modifierDetails"]
   kg600SubgroupCosts: ReturnType<typeof calculateKg600Costs>["kg600SubgroupCosts"]
   permitFee: number
   landscapingCost: number
@@ -214,8 +214,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const siteAccessibility =
     SITE_ACCESSIBILITY_OPTIONS.find((option) => option.id === resolvedAccessibilityId)
     ?? SITE_ACCESSIBILITY_OPTIONS[0]
-  const accessibilityExecutionDelta =
-    Math.max(0, siteAccessibility.sitePreparationFactor - 1)
+  const siteAccessibilityFactor = siteAccessibility.siteAccessibilityFactor
 
   // -----------------------------------------
   // Permit costs
@@ -271,7 +270,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       benchmarkBucket400: level1BenchmarkAllocation.benchmarkBucket400,
       mainArea: input.mainArea,
       qualityId,
-      siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
+      siteAccessibilityFactor,
       bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
       bathroomDelta,
       wcDelta,
@@ -284,8 +283,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       habitableBasementArea: input.habitableBasementArea,
       hvacSelections: input.hvacSelections,
     })
-  const midRangeReferenceCorrectedCostPerSqm =
-    Math.round(MID_RANGE_BENCHMARK_BASE_COST_PER_SQM * buildingCost.sizeCorrectionFactor)
   const kg300BenchmarkArea =
     input.mainArea + input.terraceArea * 0.5 + input.balconyArea * 0.30
   const kg300BenchmarkConstructionCost =
@@ -306,28 +303,20 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     calculateCategoryCosts({
       benchmarkBucket300: kg300Level1Allocation.benchmarkBucket300
     })
-  const midRangeReferenceConstructionCost =
-    Math.round(kg300BenchmarkArea * midRangeReferenceCorrectedCostPerSqm)
-  const midRangeReferenceLevel1Allocation =
-    calculateLevel1BenchmarkAllocation({
-      benchmarkTotal: midRangeReferenceConstructionCost,
-      siteExcavationBaseCost: kg300BenchmarkSiteExcavationBaseCost,
-      wardrobePackageCost: Math.max(0, bedroomCount) * KG600_WARDROBE_PACKAGE_BASE_COST,
-      qualityId: "midRange",
-    })
-  const midRangeReferenceKg300Base =
-    midRangeReferenceLevel1Allocation.benchmarkBucket300
-  const kg300DetailResult =
+  const kg300AllocationResult =
     calculateDetailedKg300SubgroupCosts({
-      midRangeReferenceKg300Base,
       kg300Cost: categoryCosts.kg300Total,
-      siteConditionId: input.siteConditionId,
-      groundwaterConditionId: input.groundwaterConditionId,
-      accessibilityExecutionDelta,
       qualityId,
     })
-  const kg300Total = kg300DetailResult.kg300Total
-  const kg300SubgroupCosts = kg300DetailResult.kg300SubgroupCosts
+  const kg300ModifierResult =
+    calculateKg300Modifiers({
+      kg300SubgroupCosts: kg300AllocationResult.kg300SubgroupCosts,
+      siteConditionId: input.siteConditionId,
+      groundwaterConditionId: input.groundwaterConditionId,
+      siteAccessibilityFactor,
+    })
+  const kg300Total = kg300ModifierResult.kg300Total
+  const kg300SubgroupCosts = kg300ModifierResult.kg300SubgroupCosts
 
 
   // -----------------------------------------
@@ -507,6 +496,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     habitableBasementCost: basementBaseCosts.habitableBasementCost,
     basementCostItems: basementBaseCosts.breakdownItems,
     kg300SubgroupCosts,
+    kg300ModifierDetails: kg300ModifierResult.modifierDetails,
     kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
     kg100SubgroupCosts: kg100Costs.subgroupCosts,
     permitFee: permitCosts.permitFee,

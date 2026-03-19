@@ -23,9 +23,7 @@ import {
   UTILITY_CONNECTION_OPTIONS,
   GROUNDWATER_CONDITIONS,
   SITE_ACCESSIBILITY_OPTIONS,
-  clampSitePreparationMultiplier,
   getSizeCorrectionFactor,
-  getPlotSizeFactor,
   type AutomationPackageLevel,
   type CompatibleQualityId,
   type DataSecurityPackageLevel,
@@ -916,6 +914,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     () => SITE_ACCESSIBILITY_OPTIONS.find((a) => a.id === siteAccessibilityId) ?? SITE_ACCESSIBILITY_OPTIONS[0],
     [siteAccessibilityId],
   );
+  const siteAccessibilityFactor = siteAccessibility.siteAccessibilityFactor;
 
   const group240Cost = 0;
   const group250Cost = 0;
@@ -931,7 +930,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const correctedCostPerSqm = Math.round(baseCostPerSqm * sizeCorrectionFactor);
   const finalCostPerSqm = Math.round(correctedCostPerSqm * location.multiplier);
-  const accessibilityExecutionDelta = Math.max(0, siteAccessibility.sitePreparationFactor - 1);
   const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms;
   const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms;
   const wcDelta = wcs - residentialProgramBaseline.wcs;
@@ -1001,7 +999,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       benchmarkBucket400: level1BenchmarkAllocation.benchmarkBucket400,
       mainArea,
       qualityId,
-      siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
+      siteAccessibilityFactor,
       bedroomDelta,
       bathroomDelta,
       wcDelta,
@@ -1018,7 +1016,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       level1BenchmarkAllocation,
       mainArea,
       qualityId,
-      siteAccessibility,
+      siteAccessibilityFactor,
       bedroomDelta,
       bathroomDelta,
       wcDelta,
@@ -1079,18 +1077,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       setGeneralFurnitureBaseAmountState(suggestedGeneralFurnitureBaseAmount);
     }
   }, [suggestedGeneralFurnitureBaseAmount]);
-  const plotSizeFactor = useMemo(
-    () => getPlotSizeFactor(plotSize),
-  [plotSize],
-  );
-
-  const sitePreparationMultiplier = useMemo(
-    () => clampSitePreparationMultiplier(
-      plotSizeFactor * siteCondition.sitePreparationFactor * siteAccessibility.sitePreparationFactor
-    ),
-    [plotSizeFactor, siteCondition, siteAccessibility],
-  );
-
   const poolSizeOption = useMemo(
     () => POOL_SIZE_OPTIONS.find((p) => p.id === poolSizeId) ?? POOL_SIZE_OPTIONS[1],
     [poolSizeId],
@@ -1499,8 +1485,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     permitDesignEffectiveArea,
     basementTotalCost,
     siteExcavationCost,
-    plotSizeFactor,
-    sitePreparationMultiplier,
     breakdownGroups,
     scenarios,
     activeScenarioIndex,
@@ -1562,7 +1546,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, basementBenchmarkRate, storageTechnicalBasementCost, parkingBasementCost, habitableBasementCost, basementBaseCost,
     contingencyPercent, recommendedContingencyCost, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
-    basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier, breakdownGroups,
+    basementTotalCost, siteExcavationCost, breakdownGroups,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
     getAllScenarioConfigs, resetAllData,
   ]);
