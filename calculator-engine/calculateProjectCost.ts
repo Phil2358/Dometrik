@@ -4,7 +4,7 @@ import {
   calculateCategoryCosts,
   calculateLevel1BenchmarkAllocation,
 } from "./modules/categoryCosts"
-import { calculateSiteCosts } from "./modules/siteCosts"
+import { calculateSiteCosts, calculateSiteExcavationBaseCost } from "./modules/siteCosts"
 import { calculateKg400Costs } from "./modules/kg400Costs"
 import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
@@ -23,7 +23,6 @@ import {
   type DataSecurityPackageLevel,
   KG600_WARDROBE_PACKAGE_BASE_COST,
   type Kg400PackageSelection,
-  LOCATIONS,
   MID_RANGE_BENCHMARK_BASE_COST_PER_SQM,
   normalizeQualityId,
   getResidentialProgramBaseline,
@@ -195,9 +194,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const siteAccessibility =
     SITE_ACCESSIBILITY_OPTIONS.find((option) => option.id === resolvedAccessibilityId)
     ?? SITE_ACCESSIBILITY_OPTIONS[0]
-  const location =
-    LOCATIONS.find((entry: any) => entry.id === input.locationId) ??
-    LOCATIONS[0]
   const accessibilityExecutionDelta =
     Math.max(0, siteAccessibility.sitePreparationFactor - 1)
 
@@ -252,10 +248,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   // Category costs (DIN276 groups)
   // -----------------------------------------
 
-  const categoryCosts =
-    calculateCategoryCosts({
-      benchmarkBucket300: level1BenchmarkAllocation.benchmarkBucket300
-    })
   const kg400Costs =
     calculateKg400Costs({
       benchmarkBucket400: level1BenchmarkAllocation.benchmarkBucket400,
@@ -276,38 +268,40 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     })
   const midRangeReferenceCorrectedCostPerSqm =
     Math.round(MID_RANGE_BENCHMARK_BASE_COST_PER_SQM * buildingCost.sizeCorrectionFactor)
-  const midRangeReferenceFinalCostPerSqm =
-    Math.round(midRangeReferenceCorrectedCostPerSqm * location.multiplier)
-  const noBasementEffectiveArea =
+  const kg300BenchmarkArea =
     input.mainArea + input.terraceArea * 0.5 + input.balconyArea * 0.30
-  const noBasementConstructionCost =
-    noBasementEffectiveArea * buildingCost.correctedCostPerSqm
+  const kg300BenchmarkConstructionCost =
+    Math.round(kg300BenchmarkArea * buildingCost.correctedCostPerSqm)
+  const kg300BenchmarkSiteExcavationBaseCost =
+    calculateSiteExcavationBaseCost({
+      effectiveArea: kg300BenchmarkArea,
+      landscapingArea: input.landscapingArea,
+    })
+  const kg300Level1Allocation =
+    calculateLevel1BenchmarkAllocation({
+      benchmarkTotal: kg300BenchmarkConstructionCost,
+      siteExcavationBaseCost: kg300BenchmarkSiteExcavationBaseCost,
+      wardrobePackageCost: kg600Costs.wardrobePackageCost,
+      qualityId,
+    })
+  const categoryCosts =
+    calculateCategoryCosts({
+      benchmarkBucket300: kg300Level1Allocation.benchmarkBucket300
+    })
   const midRangeReferenceConstructionCost =
-    effectiveArea * midRangeReferenceCorrectedCostPerSqm
+    Math.round(kg300BenchmarkArea * midRangeReferenceCorrectedCostPerSqm)
   const midRangeReferenceLevel1Allocation =
     calculateLevel1BenchmarkAllocation({
       benchmarkTotal: midRangeReferenceConstructionCost,
-      siteExcavationBaseCost: siteCosts.siteExcavationBaseCost,
+      siteExcavationBaseCost: kg300BenchmarkSiteExcavationBaseCost,
       wardrobePackageCost: Math.max(0, bedroomCount) * KG600_WARDROBE_PACKAGE_BASE_COST,
       qualityId: "midRange",
     })
   const midRangeReferenceKg300Base =
     midRangeReferenceLevel1Allocation.benchmarkBucket300
-  const noBasementLevel1Allocation =
-    calculateLevel1BenchmarkAllocation({
-      benchmarkTotal: noBasementConstructionCost,
-      siteExcavationBaseCost: siteCosts.siteExcavationBaseCost,
-      wardrobePackageCost: kg600Costs.wardrobePackageCost,
-      qualityId,
-    })
-  const noBasementKg300Base =
-    noBasementLevel1Allocation.benchmarkBucket300
   const kg300DetailResult =
     calculateDetailedKg300SubgroupCosts({
-      basementArea: resolvedBasementArea,
       midRangeReferenceKg300Base,
-      noBasementKg300Base,
-      midRangeReferenceFinalCostPerSqm,
       kg300Cost: categoryCosts.kg300Total,
       siteConditionId: input.siteConditionId,
       groundwaterConditionId: input.groundwaterConditionId,

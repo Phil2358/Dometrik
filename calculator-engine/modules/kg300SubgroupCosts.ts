@@ -72,31 +72,8 @@ const BASE_GROUNDWATER_FACTORS_320: Record<string, number> = {
   high: 1.15,
 }
 
-const BASEMENT_SITE_CONDITION_FACTORS: Record<string, number> = {
-  flat_normal: 1.00,
-  flat_rocky: 1.05,
-  inclined_normal: 1.10,
-  inclined_rocky: 1.12,
-  inclined_sandy: 1.15,
-}
-
-const BASEMENT_GROUNDWATER_FACTORS: Record<string, number> = {
-  normal: 1.00,
-  moderate: 1.04,
-  high: 1.10,
-}
-
-const BASEMENT_GROUNDWATER_FACTORS_320: Record<string, number> = {
-  normal: 1.00,
-  moderate: 1.08,
-  high: 1.18,
-}
-
 interface Kg300SubgroupDetailsInput {
-  basementArea: number
   midRangeReferenceKg300Base: number
-  noBasementKg300Base: number
-  midRangeReferenceFinalCostPerSqm: number
   kg300Cost: number
   siteConditionId: string
   groundwaterConditionId: string
@@ -124,48 +101,12 @@ export function calculateDetailedKg300SubgroupCosts(
     (adjustedBaseSubgroup310Cost - rawBaseSubgroup310Cost) +
     (adjustedBaseSubgroup320Cost - rawBaseSubgroup320Cost)
   const kg300Total = input.kg300Cost + baseStructuralAdjustment
-  const noBasementAdjustedKg300 = input.noBasementKg300Base + baseStructuralAdjustment
-  const totalBasementDrivenKg300 = Math.max(0, kg300Total - noBasementAdjustedKg300)
-  const basementSiteConditionFactor =
-    input.basementArea > 0
-      ? (BASEMENT_SITE_CONDITION_FACTORS[input.siteConditionId] ?? 1.00)
-      : 1.00
-  const basementGroundwaterFactor310 =
-    input.basementArea > 0
-      ? (BASEMENT_GROUNDWATER_FACTORS[input.groundwaterConditionId] ?? 1.00)
-      : 1.00
-  const basementGroundwaterFactor320 =
-    input.basementArea > 0
-      ? (BASEMENT_GROUNDWATER_FACTORS_320[input.groundwaterConditionId] ?? 1.00)
-      : 1.00
-  const basementFactor310 = input.basementArea > 0
-    ? basementSiteConditionFactor * basementGroundwaterFactor310
-    : 1.00
-  const basementFactor320 = input.basementArea > 0
-    ? basementSiteConditionFactor * basementGroundwaterFactor320
-    : 1.00
-  const rawBasementStructuralPool = input.basementArea > 0
-    ? Math.min(
-      totalBasementDrivenKg300,
-      Math.round(input.basementArea * input.midRangeReferenceFinalCostPerSqm * 0.10)
-    )
-    : 0
-  const rawStructuralWeight310 = 0.25 * basementFactor310
-  const rawStructuralWeight320 = 0.75 * basementFactor320
-  const structuralWeightTotal = rawStructuralWeight310 + rawStructuralWeight320 || 1
-  const subgroup310BasementStructural = Math.round(
-    rawBasementStructuralPool * (rawStructuralWeight310 / structuralWeightTotal)
-  )
-  const subgroup320BasementStructural = Math.round(
-    rawBasementStructuralPool - subgroup310BasementStructural
-  )
-  const basementTypePremiumPool = Math.max(0, totalBasementDrivenKg300 - rawBasementStructuralPool)
 
   const baseStructuralCore =
     adjustedBaseSubgroup310Cost +
     adjustedBaseSubgroup320Cost +
     structuralBaseSubgroup350Cost
-  const baseFlexibleKg300 = Math.max(0, noBasementAdjustedKg300 - baseStructuralCore)
+  const baseFlexibleKg300 = Math.max(0, kg300Total - baseStructuralCore)
 
   const flexibleShares =
     KG300_BASE_FLEXIBLE_SHARES[input.qualityId] ??
@@ -182,18 +123,13 @@ export function calculateDetailedKg300SubgroupCosts(
     - subgroup350QualityCost
     - subgroup360Cost
   )
-  const basementTypePremium330 = Math.round(basementTypePremiumPool * 0.15)
-  const basementTypePremium340 = Math.round(basementTypePremiumPool * 0.55)
-  const basementTypePremium350 = Math.round(
-    basementTypePremiumPool - basementTypePremium330 - basementTypePremium340
-  )
 
-  const subgroup310BaseCost = adjustedBaseSubgroup310Cost + subgroup310BasementStructural
-  const subgroup320BaseCost = adjustedBaseSubgroup320Cost + subgroup320BasementStructural
-  const subgroup330BaseCost = subgroup330Cost + basementTypePremium330
-  const subgroup340BaseCost = subgroup340Cost + basementTypePremium340
+  const subgroup310BaseCost = adjustedBaseSubgroup310Cost
+  const subgroup320BaseCost = adjustedBaseSubgroup320Cost
+  const subgroup330BaseCost = subgroup330Cost
+  const subgroup340BaseCost = subgroup340Cost
   const subgroup350BaseCost =
-    structuralBaseSubgroup350Cost + subgroup350QualityCost + basementTypePremium350
+    structuralBaseSubgroup350Cost + subgroup350QualityCost
   const subgroup360BaseCost = subgroup360Cost
 
   const subgroup310AccessibilityCost = Math.round(

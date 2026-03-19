@@ -37,6 +37,19 @@ const SUBGROUP_210_SITE_CONDITION_RATES: Record<string, number> = {
   inclined_sandy: 0.50,
 }
 
+export function calculateSiteExcavationBaseCost(input: {
+  effectiveArea: number
+  landscapingArea?: number | null
+}) {
+  const landscapingArea = Math.max(0, input.landscapingArea ?? 0)
+  const sitePrepBaseArea = Math.max(0, input.effectiveArea) + landscapingArea
+
+  return Math.max(
+    SUBGROUP_210_MINIMUM_BASE_COST,
+    Math.round(sitePrepBaseArea)
+  )
+}
+
 export function calculateSiteCosts(input: SiteCostsInput) {
 
   const siteConditions = [...SITE_CONDITIONS]
@@ -82,12 +95,11 @@ export function calculateSiteCosts(input: SiteCostsInput) {
   const accessibilityCost = 0
   const group250Cost = accessibilityCost
 
-  const landscapingArea = Math.max(0, input.landscapingArea ?? 0)
-  const sitePrepBaseArea = Math.max(0, input.effectiveArea) + landscapingArea
-  const siteExcavationBaseCost = Math.max(
-    SUBGROUP_210_MINIMUM_BASE_COST,
-    Math.round(sitePrepBaseArea)
-  )
+  const siteExcavationBaseCost =
+    calculateSiteExcavationBaseCost({
+      effectiveArea: input.effectiveArea,
+      landscapingArea: input.landscapingArea,
+    })
   const siteExcavationAccessExtra =
     SUBGROUP_210_ACCESS_SURCHARGES[accessibility.id] ?? 0
   const siteExcavationConditionExtra = Math.round(
