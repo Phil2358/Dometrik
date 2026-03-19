@@ -5,7 +5,7 @@ import {
   calculateCategoryCosts,
   calculateLevel1BenchmarkAllocation,
 } from "./modules/categoryCosts"
-import { calculateSiteCosts, calculateSiteExcavationBaseCost } from "./modules/siteCosts"
+import { calculateKg200Costs, calculateSiteExcavationBaseCost } from "./modules/kg200Costs"
 import { calculateKg400Costs } from "./modules/kg400Costs"
 import { calculatePoolCosts } from "./modules/poolCosts"
 import { calculateLandscapingCosts } from "./modules/landscapingCosts"
@@ -244,8 +244,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   // Site costs
   // -----------------------------------------
 
-  const siteCosts =
-    calculateSiteCosts({
+  const kg200Costs =
+    calculateKg200Costs({
       effectiveArea,
       landscapingArea: input.landscapingArea,
       basementArea: resolvedBasementArea,
@@ -258,7 +258,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const level1BenchmarkAllocation =
     calculateLevel1BenchmarkAllocation({
       benchmarkTotal: buildingCost.baseConstructionCost,
-      siteExcavationBaseCost: siteCosts.siteExcavationBaseCost,
+      siteExcavationBaseCost: kg200Costs.siteExcavationBaseCost,
       wardrobePackageCost: kg600Costs.wardrobePackageCost,
       qualityId,
     })
@@ -397,7 +397,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     })
 
   const coreProjectTotal =
-      siteCosts.kg200Total
+      kg200Costs.kg200Total
     + constructionSubtotal
     + basementBaseCosts.basementBaseCost
     + kg500Total
@@ -409,7 +409,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
 
   const dinSubtotal =
       group100Total
-    + siteCosts.kg200Total
+    + kg200Costs.kg200Total
     + constructionSubtotal
     + kg500Total
     + permitCosts.permitFee
@@ -435,10 +435,10 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       landValue: kg100Costs.landValue,
       landAcquisitionCosts: kg100Costs.incidentalLandAcquisitionCosts,
       landAcquisitionCostsMode: kg100Costs.landAcquisitionCostsMode,
-      kg200Total: siteCosts.kg200Total,
-      siteExcavationCost: siteCosts.siteExcavationCost,
-      utilityGroup220Cost: siteCosts.group220Cost,
-      utilityGroup230Cost: siteCosts.group230Cost,
+      kg200Total: kg200Costs.kg200Total,
+      siteExcavationCost: kg200Costs.siteExcavationCost,
+      utilityGroup220Cost: kg200Costs.group220Cost,
+      utilityGroup230Cost: kg200Costs.group230Cost,
       kg300Total,
       kg300SubgroupCosts,
       kg400Total: kg400Costs.kg400Total,
@@ -492,7 +492,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     efkaInsuranceAutoCost: efkaCosts.automaticCost,
     efkaInsuranceManualOverrideActive: efkaCosts.manualOverrideActive,
     kg100Total: kg100Costs.kg100Total,
-    kg200Total: siteCosts.kg200Total,
+    kg200Total: kg200Costs.kg200Total,
     kg300Total,
     kg400Total: kg400Costs.kg400Total,
     kg500Total,
@@ -515,11 +515,11 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     landscapingCost: landscapingCosts.landscapingCost,
     poolCost: poolCosts.poolCost,
     hvacExtrasCost: kg400Costs.hvacExtrasCost,
-    siteCost: siteCosts.kg200Total,
-    utilityConnectionCost: siteCosts.utilityConnectionCost,
-    utilityGroup220Cost: siteCosts.group220Cost,
-    utilityGroup230Cost: siteCosts.group230Cost,
-    siteExcavationCost: siteCosts.siteExcavationCost,
+    siteCost: kg200Costs.kg200Total,
+    utilityConnectionCost: kg200Costs.utilityConnectionCost,
+    utilityGroup220Cost: kg200Costs.group220Cost,
+    utilityGroup230Cost: kg200Costs.group230Cost,
+    siteExcavationCost: kg200Costs.siteExcavationCost,
     breakdownGroups,
 
   }

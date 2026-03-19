@@ -7,7 +7,7 @@ import {
   getUtilityConnectionGroupCosts
 } from "../../constants/construction"
 
-interface SiteCostsInput {
+interface Kg200CostsInput {
   effectiveArea: number
   landscapingArea?: number | null
   basementArea: number
@@ -50,7 +50,7 @@ export function calculateSiteExcavationBaseCost(input: {
   )
 }
 
-export function calculateSiteCosts(input: SiteCostsInput) {
+export function calculateKg200Costs(input: Kg200CostsInput) {
 
   const siteConditions = [...SITE_CONDITIONS]
   const groundwaterConditions = [...GROUNDWATER_CONDITIONS]
