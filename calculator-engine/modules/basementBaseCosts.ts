@@ -1,10 +1,14 @@
 import {
+  BASEMENT_LEVEL1_ALLOCATION_SHARES,
   BASEMENT_BENCHMARK_RATE_FACTORS,
   BASEMENT_TYPE_NAMES,
+  DEFAULT_QUALITY_ID,
+  type QualityId,
 } from "../../constants/construction"
 
 interface BasementBaseCostsInput {
   correctedBenchmarkRate: number
+  qualityId: QualityId
   basementArea?: number
   basementTypeId?: string
   storageBasementArea?: number
@@ -42,6 +46,25 @@ function resolveBasementAreas(input: BasementBaseCostsInput): ResolvedBasementAr
   }
 }
 
+function calculateBasementLevel1Allocation(basementBaseCost: number, qualityId: QualityId) {
+  const rawShares =
+    BASEMENT_LEVEL1_ALLOCATION_SHARES[qualityId]
+    ?? BASEMENT_LEVEL1_ALLOCATION_SHARES[DEFAULT_QUALITY_ID]
+  const shareSum = rawShares.kg300 + rawShares.kg400 || 1
+  const basementBucket300 = Math.round(
+    basementBaseCost * (rawShares.kg300 / shareSum)
+  )
+  const basementBucket400 = basementBaseCost - basementBucket300
+
+  return {
+    share300: rawShares.kg300,
+    share400: rawShares.kg400,
+    shareSum,
+    basementBucket300,
+    basementBucket400,
+  }
+}
+
 export function calculateBasementBaseCosts(input: BasementBaseCostsInput) {
   const {
     storageBasementArea,
@@ -63,6 +86,8 @@ export function calculateBasementBaseCosts(input: BasementBaseCostsInput) {
     storageTechnicalBasementCost +
     parkingBasementCost +
     habitableBasementCost
+  const basementLevel1Allocation =
+    calculateBasementLevel1Allocation(basementBaseCost, input.qualityId)
 
   return {
     basementBenchmarkRate,
@@ -73,6 +98,13 @@ export function calculateBasementBaseCosts(input: BasementBaseCostsInput) {
     parkingBasementCost,
     habitableBasementCost,
     basementBaseCost,
+    basementBucket300: basementLevel1Allocation.basementBucket300,
+    basementBucket400: basementLevel1Allocation.basementBucket400,
+    level1AllocationShares: {
+      share300: basementLevel1Allocation.share300,
+      share400: basementLevel1Allocation.share400,
+      shareSum: basementLevel1Allocation.shareSum,
+    },
     breakdownItems: [
       {
         id: "storage",

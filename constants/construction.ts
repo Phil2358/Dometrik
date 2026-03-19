@@ -67,6 +67,12 @@ export const LEVEL_1_BENCHMARK_RAW_SHARES: Record<QualityId, Level1BenchmarkRawS
   luxury: { kg300: 64, kg400: 36 },
 };
 
+export const BASEMENT_LEVEL1_ALLOCATION_SHARES: Record<QualityId, { kg300: number; kg400: number }> = {
+  economy: { kg300: 78, kg400: 22 },
+  midRange: { kg300: 76, kg400: 24 },
+  luxury: { kg300: 73, kg400: 27 },
+};
+
 export const LOCATIONS: Location[] = [
   { id: 'corfu', name: 'Corfu', region: 'Ionian Islands', multiplier: 1.15 },
   { id: 'athens', name: 'Athens', region: 'Attica', multiplier: 1.00 },

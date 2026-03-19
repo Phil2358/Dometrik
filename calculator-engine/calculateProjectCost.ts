@@ -122,6 +122,8 @@ export interface ProjectCostResult {
   rawBuildingCost: number
   basementBenchmarkRate: number
   basementBaseCost: number
+  basementBucket300: number
+  basementBucket400: number
   storageTechnicalBasementCost: number
   parkingBasementCost: number
   habitableBasementCost: number
@@ -184,6 +186,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const basementBaseCosts =
     calculateBasementBaseCosts({
       correctedBenchmarkRate: buildingCost.correctedCostPerSqm,
+      qualityId,
       basementArea: input.basementArea,
       basementTypeId: input.basementTypeId,
       storageBasementArea: input.storageBasementArea,
@@ -497,6 +500,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     rawBuildingCost: buildingCost.rawBuildingCost,
     basementBenchmarkRate: basementBaseCosts.basementBenchmarkRate,
     basementBaseCost: basementBaseCosts.basementBaseCost,
+    basementBucket300: basementBaseCosts.basementBucket300,
+    basementBucket400: basementBaseCosts.basementBucket400,
     storageTechnicalBasementCost: basementBaseCosts.storageTechnicalBasementCost,
     parkingBasementCost: basementBaseCosts.parkingBasementCost,
     habitableBasementCost: basementBaseCosts.habitableBasementCost,
