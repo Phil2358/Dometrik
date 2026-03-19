@@ -1,12 +1,14 @@
 import {
+  DEFAULT_QUALITY_ID,
   PERMIT_DESIGN_BASELINE_FEE,
   PERMIT_DESIGN_BASELINE_AREA_MAX,
-  PERMIT_DESIGN_QUALITY_MULTIPLIERS
+  PERMIT_DESIGN_QUALITY_MULTIPLIERS,
+  type QualityId,
 } from "../../constants/construction"
 
 interface PermitCostsInput {
   effectiveArea: number
-  qualityId: string
+  qualityId: QualityId
 }
 
 export function calculatePermitCosts(input: PermitCostsInput) {
@@ -23,7 +25,8 @@ export function calculatePermitCosts(input: PermitCostsInput) {
   }
 
   const qualityMultiplier =
-    PERMIT_DESIGN_QUALITY_MULTIPLIERS[input.qualityId] ?? 1
+    PERMIT_DESIGN_QUALITY_MULTIPLIERS[input.qualityId] ??
+    PERMIT_DESIGN_QUALITY_MULTIPLIERS[DEFAULT_QUALITY_ID]
 
   permitFee =
     permitFee * qualityMultiplier

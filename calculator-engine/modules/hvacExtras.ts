@@ -1,27 +1,34 @@
+import {
+  DEFAULT_QUALITY_ID,
+  type QualityId,
+} from "../../constants/construction"
+
 interface HvacExtrasInput {
   mainArea: number
   habitableBasementArea?: number
-  qualityId: string
+  qualityId: QualityId
   hvacSelections: Record<string, boolean>
 }
 
-const HVAC_HEATING_QUALITY_MULTIPLIERS: Record<string, number> = {
-  standard: 1.00,
-  premium: 1.12,
+const HVAC_HEATING_QUALITY_MULTIPLIERS: Record<QualityId, number> = {
+  economy: 1.00,
+  midRange: 1.12,
   luxury: 1.25
 }
 
-const HVAC_PV_QUALITY_MULTIPLIERS: Record<string, number> = {
-  standard: 1.00,
-  premium: 1.07,
+const HVAC_PV_QUALITY_MULTIPLIERS: Record<QualityId, number> = {
+  economy: 1.00,
+  midRange: 1.07,
   luxury: 1.12
 }
 
 export function calculateHvacExtras(input: HvacExtrasInput) {
   const heatingQualityMultiplier =
-    HVAC_HEATING_QUALITY_MULTIPLIERS[input.qualityId] ?? 1.12
+    HVAC_HEATING_QUALITY_MULTIPLIERS[input.qualityId] ??
+    HVAC_HEATING_QUALITY_MULTIPLIERS[DEFAULT_QUALITY_ID]
   const photovoltaicQualityMultiplier =
-    HVAC_PV_QUALITY_MULTIPLIERS[input.qualityId] ?? 1.07
+    HVAC_PV_QUALITY_MULTIPLIERS[input.qualityId] ??
+    HVAC_PV_QUALITY_MULTIPLIERS[DEFAULT_QUALITY_ID]
 
   const heatedInternalArea =
     Math.max(0, input.mainArea + (input.habitableBasementArea ?? 0))
@@ -44,7 +51,7 @@ export function calculateHvacExtras(input: HvacExtrasInput) {
   const solarThermalCostCap =
     input.qualityId === "luxury"
       ? 6500
-      : input.qualityId === "premium"
+      : input.qualityId === "midRange"
         ? 6000
         : 5500
   const solarThermalCost =
@@ -64,7 +71,7 @@ export function calculateHvacExtras(input: HvacExtrasInput) {
   const photovoltaicCostCap =
     input.qualityId === "luxury"
       ? 14000
-      : input.qualityId === "premium"
+      : input.qualityId === "midRange"
         ? 13250
         : 12500
   const photovoltaicCost =

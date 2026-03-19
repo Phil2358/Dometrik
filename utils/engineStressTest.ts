@@ -15,7 +15,7 @@ export function runEngineStressTest(iterations: number = 100) {
       basementTypeId: "storage",
 
       locationId: "athens",
-      qualityId: "standard",
+      qualityId: "economy",
 
       customCostPerSqm: null,
 

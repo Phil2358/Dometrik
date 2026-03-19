@@ -21,10 +21,12 @@ import { buildProjectCostBreakdown, type ProjectBreakdownGroup } from "./buildPr
 import {
   type AutomationPackageLevel,
   BASE_GROUP_SHARE_KG300,
+  type CompatibleQualityId,
   type DataSecurityPackageLevel,
   type Kg400PackageSelection,
   LOCATIONS,
-  PREMIUM_BENCHMARK_BASE_COST_PER_SQM,
+  MID_RANGE_BENCHMARK_BASE_COST_PER_SQM,
+  normalizeQualityId,
   getResidentialProgramBaseline,
   SITE_ACCESSIBILITY_OPTIONS,
 } from "../constants/construction"
@@ -42,7 +44,7 @@ export interface ProjectCalculationInput {
   habitableBasementArea?: number
 
   locationId: string
-  qualityId: string
+  qualityId: CompatibleQualityId | string
   customCostPerSqm?: number | null
 
   siteConditionId: string
@@ -144,6 +146,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     totalBasementArea > 0
       ? totalBasementArea
       : (input.basementArea ?? 0)
+  const qualityId = normalizeQualityId(input.qualityId)
 
   // -----------------------------------------
   // Effective area
@@ -181,7 +184,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       livingArea: input.mainArea,
       effectiveArea,
       locationId: input.locationId,
-      qualityId: input.qualityId,
+      qualityId,
       customCostPerSqm: input.customCostPerSqm
     })
 
@@ -213,7 +216,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     calculateKg400Costs({
       mainArea: input.mainArea,
       finalCostPerSqm: buildingCost.correctedCostPerSqm,
-      qualityId: input.qualityId,
+      qualityId,
       siteAccessibilityFactor: siteAccessibility.sitePreparationFactor,
       bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
       bathroomDelta,
@@ -246,13 +249,13 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const permitCosts =
     calculatePermitCosts({
       effectiveArea,
-      qualityId: input.qualityId
+      qualityId
     })
 
   const kg600Costs =
     calculateKg600Costs({
       effectiveArea,
-      qualityId: input.qualityId,
+      qualityId,
       bedroomCount,
       kitchenCount: input.kitchenCount ?? 0,
       customKitchenUnitCost: input.customKitchenUnitCost,
@@ -277,31 +280,31 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       utilityConnectionId: input.utilityConnectionId,
       customUtilityCost: input.customUtilityCost
     })
-  const premiumReferenceCorrectedCostPerSqm =
-    Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * buildingCost.sizeCorrectionFactor)
-  const premiumReferenceFinalCostPerSqm =
-    Math.round(premiumReferenceCorrectedCostPerSqm * location.multiplier)
+  const midRangeReferenceCorrectedCostPerSqm =
+    Math.round(MID_RANGE_BENCHMARK_BASE_COST_PER_SQM * buildingCost.sizeCorrectionFactor)
+  const midRangeReferenceFinalCostPerSqm =
+    Math.round(midRangeReferenceCorrectedCostPerSqm * location.multiplier)
   const noBasementEffectiveArea =
     input.mainArea + input.terraceArea * 0.5 + input.balconyArea * 0.30
   const noBasementConstructionCost =
     noBasementEffectiveArea * buildingCost.correctedCostPerSqm
-  const premiumReferenceConstructionCost =
-    effectiveArea * premiumReferenceCorrectedCostPerSqm
-  const premiumReferenceKg300Base =
-    Math.round(premiumReferenceConstructionCost * BASE_GROUP_SHARE_KG300)
+  const midRangeReferenceConstructionCost =
+    effectiveArea * midRangeReferenceCorrectedCostPerSqm
+  const midRangeReferenceKg300Base =
+    Math.round(midRangeReferenceConstructionCost * BASE_GROUP_SHARE_KG300)
   const noBasementKg300Base =
     Math.round(noBasementConstructionCost * BASE_GROUP_SHARE_KG300)
   const kg300DetailResult =
     calculateDetailedKg300SubgroupCosts({
       basementArea: resolvedBasementArea,
-      premiumReferenceKg300Base,
+      midRangeReferenceKg300Base,
       noBasementKg300Base,
-      premiumReferenceFinalCostPerSqm,
+      midRangeReferenceFinalCostPerSqm,
       kg300Cost: categoryCosts.kg300Total,
       siteConditionId: input.siteConditionId,
       groundwaterConditionId: input.groundwaterConditionId,
       accessibilityExecutionDelta,
-      qualityId: input.qualityId,
+      qualityId,
     })
   const kg300Total = kg300DetailResult.kg300Total
   const kg300SubgroupCosts = kg300DetailResult.kg300SubgroupCosts
@@ -354,7 +357,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const contingencyCosts =
     calculateContingencyCosts({
       constructionSubtotal,
-      qualityId: input.qualityId,
+      qualityId,
       manualContingencyPercent: input.manualContingencyPercent,
       manualContingencyCost: input.manualContingencyCost,
     })

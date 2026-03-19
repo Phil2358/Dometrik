@@ -22,6 +22,7 @@ import { useEstimate } from '@/contexts/EstimateContext';
 import {
   LOCATIONS,
   QUALITY_LEVELS,
+  type QualityId,
   DISCLAIMER_TEXT,
   SITE_CONDITIONS,
   SITE_CONDITIONS_TOOLTIP,
@@ -123,11 +124,11 @@ const MINUS_SYMBOL = '\u2212';
 const ARROW_SYMBOL = '\u2192';
 const SQUARE_METER_UNIT = 'm\u00B2';
 
-function getFeesQualityLabel(qualityId: string): string {
+function getFeesQualityLabel(qualityId: QualityId): string {
   switch (qualityId) {
-    case 'standard':
+    case 'economy':
       return 'Economy';
-    case 'premium':
+    case 'midRange':
       return 'Mid-Range';
     case 'luxury':
       return 'Luxury';
@@ -643,22 +644,22 @@ export default function EstimateScreen() {
     plural: 'WCs',
   });
   const qualityBenchmarkOptions: Array<{
-    id: 'standard' | 'premium' | 'luxury' | 'custom';
+    id: QualityId | 'custom';
     title: string;
     descriptor: string;
     benchmarkLabel?: string;
   }> = [
     {
-      id: 'standard',
+      id: 'economy',
       title: 'Economy',
       descriptor: 'Cost-conscious residential benchmark',
-      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'standard')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
+      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'economy')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
     },
     {
-      id: 'premium',
+      id: 'midRange',
       title: 'Mid-Range',
       descriptor: 'Balanced residential benchmark',
-      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'premium')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
+      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'midRange')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
     },
     {
       id: 'luxury',
@@ -684,7 +685,7 @@ export default function EstimateScreen() {
   );
 
   const handleQualitySelect = useCallback(
-    (id: string) => {
+    (id: QualityId) => {
       if (Platform.OS !== 'web') {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }

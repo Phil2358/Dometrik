@@ -1,16 +1,14 @@
+import type { QualityId } from "../constants/construction"
+
 export type BasementType =
   | "storage"
   | "parking"
   | "habitable"
 
-  export type QualityLevel =
-  | "standard"
-  | "premium"
-  | "luxury"
+export type QualityLevel = QualityId
 
 export interface ProjectInput {
-
-qualityLevel: QualityLevel
+  qualityLevel: QualityLevel
 
   locationFactor: number
   baseCostPerM2: number

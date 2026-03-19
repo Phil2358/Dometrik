@@ -6,6 +6,7 @@ import { calculateKg400Costs } from '@/calculator-engine/modules/kg400Costs';
 import { calculatePoolCosts } from '@/calculator-engine/modules/poolCosts';
 import { calculateKg600Costs } from '@/calculator-engine/modules/kg600Costs';
 import {
+  DEFAULT_QUALITY_ID,
   LOCATIONS,
   QUALITY_LEVELS,
   DEFAULT_CONTRACTOR_PERCENTAGE,
@@ -24,10 +25,13 @@ import {
   getBasementExcavationCost,
   getPlotSizeFactor,
   type AutomationPackageLevel,
+  type CompatibleQualityId,
   type DataSecurityPackageLevel,
   type Kg400PackageSelection,
+  type QualityId,
   getResidentialProgramBaseline,
   getSuggestedGeneralFurnitureBaseAmount,
+  normalizeQualityId,
 } from '@/constants/construction';
 
 type ProgramCountMode = 'auto' | 'manual';
@@ -36,7 +40,7 @@ export interface ScenarioConfig {
   id: string;
   name: string;
   locationId: string;
-  qualityId: string;
+  qualityId: QualityId;
   customCostPerSqm: number | null;
   effectiveArea?: number;
   vatPercent?: number;
@@ -94,6 +98,10 @@ export interface ScenarioConfig {
   siteAccessibilityId: string;
 }
 
+type PersistedScenarioConfig = Omit<ScenarioConfig, 'qualityId'> & {
+  qualityId?: CompatibleQualityId | string;
+};
+
 const DEFAULT_LAND_ACQUISITION_PERCENTAGE = 0.06;
 
 const BASEMENT_SITE_CONDITION_FACTORS: Record<string, number> = {
@@ -128,7 +136,14 @@ function getWeightedBasementAreaForProgramDefaults(
     + habitableBasementArea * habitableBasementType.costFactor;
 }
 
-function getProgramDefaultEffectiveArea(config: Partial<ScenarioConfig>): number {
+function getProgramDefaultEffectiveArea(config: {
+  mainArea?: number;
+  terraceArea?: number;
+  balconyArea?: number;
+  storageBasementArea?: number;
+  parkingBasementArea?: number;
+  habitableBasementArea?: number;
+}): number {
   return (config.mainArea ?? 0)
     + (config.terraceArea ?? 0) * 0.5
     + (config.balconyArea ?? 0) * 0.30
@@ -139,7 +154,9 @@ function getProgramDefaultEffectiveArea(config: Partial<ScenarioConfig>): number
     );
 }
 
-function getProgramBaselineLivingArea(config: Partial<ScenarioConfig>): number {
+function getProgramBaselineLivingArea(config: {
+  mainArea?: number;
+}): number {
   return config.mainArea ?? 0;
 }
 
@@ -183,8 +200,9 @@ function normalizeAutomationPackageLevel(
   }
 }
 
-function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
+function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
+  const qualityId = normalizeQualityId(config.qualityId);
   const effectiveArea = getProgramDefaultEffectiveArea({
     mainArea: config.mainArea,
     terraceArea: config.terraceArea,
@@ -286,6 +304,7 @@ function normalizeScenarioConfig(config: ScenarioConfig): ScenarioConfig {
 
   return {
     ...config,
+    qualityId,
     effectiveArea: config.effectiveArea ?? effectiveArea,
     vatPercent,
     efkaInsuranceManualCost,
@@ -354,7 +373,7 @@ function createDefaultConfig(name: string): ScenarioConfig {
     id: generateId(),
     name,
     locationId: 'corfu',
-    qualityId: 'premium',
+    qualityId: DEFAULT_QUALITY_ID,
     customCostPerSqm: null,
     effectiveArea: defaultEffectiveArea,
     vatPercent: 24,
@@ -421,7 +440,7 @@ async function loadSavedScenarios(): Promise<{ scenarios: ScenarioConfig[]; acti
       AsyncStorage.getItem(STORAGE_KEY_ACTIVE_INDEX),
     ]);
     if (scenariosJson) {
-      const parsed = (JSON.parse(scenariosJson) as ScenarioConfig[]).map(normalizeScenarioConfig);
+      const parsed = (JSON.parse(scenariosJson) as PersistedScenarioConfig[]).map(normalizeScenarioConfig);
       if (Array.isArray(parsed) && parsed.length > 0) {
         const activeIndex = indexJson ? Math.min(parseInt(indexJson, 10) || 0, parsed.length - 1) : 0;
         console.log('[Persistence] Loaded', parsed.length, 'scenarios, active index:', activeIndex);
@@ -464,7 +483,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const savePendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [locationId, setLocationId] = useState<string>('corfu');
-  const [qualityId, setQualityId] = useState<string>('premium');
+  const [qualityId, setQualityId] = useState<QualityId>(DEFAULT_QUALITY_ID);
   const [customCostPerSqm, setCustomCostPerSqm] = useState<number | null>(null);
   const [plotSize, setPlotSize] = useState<number>(4000);
   const [mainArea, setMainArea] = useState<number>(150);
@@ -609,13 +628,13 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const loadConfig = useCallback((config: ScenarioConfig) => {
     const normalizedConfig = normalizeScenarioConfig(config);
-    setLocationId(config.locationId);
-    setQualityId(config.qualityId);
-    setCustomCostPerSqm(config.customCostPerSqm);
-    setPlotSize(config.plotSize ?? 4000);
-    setMainArea(config.mainArea);
-    setTerraceArea(config.terraceArea);
-    setBalconyArea(config.balconyArea);
+    setLocationId(normalizedConfig.locationId);
+    setQualityId(normalizedConfig.qualityId);
+    setCustomCostPerSqm(normalizedConfig.customCostPerSqm);
+    setPlotSize(normalizedConfig.plotSize ?? 4000);
+    setMainArea(normalizedConfig.mainArea);
+    setTerraceArea(normalizedConfig.terraceArea);
+    setBalconyArea(normalizedConfig.balconyArea);
     setStorageBasementArea(normalizedConfig.storageBasementArea);
     setParkingBasementArea(normalizedConfig.parkingBasementArea);
     setHabitableBasementArea(normalizedConfig.habitableBasementArea);
@@ -854,7 +873,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   );
 
   const quality = useMemo(
-    () => QUALITY_LEVELS.find((q) => q.id === qualityId) ?? QUALITY_LEVELS[1],
+    () => QUALITY_LEVELS.find((q) => q.id === qualityId) ?? QUALITY_LEVELS.find((q) => q.id === DEFAULT_QUALITY_ID) ?? QUALITY_LEVELS[0],
     [qualityId],
   );
 
@@ -1271,7 +1290,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const vatAmount = projectRollupResult.vatAmount;
   const totalCostInclVat = projectRollupResult.finalTotal;
 
-  const selectQuality = useCallback((id: string) => {
+  const selectQuality = useCallback((id: QualityId) => {
     setQualityId(id);
     setCustomCostPerSqm(null);
     setManualContingencyPercent(null);

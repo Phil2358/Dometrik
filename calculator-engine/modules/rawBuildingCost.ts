@@ -1,8 +1,10 @@
 import {
+  DEFAULT_QUALITY_ID,
   QUALITY_LEVELS,
   LOCATIONS,
   BASE_GROUP_SHARE_KG300,
   BASE_GROUP_SHARE_KG400,
+  type QualityId,
   getSizeCorrectionFactor
 } from "../../constants/construction"
 
@@ -10,7 +12,7 @@ interface RawBuildingCostInput {
   livingArea: number
   effectiveArea: number
   locationId: string
-  qualityId: string
+  qualityId: QualityId
   customCostPerSqm?: number | null
 }
 
@@ -25,6 +27,7 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
 
   const quality =
     qualities.find((q: any) => q.id === input.qualityId) ??
+    qualities.find((q: any) => q.id === DEFAULT_QUALITY_ID) ??
     qualities[0]
 
   const baseCostPerSqm =

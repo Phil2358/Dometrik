@@ -1,17 +1,19 @@
 import {
+  DEFAULT_QUALITY_ID,
   KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST,
   KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST,
   KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT,
   KG600_KITCHEN_PACKAGE_BASE_COST,
   KG600_WARDROBE_PACKAGE_BASE_COST,
   QUALITY_LEVELS,
+  type QualityId,
   getKitchenAreaFactor,
   getSuggestedGeneralFurnitureBaseAmount,
 } from "../../constants/construction"
 
 interface Kg600CostsInput {
   effectiveArea: number
-  qualityId: string
+  qualityId: QualityId
   bedroomCount: number
   kitchenCount?: number
   customKitchenUnitCost?: number | null
@@ -23,6 +25,7 @@ interface Kg600CostsInput {
 export function calculateKg600Costs(input: Kg600CostsInput) {
   const quality =
     QUALITY_LEVELS.find((entry: any) => entry.id === input.qualityId) ??
+    QUALITY_LEVELS.find((entry: any) => entry.id === DEFAULT_QUALITY_ID) ??
     QUALITY_LEVELS[0]
   const qualityPackageMultiplier = quality.benchmarkFactor
   const totalWardrobeCount = Math.max(0, input.bedroomCount)

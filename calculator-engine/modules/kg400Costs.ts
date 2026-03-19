@@ -2,6 +2,7 @@ import {
   type AutomationPackageLevel,
   BASE_GROUP_SHARE_KG400,
   COST_CATEGORIES,
+  DEFAULT_QUALITY_ID,
   type DataSecurityPackageLevel,
   KG400_AUTOMATION_UPLIFT_PER_SQM,
   KG400_BATHROOM_DELTA_BASE_COST,
@@ -11,13 +12,14 @@ import {
   KG400_OPTION_PACKAGE_QUALITY_FACTORS,
   type Kg400PackageSelection,
   KG400_WC_DELTA_BASE_COST,
+  type QualityId,
 } from "../../constants/construction"
 import { calculateHvacExtras } from "./hvacExtras"
 
 interface Kg400CostsInput {
   mainArea: number
   finalCostPerSqm: number
-  qualityId: string
+  qualityId: QualityId
   siteAccessibilityFactor: number
   bedroomDelta: number
   bathroomDelta: number
@@ -58,7 +60,8 @@ function getKg400CategoryPercentage(categoryId: string): number {
 
 export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
   const qualityPackageMultiplier =
-    KG400_OPTION_PACKAGE_QUALITY_FACTORS[input.qualityId] ?? 1
+    KG400_OPTION_PACKAGE_QUALITY_FACTORS[input.qualityId] ??
+    KG400_OPTION_PACKAGE_QUALITY_FACTORS[DEFAULT_QUALITY_ID]
   const kg400AccessibilityMultiplier =
     1 + Math.max(0, input.siteAccessibilityFactor - 1) * KG400_ACCESSIBILITY_WEIGHT
 

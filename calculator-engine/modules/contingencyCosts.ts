@@ -1,14 +1,20 @@
-import { CONTINGENCY_PERCENTAGES } from "../../constants/construction"
+import {
+  CONTINGENCY_PERCENTAGES,
+  DEFAULT_QUALITY_ID,
+  type QualityId,
+} from "../../constants/construction"
 
 interface ContingencyCostsInput {
   constructionSubtotal: number
-  qualityId: string
+  qualityId: QualityId
   manualContingencyPercent?: number | null
   manualContingencyCost?: number | null
 }
 
 export function calculateContingencyCosts(input: ContingencyCostsInput) {
-  const recommendedPercent = CONTINGENCY_PERCENTAGES[input.qualityId] ?? 0.10
+  const recommendedPercent =
+    CONTINGENCY_PERCENTAGES[input.qualityId] ??
+    CONTINGENCY_PERCENTAGES[DEFAULT_QUALITY_ID]
   const manualPercent = input.manualContingencyPercent ?? null
   const manualCost = input.manualContingencyCost ?? null
 

@@ -2,8 +2,10 @@ import {
   BASEMENT_TYPES,
   BASE_GROUP_SHARE_KG300,
   COST_CATEGORIES,
+  DEFAULT_QUALITY_ID,
   KG300_CATEGORY_IDS,
-  KG600_CATEGORY_IDS
+  KG600_CATEGORY_IDS,
+  type QualityId,
 } from "../../constants/construction"
 
 interface CategoryCostsInput {
@@ -23,7 +25,7 @@ interface Kg300SubgroupCostsInput {
   storageBasementArea?: number
   parkingBasementArea?: number
   habitableBasementArea?: number
-  qualityId: string
+  qualityId: QualityId
   selectedFinalCostPerSqm: number
 }
 
@@ -39,14 +41,14 @@ export interface Kg300SubgroupCosts {
   subgroup390Cost: number
 }
 
-const KG300_FLEXIBLE_SUBGROUP_SHARES: Record<string, Kg300SubgroupShareSet> = {
-  standard: {
+const KG300_FLEXIBLE_SUBGROUP_SHARES: Record<QualityId, Kg300SubgroupShareSet> = {
+  economy: {
     subgroup330Share: 0.55,
     subgroup340Share: 0.27,
     subgroup360Share: 0.13,
     subgroup390Share: 0.05
   },
-  premium: {
+  midRange: {
     subgroup330Share: 0.60,
     subgroup340Share: 0.24,
     subgroup360Share: 0.11,
@@ -125,7 +127,7 @@ export function calculateKg300SubgroupCosts(input: Kg300SubgroupCostsInput): Kg3
 
   const flexibleShares =
     KG300_FLEXIBLE_SUBGROUP_SHARES[input.qualityId] ??
-    KG300_FLEXIBLE_SUBGROUP_SHARES.premium
+    KG300_FLEXIBLE_SUBGROUP_SHARES[DEFAULT_QUALITY_ID]
 
   const subgroup330Cost = Math.round(flexibleKG300 * flexibleShares.subgroup330Share)
   const subgroup340Cost = Math.round(flexibleKG300 * flexibleShares.subgroup340Share)

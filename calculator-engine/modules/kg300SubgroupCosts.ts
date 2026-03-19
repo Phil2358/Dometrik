@@ -1,20 +1,24 @@
+import {
+  DEFAULT_QUALITY_ID,
+  type QualityId,
+} from "../../constants/construction"
 import type { Kg300SubgroupCosts } from "./categoryCosts"
 
-const KG300_BASE_FLEXIBLE_SHARES: Record<string, {
+const KG300_BASE_FLEXIBLE_SHARES: Record<QualityId, {
   subgroup330Share: number
   subgroup340Share: number
   subgroup350Share: number
   subgroup360Share: number
   subgroup390Share: number
 }> = {
-  standard: {
+  economy: {
     subgroup330Share: 0.495,
     subgroup340Share: 0.243,
     subgroup350Share: 0.10,
     subgroup360Share: 0.117,
     subgroup390Share: 0.045,
   },
-  premium: {
+  midRange: {
     subgroup330Share: 0.54,
     subgroup340Share: 0.216,
     subgroup350Share: 0.10,
@@ -90,22 +94,22 @@ const BASEMENT_GROUNDWATER_FACTORS_320: Record<string, number> = {
 
 interface Kg300SubgroupDetailsInput {
   basementArea: number
-  premiumReferenceKg300Base: number
+  midRangeReferenceKg300Base: number
   noBasementKg300Base: number
-  premiumReferenceFinalCostPerSqm: number
+  midRangeReferenceFinalCostPerSqm: number
   kg300Cost: number
   siteConditionId: string
   groundwaterConditionId: string
   accessibilityExecutionDelta: number
-  qualityId: string
+  qualityId: QualityId
 }
 
 export function calculateDetailedKg300SubgroupCosts(
   input: Kg300SubgroupDetailsInput
 ): { kg300Total: number; kg300SubgroupCosts: Kg300SubgroupCosts } {
-  const rawBaseSubgroup310Cost = Math.round(input.premiumReferenceKg300Base * 0.02)
-  const rawBaseSubgroup320Cost = Math.round(input.premiumReferenceKg300Base * 0.12)
-  const structuralBaseSubgroup350Cost = Math.round(input.premiumReferenceKg300Base * 0.10)
+  const rawBaseSubgroup310Cost = Math.round(input.midRangeReferenceKg300Base * 0.02)
+  const rawBaseSubgroup320Cost = Math.round(input.midRangeReferenceKg300Base * 0.12)
+  const structuralBaseSubgroup350Cost = Math.round(input.midRangeReferenceKg300Base * 0.10)
   const baseSiteFactor310 = BASE_SITE_CONDITION_FACTORS_310[input.siteConditionId] ?? 1.00
   const baseSiteFactor320 = BASE_SITE_CONDITION_FACTORS_320[input.siteConditionId] ?? 1.00
   const baseGroundwaterFactor310 = BASE_GROUNDWATER_FACTORS_310[input.groundwaterConditionId] ?? 1.00
@@ -143,7 +147,7 @@ export function calculateDetailedKg300SubgroupCosts(
   const rawBasementStructuralPool = input.basementArea > 0
     ? Math.min(
       totalBasementDrivenKg300,
-      Math.round(input.basementArea * input.premiumReferenceFinalCostPerSqm * 0.10)
+      Math.round(input.basementArea * input.midRangeReferenceFinalCostPerSqm * 0.10)
     )
     : 0
   const rawStructuralWeight310 = 0.25 * basementFactor310
@@ -165,7 +169,7 @@ export function calculateDetailedKg300SubgroupCosts(
 
   const flexibleShares =
     KG300_BASE_FLEXIBLE_SHARES[input.qualityId] ??
-    KG300_BASE_FLEXIBLE_SHARES.premium
+    KG300_BASE_FLEXIBLE_SHARES[DEFAULT_QUALITY_ID]
 
   const subgroup330Cost = Math.round(baseFlexibleKg300 * flexibleShares.subgroup330Share)
   const subgroup340Cost = Math.round(baseFlexibleKg300 * flexibleShares.subgroup340Share)

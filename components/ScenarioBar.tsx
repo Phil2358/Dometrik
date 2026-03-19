@@ -13,18 +13,19 @@ import {
 import * as Haptics from 'expo-haptics';
 import { Copy, Pencil, X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import type { QualityId } from '@/constants/construction';
 import { useEstimate } from '@/contexts/EstimateContext';
 import { formatNumber } from '@/utils/format';
 
-function getScenarioQualityMeta(scenario: { qualityId: string; customCostPerSqm: number | null }) {
+function getScenarioQualityMeta(scenario: { qualityId: QualityId; customCostPerSqm: number | null }) {
   if (scenario.customCostPerSqm !== null) {
     return { label: 'Custom', tone: Colors.accent };
   }
 
   switch (scenario.qualityId) {
-    case 'standard':
+    case 'economy':
       return { label: 'Economy', tone: Colors.success };
-    case 'premium':
+    case 'midRange':
       return { label: 'Mid-Range', tone: Colors.accent };
     case 'luxury':
       return { label: 'Luxury', tone: Colors.warning };

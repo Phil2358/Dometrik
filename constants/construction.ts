@@ -9,8 +9,12 @@ export interface Location {
   multiplier: number;
 }
 
+export type QualityId = 'economy' | 'midRange' | 'luxury';
+export type LegacyQualityId = 'standard' | 'premium';
+export type CompatibleQualityId = QualityId | LegacyQualityId;
+
 export interface QualityLevel {
-  id: string;
+  id: QualityId;
   name: string;
   description: string;
   baseCostPerSqm: number;
@@ -26,7 +30,23 @@ export interface CostCategory {
   description: string;
 }
 
-export const PREMIUM_BENCHMARK_BASE_COST_PER_SQM = 1930;
+export const MID_RANGE_BENCHMARK_BASE_COST_PER_SQM = 1930;
+export const DEFAULT_QUALITY_ID: QualityId = 'midRange';
+
+export function normalizeQualityId(value: CompatibleQualityId | string | null | undefined): QualityId {
+  switch (value) {
+    case 'economy':
+    case 'midRange':
+    case 'luxury':
+      return value;
+    case 'standard':
+      return 'economy';
+    case 'premium':
+      return 'midRange';
+    default:
+      return DEFAULT_QUALITY_ID;
+  }
+}
 
 export const BASE_GROUP_SHARE_KG200 = 0.015;
 export const BASE_GROUP_SHARE_KG300 = 0.64;
@@ -53,24 +73,24 @@ export const LOCATIONS: Location[] = [
 
 export const QUALITY_LEVELS: QualityLevel[] = [
   {
-    id: 'standard',
+    id: 'economy',
     name: 'Economy',
     description: 'Cost-conscious materials, energy-efficient, practical finishes',
-    baseCostPerSqm: Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * 0.90),
+    baseCostPerSqm: Math.round(MID_RANGE_BENCHMARK_BASE_COST_PER_SQM * 0.90),
     benchmarkFactor: 0.90,
   },
   {
-    id: 'premium',
+    id: 'midRange',
     name: 'Mid-Range',
     description: 'Balanced materials, smart-home ready, mid-range finishes',
-    baseCostPerSqm: PREMIUM_BENCHMARK_BASE_COST_PER_SQM,
+    baseCostPerSqm: MID_RANGE_BENCHMARK_BASE_COST_PER_SQM,
     benchmarkFactor: 1.00,
   },
   {
     id: 'luxury',
     name: 'Luxury',
     description: 'Top-tier materials, bespoke design, luxury finishes throughout',
-    baseCostPerSqm: Math.round(PREMIUM_BENCHMARK_BASE_COST_PER_SQM * 1.15),
+    baseCostPerSqm: Math.round(MID_RANGE_BENCHMARK_BASE_COST_PER_SQM * 1.15),
     benchmarkFactor: 1.15,
   },
 ];
@@ -127,9 +147,9 @@ export const KG400_AUTOMATION_UPLIFT_PER_SQM: Record<AutomationPackageLevel, num
   custom: 0,
 };
 
-export const KG400_OPTION_PACKAGE_QUALITY_FACTORS: Record<string, number> = {
-  standard: 1.00,
-  premium: 1.10,
+export const KG400_OPTION_PACKAGE_QUALITY_FACTORS: Record<QualityId, number> = {
+  economy: 1.00,
+  midRange: 1.10,
   luxury: 1.20,
 };
 
@@ -556,9 +576,9 @@ export function getUtilityConnectionGroupCosts(optionId: string, totalCost: numb
 
 export const UTILITY_CONNECTION_TOOLTIP = `Covers electricity, water supply, sewage/drainage, and telecommunications connections to public infrastructure networks.`;
 
-export const CONTINGENCY_PERCENTAGES: Record<string, number> = {
-  standard: 0.10,
-  premium: 0.15,
+export const CONTINGENCY_PERCENTAGES: Record<QualityId, number> = {
+  economy: 0.10,
+  midRange: 0.15,
   luxury: 0.20,
 };
 
@@ -634,9 +654,9 @@ export const INTERIOR_BASELINE = {
 export const PERMIT_DESIGN_BASELINE_FEE = 15000;
 export const PERMIT_DESIGN_BASELINE_AREA_MAX = 200;
 
-export const PERMIT_DESIGN_QUALITY_MULTIPLIERS: Record<string, number> = {
-  standard: 1.00,
-  premium: 1.15,
+export const PERMIT_DESIGN_QUALITY_MULTIPLIERS: Record<QualityId, number> = {
+  economy: 1.00,
+  midRange: 1.15,
   luxury: 1.30,
 };
 
