@@ -53,6 +53,7 @@ import { useUserMode } from '@/contexts/UserModeContext';
 import type { UserMode } from '@/contexts/UserModeContext';
 
 import {
+  COST_CATEGORIES,
   DISCLAIMER_TEXT,
   CONSTRUCTION_SUBTOTAL_DISCLAIMER,
   getSizeCorrectionLabel,
@@ -135,6 +136,26 @@ const SUBGROUP_ICONS: Record<string, React.ComponentType<{ size?: number; color?
   '720': FileText,
   '750': ClipboardCheck,
 };
+
+const BASEMENT_KG300_CATEGORY_IDS = [
+  'concrete',
+  'masonry',
+  'roofing',
+  'insulation',
+  'windows',
+  'interior',
+] as const;
+
+const BASEMENT_KG400_CATEGORY_IDS = [
+  'plumbing',
+  'heating',
+  'ventilation_cooling',
+  'electrical',
+] as const;
+
+function getCostCategoryName(categoryId: string): string {
+  return COST_CATEGORIES.find((category) => category.id === categoryId)?.name ?? categoryId;
+}
 
 function getSubgroupSublabel(
   subgroup: ProjectBreakdownSubgroup,
@@ -483,7 +504,11 @@ export default function BreakdownScreen() {
     balconyAreaBenchmarkContribution,
     totalBenchmarkContributionBeforeGroupAllocation,
     basementBaseCost,
+    basementBucket300,
+    basementBucket400,
     basementKg300ModifierCost,
+    basementKg300CategoryCostsById,
+    basementKg400CategoryCostsById,
     breakdownGroups,
     contractorCost,
     contractorPercent,
@@ -517,6 +542,28 @@ export default function BreakdownScreen() {
   const group100Total = breakdownGroups.find((group) => group.code === '100')?.subtotal ?? 0;
   const terraceBalconyBenchmarkContribution =
     coveredTerracesBenchmarkContribution + balconyAreaBenchmarkContribution;
+  const basementKg300CategoryRows = useMemo(
+    () =>
+      BASEMENT_KG300_CATEGORY_IDS
+        .map((categoryId) => ({
+          id: categoryId,
+          name: getCostCategoryName(categoryId),
+          cost: basementKg300CategoryCostsById[categoryId] ?? 0,
+        }))
+        .filter((row) => row.cost > 0),
+    [basementKg300CategoryCostsById],
+  );
+  const basementKg400CategoryRows = useMemo(
+    () =>
+      BASEMENT_KG400_CATEGORY_IDS
+        .map((categoryId) => ({
+          id: categoryId,
+          name: getCostCategoryName(categoryId),
+          cost: basementKg400CategoryCostsById[categoryId] ?? 0,
+        }))
+        .filter((row) => row.cost > 0),
+    [basementKg400CategoryCostsById],
+  );
 
   const dinGroups = useMemo<DinGroup[]>(() => {
     const enabledHvacIds = new Set(enabledHvac.map((item) => item.option.id));
@@ -688,6 +735,38 @@ export default function BreakdownScreen() {
               <Text style={styles.basementLabel}>Basement KG300 modifiers</Text>
               <Text style={styles.basementValue}>{formatCurrency(basementKg300ModifierCost)}</Text>
             </View>
+          )}
+          {basementKg300CategoryRows.length > 0 && (
+            <>
+              <View style={styles.basementAllocationHeader}>
+                <Text style={styles.basementAllocationTitle}>Basement KG300 Base Category Allocation</Text>
+                <Text style={styles.basementAllocationValue}>
+                  {formatCurrency(basementBucket300)}
+                </Text>
+              </View>
+              {basementKg300CategoryRows.map((row) => (
+                <View key={row.id} style={styles.basementRow}>
+                  <Text style={styles.basementLabel}>{row.name}</Text>
+                  <Text style={styles.basementValue}>{formatCurrency(row.cost)}</Text>
+                </View>
+              ))}
+            </>
+          )}
+          {basementKg400CategoryRows.length > 0 && (
+            <>
+              <View style={styles.basementAllocationHeader}>
+                <Text style={styles.basementAllocationTitle}>Basement KG400 Base Category Allocation</Text>
+                <Text style={styles.basementAllocationValue}>
+                  {formatCurrency(basementBucket400)}
+                </Text>
+              </View>
+              {basementKg400CategoryRows.map((row) => (
+                <View key={row.id} style={styles.basementRow}>
+                  <Text style={styles.basementLabel}>{row.name}</Text>
+                  <Text style={styles.basementValue}>{formatCurrency(row.cost)}</Text>
+                </View>
+              ))}
+            </>
           )}
         </View>
       )}
@@ -1077,6 +1156,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700' as const,
     color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  basementAllocationHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  basementAllocationTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  basementAllocationValue: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: Colors.textTertiary,
     fontVariant: ['tabular-nums'] as any,
   },
   disclaimerInline: {

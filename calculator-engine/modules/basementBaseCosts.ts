@@ -6,7 +6,11 @@ import {
   DEFAULT_QUALITY_ID,
   type QualityId,
 } from "../../constants/construction"
-import type { Kg300SubgroupCosts } from "./categoryCosts"
+import {
+  calculateKg300CategoryCostsById,
+  type Kg300SubgroupCosts,
+} from "./categoryCosts"
+import { calculateKg400BenchmarkCategoryCostsById } from "./kg400Costs"
 
 interface BasementBaseCostsInput {
   correctedBenchmarkRate: number
@@ -138,6 +142,18 @@ function createEmptyKg300SubgroupCosts(): Kg300SubgroupCosts {
   }
 }
 
+function addCategoryCostsById(
+  left: Record<string, number>,
+  right: Record<string, number>
+): Record<string, number> {
+  const categoryIds = new Set([...Object.keys(left), ...Object.keys(right)])
+
+  return Array.from(categoryIds).reduce<Record<string, number>>((sum, categoryId) => {
+    sum[categoryId] = (left[categoryId] ?? 0) + (right[categoryId] ?? 0)
+    return sum
+  }, {})
+}
+
 function calculateBasementTypeAllocation(input: BasementTypeCostInput) {
   const cost = Math.round(
     input.area * input.basementBenchmarkRate * input.benchmarkRateFactor
@@ -209,6 +225,20 @@ export function calculateBasementBaseCosts(input: BasementBaseCostsInput) {
     (sum, item) => addKg300SubgroupCosts(sum, item.kg300SubgroupCosts),
     createEmptyKg300SubgroupCosts()
   )
+  const basementKg300CategoryCostsById = breakdownItems.reduce(
+    (sum, item) => addCategoryCostsById(
+      sum,
+      calculateKg300CategoryCostsById(item.basementBucket300)
+    ),
+    {}
+  )
+  const basementKg400CategoryCostsById = breakdownItems.reduce(
+    (sum, item) => addCategoryCostsById(
+      sum,
+      calculateKg400BenchmarkCategoryCostsById(item.basementBucket400)
+    ),
+    {}
+  )
   const rawShares =
     BASEMENT_LEVEL1_ALLOCATION_SHARES[input.qualityId]
     ?? BASEMENT_LEVEL1_ALLOCATION_SHARES[DEFAULT_QUALITY_ID]
@@ -226,6 +256,8 @@ export function calculateBasementBaseCosts(input: BasementBaseCostsInput) {
     basementBucket300,
     basementBucket400,
     basementKg300SubgroupCosts,
+    basementKg300CategoryCostsById,
+    basementKg400CategoryCostsById,
     level1AllocationShares: {
       share300: rawShares.kg300,
       share400: rawShares.kg400,

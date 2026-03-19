@@ -30,6 +30,19 @@ export interface Kg300SubgroupCosts {
   subgroup390Cost: number
 }
 
+export function calculateKg300CategoryCostsById(benchmarkBucket300: number): Record<string, number> {
+  return KG300_CATEGORY_IDS.reduce<Record<string, number>>((costsById, categoryId) => {
+    const category = COST_CATEGORIES.find((item) => item.id === categoryId)
+    const percentage = category?.percentage ?? 0
+
+    costsById[categoryId] = Math.round(
+      Math.max(0, benchmarkBucket300) * (percentage / 67)
+    )
+
+    return costsById
+  }, {})
+}
+
 export function calculateLevel1BenchmarkAllocation(input: Level1BenchmarkAllocationInput) {
   const rawShares =
     LEVEL_1_BENCHMARK_RAW_SHARES[input.qualityId]
@@ -56,19 +69,12 @@ export function calculateLevel1BenchmarkAllocation(input: Level1BenchmarkAllocat
 export function calculateCategoryCosts(input: CategoryCostsInput) {
   // KG400 source of truth lives in kg400Costs.ts.
   // This helper only owns the benchmark-driven KG300/KG600 category skeleton.
+  const kg300CategoryCostsById = calculateKg300CategoryCostsById(input.benchmarkBucket300)
   const categoryCosts = COST_CATEGORIES.map(category => {
-    const groupBase =
+    const cost =
       category.din276 === 'KG 300'
-        ? input.benchmarkBucket300
+        ? (kg300CategoryCostsById[category.id] ?? 0)
         : 0
-
-    const groupPercentage =
-      category.din276 === 'KG 300'
-        ? category.percentage / 67
-        : 0
-
-    let cost =
-      groupPercentage * groupBase
 
     return {
       id: category.id,

@@ -1243,8 +1243,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const parkingBasementCost = projectRollupResult.parkingBasementCost;
   const habitableBasementCost = projectRollupResult.habitableBasementCost;
   const basementBaseCost = projectRollupResult.basementBaseCost;
+  const basementBucket300 = projectRollupResult.basementBucket300;
+  const basementBucket400 = projectRollupResult.basementBucket400;
   const basementKg300Total = projectRollupResult.basementKg300Total;
   const basementKg300ModifierCost = projectRollupResult.basementKg300ModifierCost;
+  const basementKg300CategoryCostsById = projectRollupResult.basementKg300CategoryCostsById;
+  const basementKg400CategoryCostsById = projectRollupResult.basementKg400CategoryCostsById;
   const basementKg300BaseSubgroupCosts = projectRollupResult.basementKg300BaseSubgroupCosts;
   const basementKg300SubgroupCosts = projectRollupResult.basementKg300SubgroupCosts;
   const basementKg300ModifierDetails = projectRollupResult.basementKg300ModifierDetails;
@@ -1469,8 +1473,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     parkingBasementCost,
     habitableBasementCost,
     basementBaseCost,
+    basementBucket300,
+    basementBucket400,
     basementKg300Total,
     basementKg300ModifierCost,
+    basementKg300CategoryCostsById,
+    basementKg400CategoryCostsById,
     basementKg300BaseSubgroupCosts,
     basementKg300SubgroupCosts,
     basementKg300ModifierDetails,
@@ -1541,7 +1549,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     suggestedKitchenUnitCost, suggestedGeneralFurniture, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurnitureCost,
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, basementBenchmarkRate, storageTechnicalBasementCost, parkingBasementCost, habitableBasementCost, basementBaseCost,
-    basementKg300Total, basementKg300ModifierCost, basementKg300BaseSubgroupCosts, basementKg300SubgroupCosts, basementKg300ModifierDetails,
+    basementBucket300, basementBucket400, basementKg300Total, basementKg300ModifierCost, basementKg300CategoryCostsById, basementKg400CategoryCostsById, basementKg300BaseSubgroupCosts, basementKg300SubgroupCosts, basementKg300ModifierDetails,
     contingencyPercent, recommendedContingencyCost, contingencyCost, permitDesignBuildingArea,
     basementTotalCost, siteExcavationCost, breakdownGroups,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,

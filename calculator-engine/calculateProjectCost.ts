@@ -131,6 +131,8 @@ export interface ProjectCostResult {
   basementBucket400: number
   basementKg300Total: number
   basementKg300ModifierCost: number
+  basementKg300CategoryCostsById: ReturnType<typeof calculateBasementBaseCosts>["basementKg300CategoryCostsById"]
+  basementKg400CategoryCostsById: ReturnType<typeof calculateBasementBaseCosts>["basementKg400CategoryCostsById"]
   basementKg300BaseSubgroupCosts: ReturnType<typeof calculateBasementBaseCosts>["basementKg300SubgroupCosts"]
   basementKg300SubgroupCosts: ReturnType<typeof calculateBasementKg300Modifiers>["kg300SubgroupCosts"]
   basementKg300ModifierDetails: ReturnType<typeof calculateBasementKg300Modifiers>["modifierDetails"]
@@ -513,6 +515,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     basementBucket400: basementBaseCosts.basementBucket400,
     basementKg300Total,
     basementKg300ModifierCost,
+    basementKg300CategoryCostsById: basementBaseCosts.basementKg300CategoryCostsById,
+    basementKg400CategoryCostsById: basementBaseCosts.basementKg400CategoryCostsById,
     basementKg300BaseSubgroupCosts: basementBaseCosts.basementKg300SubgroupCosts,
     basementKg300SubgroupCosts: basementKg300ModifierResult.kg300SubgroupCosts,
     basementKg300ModifierDetails: basementKg300ModifierResult.modifierDetails,

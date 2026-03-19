@@ -68,6 +68,45 @@ function getKg400CategoryPercentage(categoryId: string): number {
   return COST_CATEGORIES.find((category) => category.id === categoryId)?.percentage ?? 0
 }
 
+export function calculateKg400BenchmarkCategoryCostsById(
+  benchmarkBucket400: number
+): Record<string, number> {
+  const resolvedBenchmarkBucket400 = Math.max(0, benchmarkBucket400)
+
+  return {
+    plumbing: Math.max(
+      0,
+      Math.round(
+        resolvedBenchmarkBucket400
+        * (getKg400CategoryPercentage("plumbing") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
+      )
+    ),
+    heating: Math.max(
+      0,
+      Math.round(
+        resolvedBenchmarkBucket400
+        * (getKg400CategoryPercentage("heating") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
+      )
+    ),
+    ventilation_cooling: Math.max(
+      0,
+      Math.round(
+        resolvedBenchmarkBucket400
+        * (getKg400CategoryPercentage("ventilation_cooling") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
+      )
+    ),
+    electrical: Math.max(
+      0,
+      Math.round(
+        resolvedBenchmarkBucket400
+        * (getKg400CategoryPercentage("electrical") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
+      )
+    ),
+    data_security: 0,
+    automation: 0,
+  }
+}
+
 export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
   const qualityPackageMultiplier =
     KG400_OPTION_PACKAGE_QUALITY_FACTORS[input.qualityId] ??
@@ -127,46 +166,42 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     : automationDefaultPackageCost
   const automationCategoryCost = automationExtraCost
 
+  const benchmarkCategoryCostsById =
+    calculateKg400BenchmarkCategoryCostsById(benchmarkBucket400)
+
   const categoryCostsById: Record<string, number> = {
     plumbing: Math.max(
       0,
       Math.round(
-        Math.round(
-          benchmarkBucket400
-          * (getKg400CategoryPercentage("plumbing") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
-        ) * kg400AccessibilityMultiplier
-      ) + kg400BathroomPlumbingAdjustment + kg400WcPlumbingAdjustment
+        Math.round((benchmarkCategoryCostsById.plumbing ?? 0) * kg400AccessibilityMultiplier)
+        + kg400BathroomPlumbingAdjustment
+        + kg400WcPlumbingAdjustment
+      )
     ),
     heating: Math.max(
       0,
       Math.round(
-        Math.round(
-          benchmarkBucket400
-          * (getKg400CategoryPercentage("heating") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
-        ) * kg400AccessibilityMultiplier
-      ) + kg400BathroomHeatingAdjustment + (hvacCosts.adjustmentsByCategory.heating ?? 0)
+        Math.round((benchmarkCategoryCostsById.heating ?? 0) * kg400AccessibilityMultiplier)
+        + kg400BathroomHeatingAdjustment
+        + (hvacCosts.adjustmentsByCategory.heating ?? 0)
+      )
     ),
     ventilation_cooling: Math.max(
       0,
       Math.round(
-        Math.round(
-          benchmarkBucket400
-          * (getKg400CategoryPercentage("ventilation_cooling") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
-        ) * kg400AccessibilityMultiplier
-      ) + kg400BedroomVentilationAdjustment
+        Math.round((benchmarkCategoryCostsById.ventilation_cooling ?? 0) * kg400AccessibilityMultiplier)
+        + kg400BedroomVentilationAdjustment
+      )
     ),
     electrical: Math.max(
       0,
       Math.round(
-        Math.round(
-          benchmarkBucket400
-          * (getKg400CategoryPercentage("electrical") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
-        ) * kg400AccessibilityMultiplier
+        Math.round((benchmarkCategoryCostsById.electrical ?? 0) * kg400AccessibilityMultiplier)
+        + kg400BedroomElectricalAdjustment
+        + kg400BathroomElectricalAdjustment
+        + kg400WcElectricalAdjustment
+        + (hvacCosts.adjustmentsByCategory.electrical ?? 0)
       )
-      + kg400BedroomElectricalAdjustment
-      + kg400BathroomElectricalAdjustment
-      + kg400WcElectricalAdjustment
-      + (hvacCosts.adjustmentsByCategory.electrical ?? 0)
     ),
     data_security: Math.max(
       0,
