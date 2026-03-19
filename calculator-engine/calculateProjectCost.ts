@@ -248,9 +248,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     calculateKg200Costs({
       effectiveArea,
       landscapingArea: input.landscapingArea,
-      basementArea: resolvedBasementArea,
       siteConditionId: input.siteConditionId,
-      groundwaterConditionId: input.groundwaterConditionId,
       accessibilityId: resolvedAccessibilityId,
       utilityConnectionId: input.utilityConnectionId,
       customUtilityCost: input.customUtilityCost

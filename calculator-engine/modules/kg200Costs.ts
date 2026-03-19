@@ -1,19 +1,15 @@
 import {
   SITE_CONDITIONS,
-  GROUNDWATER_CONDITIONS,
   SITE_ACCESSIBILITY_OPTIONS,
   UTILITY_CONNECTION_OPTIONS,
-  getBasementExcavationCost,
   getUtilityConnectionGroupCosts
 } from "../../constants/construction"
 
 interface Kg200CostsInput {
   effectiveArea: number
   landscapingArea?: number | null
-  basementArea: number
 
   siteConditionId: string
-  groundwaterConditionId: string
   accessibilityId: string
 
   utilityConnectionId: string
@@ -51,37 +47,18 @@ export function calculateSiteExcavationBaseCost(input: {
 }
 
 export function calculateKg200Costs(input: Kg200CostsInput) {
-
-  const siteConditions = [...SITE_CONDITIONS]
-  const groundwaterConditions = [...GROUNDWATER_CONDITIONS]
-  const accessibilityOptions = [...SITE_ACCESSIBILITY_OPTIONS]
-  const utilityOptions = [...UTILITY_CONNECTION_OPTIONS]
-
   const siteCondition =
-    siteConditions.find((s: any) => s.id === input.siteConditionId)
-    ?? siteConditions[0]
-
-  const groundwater =
-    groundwaterConditions.find((g: any) => g.id === input.groundwaterConditionId)
-    ?? groundwaterConditions[0]
+    SITE_CONDITIONS.find((s: any) => s.id === input.siteConditionId)
+    ?? SITE_CONDITIONS[0]
 
   const utility =
-    utilityOptions.find((u: any) => u.id === input.utilityConnectionId)
-    ?? utilityOptions[0]
+    UTILITY_CONNECTION_OPTIONS.find((u: any) => u.id === input.utilityConnectionId)
+    ?? UTILITY_CONNECTION_OPTIONS[0]
 
   const accessibility =
-    accessibilityOptions.find((a: any) => a.id === input.accessibilityId)
-    ?? accessibilityOptions[0]
+    SITE_ACCESSIBILITY_OPTIONS.find((a: any) => a.id === input.accessibilityId)
+    ?? SITE_ACCESSIBILITY_OPTIONS[0]
 
-  // basement excavation
-  const basementExcavationCost =
-    getBasementExcavationCost(
-      input.basementArea,
-      siteCondition,
-      groundwater
-    )
-
-  // utilities
   const utilityConnectionCost =
     utility.id === "custom"
       ? (input.customUtilityCost ?? 0)
@@ -90,45 +67,42 @@ export function calculateKg200Costs(input: Kg200CostsInput) {
   const utilityGroupCosts =
     getUtilityConnectionGroupCosts(input.utilityConnectionId, utilityConnectionCost)
 
-  // logistics / access
-  const group240Cost = 0
-  const accessibilityCost = 0
-  const group250Cost = accessibilityCost
-
-  const siteExcavationBaseCost =
+  const subgroup210BaseCost =
     calculateSiteExcavationBaseCost({
       effectiveArea: input.effectiveArea,
       landscapingArea: input.landscapingArea,
     })
-  const siteExcavationAccessExtra =
+  const subgroup210AccessExtra =
     SUBGROUP_210_ACCESS_SURCHARGES[accessibility.id] ?? 0
-  const siteExcavationConditionExtra = Math.round(
-    siteExcavationBaseCost * (SUBGROUP_210_SITE_CONDITION_RATES[siteCondition.id] ?? 0)
+  const subgroup210SiteConditionExtra = Math.round(
+    subgroup210BaseCost * (SUBGROUP_210_SITE_CONDITION_RATES[siteCondition.id] ?? 0)
   )
-  const siteExcavationCost =
-    siteExcavationBaseCost +
-    siteExcavationAccessExtra +
-    siteExcavationConditionExtra
+  const subgroup210Cost =
+    subgroup210BaseCost +
+    subgroup210AccessExtra +
+    subgroup210SiteConditionExtra
+
+  const subgroup220Cost = utilityGroupCosts.group220Cost
+  const subgroup230Cost = utilityGroupCosts.group230Cost
+  const group240Cost = 0
+  const group250Cost = 0
 
   const kg200Total =
-    siteExcavationCost +
+    subgroup210Cost +
     utilityConnectionCost +
     group240Cost +
     group250Cost
 
   return {
-    siteExcavationCost,
-    siteExcavationBaseCost,
-    siteExcavationAccessExtra,
-    siteExcavationConditionExtra,
-    basementExcavationCost: Math.round(basementExcavationCost),
+    siteExcavationCost: subgroup210Cost,
+    siteExcavationBaseCost: subgroup210BaseCost,
+    siteExcavationAccessExtra: subgroup210AccessExtra,
+    siteExcavationConditionExtra: subgroup210SiteConditionExtra,
     utilityConnectionCost: Math.round(utilityConnectionCost),
-    group220Cost: utilityGroupCosts.group220Cost,
-    group230Cost: utilityGroupCosts.group230Cost,
+    group220Cost: subgroup220Cost,
+    group230Cost: subgroup230Cost,
     group240Cost,
-    accessibilityCost,
     group250Cost,
     kg200Total: Math.round(kg200Total)
   }
-
 }
