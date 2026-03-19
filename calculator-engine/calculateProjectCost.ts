@@ -304,7 +304,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       benchmarkBucket400: level1BenchmarkAllocation.benchmarkBucket400,
       mainArea: input.mainArea,
       qualityId,
-      siteAccessibilityFactor,
       bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
       bathroomDelta,
       wcDelta,

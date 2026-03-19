@@ -18,7 +18,6 @@ interface Kg400CostsInput {
   benchmarkBucket400: number
   mainArea: number
   qualityId: QualityId
-  siteAccessibilityFactor: number
   bedroomDelta: number
   bathroomDelta: number
   wcDelta: number
@@ -49,7 +48,6 @@ interface Kg400CostsResult {
   }
 }
 
-const KG400_ACCESSIBILITY_WEIGHT = 0.22
 const KG400_BENCHMARK_CATEGORY_IDS = [
   "plumbing",
   "heating",
@@ -111,8 +109,6 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
   const qualityPackageMultiplier =
     KG400_OPTION_PACKAGE_QUALITY_FACTORS[input.qualityId] ??
     KG400_OPTION_PACKAGE_QUALITY_FACTORS[DEFAULT_QUALITY_ID]
-  const kg400AccessibilityMultiplier =
-    1 + Math.max(0, input.siteAccessibilityFactor - 1) * KG400_ACCESSIBILITY_WEIGHT
   const benchmarkBucket400 = Math.max(0, input.benchmarkBucket400)
 
   const kg400BedroomDeltaCost =
@@ -173,7 +169,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     plumbing: Math.max(
       0,
       Math.round(
-        Math.round((benchmarkCategoryCostsById.plumbing ?? 0) * kg400AccessibilityMultiplier)
+        (benchmarkCategoryCostsById.plumbing ?? 0)
         + kg400BathroomPlumbingAdjustment
         + kg400WcPlumbingAdjustment
       )
@@ -181,7 +177,7 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     heating: Math.max(
       0,
       Math.round(
-        Math.round((benchmarkCategoryCostsById.heating ?? 0) * kg400AccessibilityMultiplier)
+        (benchmarkCategoryCostsById.heating ?? 0)
         + kg400BathroomHeatingAdjustment
         + (hvacCosts.adjustmentsByCategory.heating ?? 0)
       )
@@ -189,14 +185,14 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     ventilation_cooling: Math.max(
       0,
       Math.round(
-        Math.round((benchmarkCategoryCostsById.ventilation_cooling ?? 0) * kg400AccessibilityMultiplier)
+        (benchmarkCategoryCostsById.ventilation_cooling ?? 0)
         + kg400BedroomVentilationAdjustment
       )
     ),
     electrical: Math.max(
       0,
       Math.round(
-        Math.round((benchmarkCategoryCostsById.electrical ?? 0) * kg400AccessibilityMultiplier)
+        (benchmarkCategoryCostsById.electrical ?? 0)
         + kg400BedroomElectricalAdjustment
         + kg400BathroomElectricalAdjustment
         + kg400WcElectricalAdjustment
