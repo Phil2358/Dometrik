@@ -1,4 +1,5 @@
 import { calculateProjectCost } from "../calculator-engine/calculateProjectCost"
+import { BASEMENT_TYPE_NAMES } from "../constants/construction"
 import { formatNumber } from "./format"
 
 export interface ComputedScenarioCosts {
@@ -22,6 +23,7 @@ export interface ComputedScenarioCosts {
   habitableBasementArea: number
 
   rawBuildingCost: number
+  basementBaseCost: number
   permitFee: number
   permitDesignFee: number
   landscapingCost: number
@@ -49,15 +51,15 @@ export function formatBasementSummary(
   const parts: string[] = []
 
   if (storageBasementArea > 0) {
-    parts.push(`Storage ${formatNumber(storageBasementArea)} m²`)
+    parts.push(`${BASEMENT_TYPE_NAMES.storage} ${formatNumber(storageBasementArea)} m²`)
   }
 
   if (parkingBasementArea > 0) {
-    parts.push(`Parking ${formatNumber(parkingBasementArea)} m²`)
+    parts.push(`${BASEMENT_TYPE_NAMES.parking} ${formatNumber(parkingBasementArea)} m²`)
   }
 
   if (habitableBasementArea > 0) {
-    parts.push(`Habitable ${formatNumber(habitableBasementArea)} m²`)
+    parts.push(`${BASEMENT_TYPE_NAMES.habitable} ${formatNumber(habitableBasementArea)} m²`)
   }
 
   if (parts.length === 0) {
@@ -105,6 +107,7 @@ export function computeScenarioCosts(config: any): ComputedScenarioCosts {
     habitableBasementArea,
 
     rawBuildingCost: result.rawBuildingCost ?? 0,
+    basementBaseCost: result.basementBaseCost ?? 0,
     permitFee: result.permitFee ?? 0,
     permitDesignFee: result.permitFee ?? 0,
     landscapingCost: result.landscapingCost ?? 0,

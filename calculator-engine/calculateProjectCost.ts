@@ -1,5 +1,6 @@
 import { calculateEffectiveArea } from "./modules/effectiveArea"
 import { calculateRawBuildingCost } from "./modules/rawBuildingCost"
+import { calculateBasementBaseCosts } from "./modules/basementBaseCosts"
 import {
   calculateCategoryCosts,
   calculateLevel1BenchmarkAllocation,
@@ -119,6 +120,12 @@ export interface ProjectCostResult {
   kg500Total: number
   kg600Cost: number
   rawBuildingCost: number
+  basementBenchmarkRate: number
+  basementBaseCost: number
+  storageTechnicalBasementCost: number
+  parkingBasementCost: number
+  habitableBasementCost: number
+  basementCostItems: ReturnType<typeof calculateBasementBaseCosts>["breakdownItems"]
   kg300SubgroupCosts: ReturnType<typeof calculateDetailedKg300SubgroupCosts>["kg300SubgroupCosts"]
   kg600SubgroupCosts: ReturnType<typeof calculateKg600Costs>["kg600SubgroupCosts"]
   permitFee: number
@@ -173,6 +180,15 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       locationId: input.locationId,
       qualityId,
       customCostPerSqm: input.customCostPerSqm
+    })
+  const basementBaseCosts =
+    calculateBasementBaseCosts({
+      correctedBenchmarkRate: buildingCost.correctedCostPerSqm,
+      basementArea: input.basementArea,
+      basementTypeId: input.basementTypeId,
+      storageBasementArea: input.storageBasementArea,
+      parkingBasementArea: input.parkingBasementArea,
+      habitableBasementArea: input.habitableBasementArea,
     })
 
 
@@ -379,6 +395,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const coreProjectTotal =
       siteCosts.kg200Total
     + constructionSubtotal
+    + basementBaseCosts.basementBaseCost
     + kg500Total
     + permitCosts.permitFee
     + contingencyCosts.contingencyCost
@@ -394,7 +411,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     + permitCosts.permitFee
 
   const nonDinAdditionsSubtotal =
-      contractorMarginCosts.contractorCost
+      basementBaseCosts.basementBaseCost
+    + contractorMarginCosts.contractorCost
     + contingencyCosts.contingencyCost
     + efkaCosts.appliedCost
 
@@ -477,6 +495,12 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg600Cost: kg600Costs.kg600Cost,
 
     rawBuildingCost: buildingCost.rawBuildingCost,
+    basementBenchmarkRate: basementBaseCosts.basementBenchmarkRate,
+    basementBaseCost: basementBaseCosts.basementBaseCost,
+    storageTechnicalBasementCost: basementBaseCosts.storageTechnicalBasementCost,
+    parkingBasementCost: basementBaseCosts.parkingBasementCost,
+    habitableBasementCost: basementBaseCosts.habitableBasementCost,
+    basementCostItems: basementBaseCosts.breakdownItems,
     kg300SubgroupCosts,
     kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
     kg100SubgroupCosts: kg100Costs.subgroupCosts,

@@ -327,6 +327,7 @@ function GenerateReportButton() {
     kg600Cost,
     kg600SubgroupCosts,
     bathroomWcFurnishingSliceCost,
+    basementBaseCost,
     permitDesignFee,
     contingencyCost,
     contractorCost,
@@ -368,6 +369,7 @@ function GenerateReportButton() {
         kg400Total,
         kg500Total,
         kg600Cost,
+        basementBaseCost,
         permitDesignFee,
         contingencyCost,
         contractorCost,
@@ -412,7 +414,7 @@ function GenerateReportButton() {
     includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption,
     siteCondition, groundwaterCondition, siteAccessibility, hvacCosts, kg200Total, kg300Total, kg400Total, kg500Total,
     kg600Cost, permitDesignFee, contingencyCost, contractorCost, totalCost,
-    constructionSubtotal, contingencyPercent, sizeCorrectionFactor,
+    constructionSubtotal, basementBaseCost, contingencyPercent, sizeCorrectionFactor,
     userMode,
   ]);
 
@@ -460,7 +462,11 @@ export default function BreakdownScreen() {
     hvacCosts,
     mainArea,
     effectiveArea,
-    correctedCostPerSqm,
+    basementBenchmarkRate,
+    storageTechnicalBasementCost,
+    parkingBasementCost,
+    habitableBasementCost,
+    basementBaseCost,
     breakdownGroups,
     contractorCost,
     contractorPercent,
@@ -599,7 +605,7 @@ export default function BreakdownScreen() {
           </View>
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>{`Corrected €/${SQUARE_METER_UNIT}`}</Text>
-            <Text style={styles.assumptionValue}>{`${formatCurrency(correctedCostPerSqm)}/${SQUARE_METER_UNIT}`}</Text>
+            <Text style={styles.assumptionValue}>{`${formatCurrency(basementBenchmarkRate)}/${SQUARE_METER_UNIT}`}</Text>
           </View>
           {sizeCorrectionFactor !== 1.0 && (
             <View style={styles.assumptionItem}>
@@ -618,6 +624,42 @@ export default function BreakdownScreen() {
       {dinGroups.map((group) => (
         <CollapsibleGroup key={group.code} group={group} />
       ))}
+
+      {basementBaseCost > 0 && (
+        <View style={styles.basementCard}>
+          <View style={styles.basementHeaderRow}>
+            <Text style={styles.basementTitle}>Basement</Text>
+            <Text style={styles.basementTotal}>{formatCurrency(basementBaseCost)}</Text>
+          </View>
+          <Text style={styles.basementRate}>
+            {`Benchmark rate source: ${formatCurrency(basementBenchmarkRate)}/${SQUARE_METER_UNIT}`}
+          </Text>
+          {storageBasementArea > 0 && (
+            <View style={styles.basementRow}>
+              <Text style={styles.basementLabel}>
+                {`Storage/Technical Basement Area ${MIDDLE_DOT} ${formatNumber(storageBasementArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} 50%`}
+              </Text>
+              <Text style={styles.basementValue}>{formatCurrency(storageTechnicalBasementCost)}</Text>
+            </View>
+          )}
+          {parkingBasementArea > 0 && (
+            <View style={styles.basementRow}>
+              <Text style={styles.basementLabel}>
+                {`Parking Basement Area ${MIDDLE_DOT} ${formatNumber(parkingBasementArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} 65%`}
+              </Text>
+              <Text style={styles.basementValue}>{formatCurrency(parkingBasementCost)}</Text>
+            </View>
+          )}
+          {habitableBasementArea > 0 && (
+            <View style={styles.basementRow}>
+              <Text style={styles.basementLabel}>
+                {`Habitable Basement Area ${MIDDLE_DOT} ${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} 85%`}
+              </Text>
+              <Text style={styles.basementValue}>{formatCurrency(habitableBasementCost)}</Text>
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={styles.constructionSubtotalCard}>
         <Text style={styles.constructionSubtotalLabel}>{`Construction Subtotal (KG 300${EN_DASH}600)`}</Text>
@@ -664,7 +706,7 @@ export default function BreakdownScreen() {
         </View>
         <View style={styles.grandTotalBreakdown}>
           <Text style={styles.grandTotalBreakdownText}>
-            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + e-EFKA ${formatCurrency(efkaInsuranceAmount)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
+            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + Basement ${formatCurrency(basementBaseCost)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + e-EFKA ${formatCurrency(efkaInsuranceAmount)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
           </Text>
         </View>
       </View>
@@ -917,6 +959,58 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800' as const,
     color: Colors.heroText,
+  },
+  basementCard: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  basementHeaderRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  basementTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  basementTotal: {
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  basementRate: {
+    fontSize: 11,
+    color: Colors.textTertiary,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  basementRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  basementLabel: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  basementValue: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
   },
   disclaimerInline: {
     flexDirection: 'row' as const,

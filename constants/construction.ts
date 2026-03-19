@@ -218,31 +218,43 @@ export interface BasementType {
   structureCostPerSqm: number;
 }
 
+export const BASEMENT_TYPE_NAMES = {
+  storage: 'Storage/Technical Basement Area',
+  parking: 'Parking Basement Area',
+  habitable: 'Habitable Basement Area',
+} as const;
+
+export const BASEMENT_BENCHMARK_RATE_FACTORS = {
+  storage: 0.50,
+  parking: 0.65,
+  habitable: 0.85,
+} as const;
+
 export const BASEMENT_TYPES: BasementType[] = [
   {
     id: 'storage',
-    name: 'Storage / technical',
+    name: BASEMENT_TYPE_NAMES.storage,
     description: 'Storage, technical rooms, or utility spaces',
-    costFactor: 0.50,
+    costFactor: BASEMENT_BENCHMARK_RATE_FACTORS.storage,
     structureCostPerSqm: 450,
   },
   {
     id: 'parking',
-    name: 'Parking / garage',
+    name: BASEMENT_TYPE_NAMES.parking,
     description: 'Car parking or vehicle storage',
-    costFactor: 0.65,
+    costFactor: BASEMENT_BENCHMARK_RATE_FACTORS.parking,
     structureCostPerSqm: 550,
   },
   {
     id: 'habitable',
-    name: 'Habitable / living',
+    name: BASEMENT_TYPE_NAMES.habitable,
     description: 'Guest rooms, recreation, or additional dwelling space',
-    costFactor: 0.85,
+    costFactor: BASEMENT_BENCHMARK_RATE_FACTORS.habitable,
     structureCostPerSqm: 750,
   },
 ];
 
-export const BASEMENT_TYPE_TOOLTIP = `Basement cost depends on use. Storage basements require fewer finishes, parking basements require structural spans and ventilation, and habitable basements approach the cost of above-ground living space.`;
+export const BASEMENT_TYPE_TOOLTIP = `Basement cost depends on use. Storage/Technical Basement Area requires fewer finishes, Parking Basement Area requires structural spans and ventilation, and Habitable Basement Area approaches the cost of above-ground living space.`;
 
 export interface SiteCondition {
   id: string;

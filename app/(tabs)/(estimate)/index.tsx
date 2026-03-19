@@ -742,7 +742,7 @@ export default function EstimateScreen() {
           <View style={styles.divider} />
           <Text style={styles.inlineSubsectionLabel}>Basement</Text>
           <SliderInput
-            label="Storage Basement Area"
+            label="Storage/Technical Basement Area"
             subtitle="Technical rooms, storage, utility spaces"
             value={storageBasementArea}
             onChangeValue={setStorageBasementArea}
@@ -784,7 +784,7 @@ export default function EstimateScreen() {
                 <Text style={styles.effectiveValue}>{`${formatNumber(basementArea)} ${SQUARE_METER_UNIT}`}</Text>
               </View>
               <Text style={styles.effectiveFormula}>
-                {`${storageBasementArea > 0 ? `${formatNumber(storageBasementArea)} ${SQUARE_METER_UNIT} storage` : ''}${storageBasementArea > 0 && (parkingBasementArea > 0 || habitableBasementArea > 0) ? ` ${MIDDLE_DOT} ` : ''}${parkingBasementArea > 0 ? `${formatNumber(parkingBasementArea)} ${SQUARE_METER_UNIT} parking` : ''}${parkingBasementArea > 0 && habitableBasementArea > 0 ? ` ${MIDDLE_DOT} ` : ''}${habitableBasementArea > 0 ? `${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT} habitable` : ''}`}
+                {`${storageBasementArea > 0 ? `${formatNumber(storageBasementArea)} ${SQUARE_METER_UNIT} Storage/Technical Basement Area` : ''}${storageBasementArea > 0 && (parkingBasementArea > 0 || habitableBasementArea > 0) ? ` ${MIDDLE_DOT} ` : ''}${parkingBasementArea > 0 ? `${formatNumber(parkingBasementArea)} ${SQUARE_METER_UNIT} Parking Basement Area` : ''}${parkingBasementArea > 0 && habitableBasementArea > 0 ? ` ${MIDDLE_DOT} ` : ''}${habitableBasementArea > 0 ? `${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT} Habitable Basement Area` : ''}`}
               </Text>
             </>
           )}

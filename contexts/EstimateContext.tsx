@@ -13,6 +13,7 @@ import {
   QUALITY_LEVELS,
   DEFAULT_CONTRACTOR_PERCENTAGE,
   SITE_CONDITIONS,
+  BASEMENT_TYPE_NAMES,
   BASEMENT_TYPES,
   HVAC_OPTIONS,
   POOL_SIZE_OPTIONS,
@@ -24,7 +25,6 @@ import {
   SITE_ACCESSIBILITY_OPTIONS,
   clampSitePreparationMultiplier,
   getSizeCorrectionFactor,
-  getBasementExcavationCost,
   getPlotSizeFactor,
   type AutomationPackageLevel,
   type CompatibleQualityId,
@@ -105,20 +105,6 @@ type PersistedScenarioConfig = Omit<ScenarioConfig, 'qualityId'> & {
 };
 
 const DEFAULT_LAND_ACQUISITION_PERCENTAGE = 0.06;
-
-const BASEMENT_SITE_CONDITION_FACTORS: Record<string, number> = {
-  flat_normal: 1.00,
-  flat_rocky: 1.05,
-  inclined_normal: 1.10,
-  inclined_rocky: 1.12,
-  inclined_sandy: 1.15,
-};
-
-const BASEMENT_GROUNDWATER_FACTORS: Record<string, number> = {
-  normal: 1.00,
-  moderate: 1.04,
-  high: 1.10,
-};
 
 function getAutoEstimatedLandAcquisitionCosts(landValue: number): number {
   return landValue * DEFAULT_LAND_ACQUISITION_PERCENTAGE;
@@ -896,6 +882,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       parkingBasementArea > 0 ? 'parking' : null,
       habitableBasementArea > 0 ? 'habitable' : null,
     ].filter(Boolean) as string[];
+    const activeTypeNames = activeTypes.map((typeId) =>
+      BASEMENT_TYPES.find((b) => b.id === typeId)?.name ?? BASEMENT_TYPE_NAMES.storage
+    );
 
     if (activeTypes.length === 1) {
       return BASEMENT_TYPES.find((b) => b.id === activeTypes[0]) ?? BASEMENT_TYPES[0];
@@ -904,7 +893,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     const weightedCostFactor = basementArea > 0 ? weightedBasementArea / basementArea : 0.50;
     return {
       id: 'mixed',
-      name: activeTypes.length > 1 ? 'Mixed basement' : 'Storage / technical',
+      name: activeTypes.length > 1 ? activeTypeNames.join(' + ') : BASEMENT_TYPE_NAMES.storage,
       description: activeTypes.length > 1
         ? 'Combination of storage, parking, and/or habitable basement areas'
         : 'Storage, technical rooms, or utility spaces',
@@ -1095,30 +1084,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   [plotSize],
   );
 
-  const basementExcavationCost = useMemo(
-    () => getBasementExcavationCost(basementArea, siteCondition, groundwaterCondition),
-    [basementArea, siteCondition, groundwaterCondition],
-  );
-
-  const basementStructureCost = useMemo(() => {
-    const storageBasementType = BASEMENT_TYPES.find((b) => b.id === 'storage') ?? BASEMENT_TYPES[0];
-    const parkingBasementType = BASEMENT_TYPES.find((b) => b.id === 'parking') ?? BASEMENT_TYPES[0];
-    const habitableBasementType = BASEMENT_TYPES.find((b) => b.id === 'habitable') ?? BASEMENT_TYPES[0];
-
-    let cost =
-      storageBasementArea * storageBasementType.structureCostPerSqm +
-      parkingBasementArea * parkingBasementType.structureCostPerSqm +
-      habitableBasementArea * habitableBasementType.structureCostPerSqm;
-
-    if (groundwaterCondition.basementCostMultiplier > 1) {
-      cost *= 1.08;
-    }
-
-    return Math.round(cost);
-  }, [storageBasementArea, parkingBasementArea, habitableBasementArea, groundwaterCondition]);
-
-  const basementTotalCost = basementExcavationCost + basementStructureCost;
-
   const sitePreparationMultiplier = useMemo(
     () => clampSitePreparationMultiplier(
       plotSizeFactor * siteCondition.sitePreparationFactor * siteAccessibility.sitePreparationFactor
@@ -1305,6 +1270,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const kg600Cost = projectRollupResult.kg600Cost;
   const kg600SubgroupCosts = projectRollupResult.kg600SubgroupCosts;
   const constructionSubtotal = projectRollupResult.constructionSubtotal;
+  const basementBenchmarkRate = projectRollupResult.basementBenchmarkRate;
+  const storageTechnicalBasementCost = projectRollupResult.storageTechnicalBasementCost;
+  const parkingBasementCost = projectRollupResult.parkingBasementCost;
+  const habitableBasementCost = projectRollupResult.habitableBasementCost;
+  const basementBaseCost = projectRollupResult.basementBaseCost;
+  const basementTotalCost = basementBaseCost;
   const constructionCost = constructionSubtotal;
   const permitDesignFee = projectRollupResult.permitFee;
   const contingencyPercent = projectRollupResult.contingencyRecommendedPercent;
@@ -1516,13 +1487,16 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     includedWardrobes,
     totalWardrobeCount,
     constructionSubtotal,
+    basementBenchmarkRate,
+    storageTechnicalBasementCost,
+    parkingBasementCost,
+    habitableBasementCost,
+    basementBaseCost,
     contingencyPercent,
     recommendedContingencyCost,
     contingencyCost,
     mainBuildingArea,
     permitDesignEffectiveArea,
-    basementExcavationCost,
-    basementStructureCost,
     basementTotalCost,
     siteExcavationCost,
     plotSizeFactor,
@@ -1586,8 +1560,9 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     kg600SubgroupCosts, residentialProgramBaseline, bedroomDelta, bathroomDelta, wcDelta,
     suggestedKitchenUnitCost, suggestedGeneralFurnitureBaseAmount, kitchenUnitCost, kitchenPackageCost, wardrobePackageCost, generalFurniturePackageCost,
     generalFurnitureBedroomIncrement, bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
-    constructionSubtotal, contingencyPercent, recommendedContingencyCost, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
-    basementExcavationCost, basementStructureCost, basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier, breakdownGroups,
+    constructionSubtotal, basementBenchmarkRate, storageTechnicalBasementCost, parkingBasementCost, habitableBasementCost, basementBaseCost,
+    contingencyPercent, recommendedContingencyCost, contingencyCost, mainBuildingArea, permitDesignEffectiveArea,
+    basementTotalCost, siteExcavationCost, plotSizeFactor, sitePreparationMultiplier, breakdownGroups,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
     getAllScenarioConfigs, resetAllData,
   ]);
