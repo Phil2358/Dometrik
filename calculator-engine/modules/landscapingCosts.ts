@@ -1,7 +1,6 @@
 import {
   LANDSCAPING_BASE_COST_PER_SQM,
   SITE_CONDITIONS,
-  getLandscapingSizeAdjustment
 } from "../../constants/construction"
 
 interface LandscapingCostsInput {
@@ -25,14 +24,11 @@ export function calculateLandscapingCosts(input: LandscapingCostsInput) {
   const baseCost =
     input.landscapingArea * LANDSCAPING_BASE_COST_PER_SQM
 
-  const sizeAdjustment =
-    getLandscapingSizeAdjustment(input.landscapingArea)
-
   const terrainMultiplier =
     siteCondition.terrainMultiplier
 
   const landscapingCost =
-    baseCost * (1 + sizeAdjustment) * terrainMultiplier
+    baseCost * terrainMultiplier
 
   return {
     landscapingCost: Math.round(landscapingCost)

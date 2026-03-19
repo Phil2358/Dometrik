@@ -470,12 +470,6 @@ export function getBasementRockyAdjustment(basementArea: number): number {
   return 0.15;
 }
 
-export function getLandscapingSizeAdjustment(area: number): number {
-  if (area <= 300) return 0;
-  if (area <= 800) return 0.10;
-  return 0.20;
-}
-
 export interface PoolSizeOption {
   id: string;
   name: string;
@@ -524,10 +518,10 @@ export function getPoolDepthFactor(depth: number): number {
 
 export const POOL_TERRAIN_MULTIPLIERS: Record<string, number> = {
   flat_normal: 1.00,
-  flat_rocky: 1.10,
-  inclined_normal: 1.30,
-  inclined_rocky: 1.40,
-  inclined_sandy: 1.60,
+  flat_rocky: 1.05,
+  inclined_normal: 1.15,
+  inclined_rocky: 1.25,
+  inclined_sandy: 1.35,
 };
 
 export const POOL_MINIMUM_COST = 15000;
@@ -641,7 +635,6 @@ export interface HvacOption {
   id: string;
   name: string;
   description: string;
-  costPerSqm: number;
 }
 
 export const HVAC_OPTIONS: HvacOption[] = [
@@ -649,19 +642,16 @@ export const HVAC_OPTIONS: HvacOption[] = [
     id: 'underfloor_heating',
     name: 'Underfloor Heating',
     description: 'Hydronic floor heating connected to the heat pump',
-    costPerSqm: 45,
   },
   {
     id: 'solar_thermal',
     name: 'Solar Thermal System',
     description: 'Solar collectors for domestic hot water',
-    costPerSqm: 15,
   },
   {
     id: 'photovoltaic',
     name: 'Photovoltaic System (PV)',
     description: 'Roof-mounted photovoltaic electricity generation',
-    costPerSqm: 35,
   },
 ];
 
