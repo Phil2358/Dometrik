@@ -42,6 +42,20 @@ const SUBGROUP_330_GROUNDWATER_RATES: Record<string, number> = {
   high: 0.02,
 }
 
+const SUBGROUP_340_SITE_CONDITION_RATES: Record<string, number> = {
+  flat_normal: 0.00,
+  flat_rocky: 0.00,
+  inclined_normal: 0.00,
+  inclined_rocky: 0.00,
+  inclined_sandy: 0.00,
+}
+
+const SUBGROUP_340_GROUNDWATER_RATES: Record<string, number> = {
+  normal: 0.00,
+  moderate: 0.00,
+  high: 0.00,
+}
+
 export interface Kg300ModifierDetails {
   subgroup310: {
     baseCost: number
@@ -64,6 +78,16 @@ export interface Kg300ModifierDetails {
     finalCost: number
   }
   subgroup330: {
+    baseCost: number
+    siteConditionRate: number
+    siteConditionExtra: number
+    groundwaterRate: number
+    groundwaterExtra: number
+    accessibilityRate: number
+    accessibilityExtra: number
+    finalCost: number
+  }
+  subgroup340: {
     baseCost: number
     siteConditionRate: number
     siteConditionExtra: number
@@ -145,11 +169,31 @@ export function calculateKg300Modifiers(input: Kg300ModifiersInput): {
   const finalSubgroup330Cost =
     subgroup330AfterGroundwater + accessibilityExtra330
 
+  const baseSubgroup340Cost = input.kg300SubgroupCosts.subgroup340Cost
+  const siteConditionRate340 =
+    SUBGROUP_340_SITE_CONDITION_RATES[input.siteConditionId] ?? 0
+  const siteConditionExtra340 = Math.round(baseSubgroup340Cost * siteConditionRate340)
+  const subgroup340AfterSite = baseSubgroup340Cost + siteConditionExtra340
+
+  const groundwaterRate340 =
+    SUBGROUP_340_GROUNDWATER_RATES[input.groundwaterConditionId] ?? 0
+  const groundwaterExtra340 = Math.round(subgroup340AfterSite * groundwaterRate340)
+  const subgroup340AfterGroundwater = subgroup340AfterSite + groundwaterExtra340
+
+  const accessibilityRate340 =
+    Math.max(0, resolvedSiteAccessibilityFactor - 1) * 0.25
+  const accessibilityExtra340 = Math.round(
+    subgroup340AfterGroundwater * accessibilityRate340
+  )
+  const finalSubgroup340Cost =
+    subgroup340AfterGroundwater + accessibilityExtra340
+
   const kg300SubgroupCosts: Kg300SubgroupCosts = {
     ...input.kg300SubgroupCosts,
     subgroup310Cost: finalSubgroup310Cost,
     subgroup320Cost: finalSubgroup320Cost,
     subgroup330Cost: finalSubgroup330Cost,
+    subgroup340Cost: finalSubgroup340Cost,
   }
 
   const kg300Total =
@@ -196,6 +240,16 @@ export function calculateKg300Modifiers(input: Kg300ModifiersInput): {
         accessibilityRate: accessibilityRate330,
         accessibilityExtra: accessibilityExtra330,
         finalCost: finalSubgroup330Cost,
+      },
+      subgroup340: {
+        baseCost: baseSubgroup340Cost,
+        siteConditionRate: siteConditionRate340,
+        siteConditionExtra: siteConditionExtra340,
+        groundwaterRate: groundwaterRate340,
+        groundwaterExtra: groundwaterExtra340,
+        accessibilityRate: accessibilityRate340,
+        accessibilityExtra: accessibilityExtra340,
+        finalCost: finalSubgroup340Cost,
       },
     },
   }
