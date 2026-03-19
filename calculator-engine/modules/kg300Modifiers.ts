@@ -56,6 +56,34 @@ const SUBGROUP_340_GROUNDWATER_RATES: Record<string, number> = {
   high: 0.00,
 }
 
+const SUBGROUP_350_SITE_CONDITION_RATES: Record<string, number> = {
+  flat_normal: 0.00,
+  flat_rocky: 0.00,
+  inclined_normal: 0.01,
+  inclined_rocky: 0.02,
+  inclined_sandy: 0.03,
+}
+
+const SUBGROUP_350_GROUNDWATER_RATES: Record<string, number> = {
+  normal: 0.00,
+  moderate: 0.00,
+  high: 0.00,
+}
+
+const SUBGROUP_360_SITE_CONDITION_RATES: Record<string, number> = {
+  flat_normal: 0.00,
+  flat_rocky: 0.00,
+  inclined_normal: 0.00,
+  inclined_rocky: 0.00,
+  inclined_sandy: 0.00,
+}
+
+const SUBGROUP_360_GROUNDWATER_RATES: Record<string, number> = {
+  normal: 0.00,
+  moderate: 0.00,
+  high: 0.00,
+}
+
 export interface Kg300ModifierDetails {
   subgroup310: {
     baseCost: number
@@ -88,6 +116,26 @@ export interface Kg300ModifierDetails {
     finalCost: number
   }
   subgroup340: {
+    baseCost: number
+    siteConditionRate: number
+    siteConditionExtra: number
+    groundwaterRate: number
+    groundwaterExtra: number
+    accessibilityRate: number
+    accessibilityExtra: number
+    finalCost: number
+  }
+  subgroup350: {
+    baseCost: number
+    siteConditionRate: number
+    siteConditionExtra: number
+    groundwaterRate: number
+    groundwaterExtra: number
+    accessibilityRate: number
+    accessibilityExtra: number
+    finalCost: number
+  }
+  subgroup360: {
     baseCost: number
     siteConditionRate: number
     siteConditionExtra: number
@@ -188,12 +236,52 @@ export function calculateKg300Modifiers(input: Kg300ModifiersInput): {
   const finalSubgroup340Cost =
     subgroup340AfterGroundwater + accessibilityExtra340
 
+  const baseSubgroup350Cost = input.kg300SubgroupCosts.subgroup350Cost
+  const siteConditionRate350 =
+    SUBGROUP_350_SITE_CONDITION_RATES[input.siteConditionId] ?? 0
+  const siteConditionExtra350 = Math.round(baseSubgroup350Cost * siteConditionRate350)
+  const subgroup350AfterSite = baseSubgroup350Cost + siteConditionExtra350
+
+  const groundwaterRate350 =
+    SUBGROUP_350_GROUNDWATER_RATES[input.groundwaterConditionId] ?? 0
+  const groundwaterExtra350 = Math.round(subgroup350AfterSite * groundwaterRate350)
+  const subgroup350AfterGroundwater = subgroup350AfterSite + groundwaterExtra350
+
+  const accessibilityRate350 =
+    Math.max(0, resolvedSiteAccessibilityFactor - 1) * 0.60
+  const accessibilityExtra350 = Math.round(
+    subgroup350AfterGroundwater * accessibilityRate350
+  )
+  const finalSubgroup350Cost =
+    subgroup350AfterGroundwater + accessibilityExtra350
+
+  const baseSubgroup360Cost = input.kg300SubgroupCosts.subgroup360Cost
+  const siteConditionRate360 =
+    SUBGROUP_360_SITE_CONDITION_RATES[input.siteConditionId] ?? 0
+  const siteConditionExtra360 = Math.round(baseSubgroup360Cost * siteConditionRate360)
+  const subgroup360AfterSite = baseSubgroup360Cost + siteConditionExtra360
+
+  const groundwaterRate360 =
+    SUBGROUP_360_GROUNDWATER_RATES[input.groundwaterConditionId] ?? 0
+  const groundwaterExtra360 = Math.round(subgroup360AfterSite * groundwaterRate360)
+  const subgroup360AfterGroundwater = subgroup360AfterSite + groundwaterExtra360
+
+  const accessibilityRate360 =
+    Math.max(0, resolvedSiteAccessibilityFactor - 1) * 0.20
+  const accessibilityExtra360 = Math.round(
+    subgroup360AfterGroundwater * accessibilityRate360
+  )
+  const finalSubgroup360Cost =
+    subgroup360AfterGroundwater + accessibilityExtra360
+
   const kg300SubgroupCosts: Kg300SubgroupCosts = {
     ...input.kg300SubgroupCosts,
     subgroup310Cost: finalSubgroup310Cost,
     subgroup320Cost: finalSubgroup320Cost,
     subgroup330Cost: finalSubgroup330Cost,
     subgroup340Cost: finalSubgroup340Cost,
+    subgroup350Cost: finalSubgroup350Cost,
+    subgroup360Cost: finalSubgroup360Cost,
   }
 
   const kg300Total =
@@ -250,6 +338,26 @@ export function calculateKg300Modifiers(input: Kg300ModifiersInput): {
         accessibilityRate: accessibilityRate340,
         accessibilityExtra: accessibilityExtra340,
         finalCost: finalSubgroup340Cost,
+      },
+      subgroup350: {
+        baseCost: baseSubgroup350Cost,
+        siteConditionRate: siteConditionRate350,
+        siteConditionExtra: siteConditionExtra350,
+        groundwaterRate: groundwaterRate350,
+        groundwaterExtra: groundwaterExtra350,
+        accessibilityRate: accessibilityRate350,
+        accessibilityExtra: accessibilityExtra350,
+        finalCost: finalSubgroup350Cost,
+      },
+      subgroup360: {
+        baseCost: baseSubgroup360Cost,
+        siteConditionRate: siteConditionRate360,
+        siteConditionExtra: siteConditionExtra360,
+        groundwaterRate: groundwaterRate360,
+        groundwaterExtra: groundwaterExtra360,
+        accessibilityRate: accessibilityRate360,
+        accessibilityExtra: accessibilityExtra360,
+        finalCost: finalSubgroup360Cost,
       },
     },
   }
