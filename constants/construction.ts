@@ -73,6 +73,30 @@ export const BASEMENT_LEVEL1_ALLOCATION_SHARES: Record<QualityId, { kg300: numbe
   luxury: { kg300: 73, kg400: 27 },
 };
 
+export const BASEMENT_KG300_SUBGROUP_FACTORS = {
+  storage: {
+    subgroup310: 0.160000,
+    subgroup320: 0.270000,
+    subgroup330: 0.240000,
+    subgroup340: 0.080000,
+    subgroup350: 0.250000,
+  },
+  parking: {
+    subgroup310: 0.123077,
+    subgroup320: 0.207692,
+    subgroup330: 0.281781,
+    subgroup340: 0.058704,
+    subgroup350: 0.328745,
+  },
+  habitable: {
+    subgroup310: 0.094118,
+    subgroup320: 0.158824,
+    subgroup330: 0.340763,
+    subgroup340: 0.131063,
+    subgroup350: 0.275232,
+  },
+} as const;
+
 export const LOCATIONS: Location[] = [
   { id: 'corfu', name: 'Corfu', region: 'Ionian Islands', multiplier: 1.15 },
   { id: 'athens', name: 'Athens', region: 'Attica', multiplier: 1.00 },

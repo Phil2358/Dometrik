@@ -124,6 +124,7 @@ export interface ProjectCostResult {
   basementBaseCost: number
   basementBucket300: number
   basementBucket400: number
+  basementKg300SubgroupCosts: ReturnType<typeof calculateBasementBaseCosts>["basementKg300SubgroupCosts"]
   storageTechnicalBasementCost: number
   parkingBasementCost: number
   habitableBasementCost: number
@@ -502,6 +503,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     basementBaseCost: basementBaseCosts.basementBaseCost,
     basementBucket300: basementBaseCosts.basementBucket300,
     basementBucket400: basementBaseCosts.basementBucket400,
+    basementKg300SubgroupCosts: basementBaseCosts.basementKg300SubgroupCosts,
     storageTechnicalBasementCost: basementBaseCosts.storageTechnicalBasementCost,
     parkingBasementCost: basementBaseCosts.parkingBasementCost,
     habitableBasementCost: basementBaseCosts.habitableBasementCost,
