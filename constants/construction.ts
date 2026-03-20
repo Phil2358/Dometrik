@@ -35,9 +35,9 @@ export interface CostCategory {
   description: string;
 }
 
-export const ECONOMY_BENCHMARK_BASE_COST_PER_SQM = 1430;
-export const MID_RANGE_BENCHMARK_BASE_COST_PER_SQM = 1710;
-export const LUXURY_BENCHMARK_BASE_COST_PER_SQM = 2150;
+export const ECONOMY_BENCHMARK_BASE_COST_PER_SQM = 1473;
+export const MID_RANGE_BENCHMARK_BASE_COST_PER_SQM = 1756;
+export const LUXURY_BENCHMARK_BASE_COST_PER_SQM = 2193;
 export const DEFAULT_QUALITY_ID: QualityId = 'midRange';
 
 export function normalizeQualityId(value: CompatibleQualityId | string | null | undefined): QualityId {

@@ -576,10 +576,12 @@ export default function EstimateScreen() {
     quality,
     buildingArea,
     baseCostPerSqm,
+    benchmarkPreviewPerQuality,
     plotSize,
     setPlotSize,
     sizeCorrectionFactor,
     correctedCostPerSqm,
+    customBenchmarkPreviewPerSqm,
     finalCostPerSqm,
     contractorCost,
     poolCost,
@@ -653,24 +655,27 @@ export default function EstimateScreen() {
       id: 'economy',
       title: 'Economy',
       descriptor: 'Cost-conscious residential benchmark',
-      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'economy')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
+      benchmarkLabel: `${formatCurrency(benchmarkPreviewPerQuality.economy ?? 0)} /${SQUARE_METER_UNIT}`,
     },
     {
       id: 'midRange',
       title: 'Mid-Range',
       descriptor: 'Balanced residential benchmark',
-      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'midRange')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
+      benchmarkLabel: `${formatCurrency(benchmarkPreviewPerQuality.midRange ?? 0)} /${SQUARE_METER_UNIT}`,
     },
     {
       id: 'luxury',
       title: 'Luxury',
       descriptor: 'High-spec residential benchmark',
-      benchmarkLabel: `${formatCurrency(QUALITY_LEVELS.find((q) => q.id === 'luxury')?.baseCostPerSqm ?? 0)} /${SQUARE_METER_UNIT}`,
+      benchmarkLabel: `${formatCurrency(benchmarkPreviewPerQuality.luxury ?? 0)} /${SQUARE_METER_UNIT}`,
     },
     {
       id: 'custom',
       title: 'Custom',
       descriptor: 'Enter your own benchmark',
+      benchmarkLabel: customBenchmarkPreviewPerSqm === null
+        ? undefined
+        : `${formatCurrency(customBenchmarkPreviewPerSqm)} /${SQUARE_METER_UNIT}`,
     },
   ];
 
@@ -1812,48 +1817,55 @@ export default function EstimateScreen() {
                     </View>
                     <View style={styles.qualityCardValue}>
                       {option.id === 'custom' ? (
-                        <TouchableOpacity
-                          activeOpacity={0.85}
-                          style={[
-                            styles.qualityCustomInputShell,
-                            isSelected && styles.qualityCustomInputShellSelected,
-                          ]}
-                          onPress={() => {
-                            if (customCostPerSqm === null) {
-                              setCustomCostPerSqm(quality.baseCostPerSqm);
-                            }
-                          }}
-                          testID="quality-custom-input-shell"
-                        >
-                          <TextInput
+                        <View style={styles.qualityCustomBlock}>
+                          <TouchableOpacity
+                            activeOpacity={0.85}
                             style={[
-                              styles.qualityCustomInput,
-                              !isSelected && styles.qualityCustomInputDisabled,
+                              styles.qualityCustomInputShell,
+                              isSelected && styles.qualityCustomInputShellSelected,
                             ]}
-                            value={customCostPerSqm !== null ? formatNumber(customCostPerSqm) : ''}
-                            onFocus={() => {
+                            onPress={() => {
                               if (customCostPerSqm === null) {
                                 setCustomCostPerSqm(quality.baseCostPerSqm);
                               }
                             }}
-                            onChangeText={(text) => {
-                              const cleaned = text.replace(/[^0-9]/g, '');
-                              if (!cleaned) return;
-                              setCustomCostPerSqm(parseInt(cleaned, 10) || quality.baseCostPerSqm);
-                            }}
-                            editable={isSelected}
-                            keyboardType="numeric"
-                            placeholder="0"
-                            placeholderTextColor={Colors.textTertiary}
-                            testID="quality-custom-input"
-                          />
-                          <Text style={[
-                            styles.qualityCustomInputUnit,
-                            !isSelected && styles.qualityCustomInputUnitDisabled,
-                          ]}>
-                            {`${EURO_SYMBOL}/${SQUARE_METER_UNIT}`}
-                          </Text>
-                        </TouchableOpacity>
+                            testID="quality-custom-input-shell"
+                          >
+                            <TextInput
+                              style={[
+                                styles.qualityCustomInput,
+                                !isSelected && styles.qualityCustomInputDisabled,
+                              ]}
+                              value={customCostPerSqm !== null ? formatNumber(customCostPerSqm) : ''}
+                              onFocus={() => {
+                                if (customCostPerSqm === null) {
+                                  setCustomCostPerSqm(quality.baseCostPerSqm);
+                                }
+                              }}
+                              onChangeText={(text) => {
+                                const cleaned = text.replace(/[^0-9]/g, '');
+                                if (!cleaned) return;
+                                setCustomCostPerSqm(parseInt(cleaned, 10) || quality.baseCostPerSqm);
+                              }}
+                              editable={isSelected}
+                              keyboardType="numeric"
+                              placeholder="0"
+                              placeholderTextColor={Colors.textTertiary}
+                              testID="quality-custom-input"
+                            />
+                            <Text style={[
+                              styles.qualityCustomInputUnit,
+                              !isSelected && styles.qualityCustomInputUnitDisabled,
+                            ]}>
+                              {`${EURO_SYMBOL}/${SQUARE_METER_UNIT}`}
+                            </Text>
+                          </TouchableOpacity>
+                          {option.benchmarkLabel ? (
+                            <Text style={[styles.qualityLivePrice, isSelected && styles.qualityLivePriceSelected]}>
+                              {option.benchmarkLabel}
+                            </Text>
+                          ) : null}
+                        </View>
                       ) : (
                         <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
                           {option.benchmarkLabel}
@@ -1875,10 +1887,9 @@ export default function EstimateScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Automatic Adjustments</Text>
+          <Text style={styles.cardTitle}>Correction based on Building Size</Text>
           <View style={styles.sizeCorrectionRow}>
             <View style={styles.adjustmentText}>
-              <Text style={styles.sizeCorrectionLabel}>Automatic building size correction</Text>
               <Text style={styles.optionSubtext}>
                 {`Smaller projects usually cost more per ${SQUARE_METER_UNIT}, while larger projects benefit from scale.`}
               </Text>
@@ -1890,29 +1901,6 @@ export default function EstimateScreen() {
               {`${displaySizeCorrectionLabel} ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} /${SQUARE_METER_UNIT}`}
             </Text>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.sizeCorrectionRow}>
-            <View style={styles.adjustmentText}>
-              <Text style={styles.sizeCorrectionLabel}>Location adjustment</Text>
-              <Text style={styles.optionSubtext}>
-                Regional benchmark adjustment based on the selected project location.
-              </Text>
-            </View>
-            <Text style={styles.sizeCorrectionValue}>
-              {`${MULTIPLY_SYMBOL}${formatDecimal(location.multiplier, 2)} ${ARROW_SYMBOL} ${formatCurrency(finalCostPerSqm)} /${SQUARE_METER_UNIT}`}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{`Adjusted Benchmark Cost per ${SQUARE_METER_UNIT}`}</Text>
-          <View style={styles.finalBenchmarkRow}>
-            <Text style={styles.finalBenchmarkValue}>{formatCurrency(finalCostPerSqm)}</Text>
-            <Text style={styles.finalBenchmarkUnit}>{` /${SQUARE_METER_UNIT}`}</Text>
-          </View>
-          <Text style={styles.effectiveFormula}>
-            {`${formatCurrency(baseCostPerSqm)} base benchmark ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} after size correction ${ARROW_SYMBOL} ${formatCurrency(finalCostPerSqm)} after location adjustment`}
-          </Text>
         </View>
       </View>
     </CollapsibleGroup>
@@ -2315,6 +2303,10 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 120,
   },
+  qualityCustomBlock: {
+    alignItems: 'flex-end' as const,
+    gap: 6,
+  },
   qualityCustomInputShell: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -2380,6 +2372,14 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   qualityUnitSelected: {
+    color: Colors.accent,
+  },
+  qualityLivePrice: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+  },
+  qualityLivePriceSelected: {
     color: Colors.accent,
   },
   card: {

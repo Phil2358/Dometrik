@@ -952,6 +952,29 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const sizeCorrectionFactor = benchmarkBuildingCost.sizeCorrectionFactor;
   const correctedCostPerSqm = benchmarkBuildingCost.sizeAdjustedCostPerSqm;
   const finalCostPerSqm = benchmarkBuildingCost.correctedCostPerSqm;
+  const benchmarkPreviewPerQuality = useMemo(
+    () => QUALITY_LEVELS.reduce<Record<QualityId, number>>((previews, entry) => {
+      previews[entry.id] = calculateRawBuildingCost({
+        buildingArea,
+        locationId,
+        qualityId: entry.id,
+      }).correctedCostPerSqm;
+
+      return previews;
+    }, {} as Record<QualityId, number>),
+    [buildingArea, locationId],
+  );
+  const customBenchmarkPreviewPerSqm = useMemo(
+    () => (customCostPerSqm === null
+      ? null
+      : calculateRawBuildingCost({
+        buildingArea,
+        locationId,
+        qualityId,
+        customCostPerSqm,
+      }).correctedCostPerSqm),
+    [buildingArea, locationId, qualityId, customCostPerSqm],
+  );
   const siteExcavationBaseCost = useMemo(
     () => Math.max(300, Math.round(Math.max(0, buildingArea) + Math.max(0, landscapingArea))),
     [buildingArea, landscapingArea],
@@ -1409,6 +1432,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     sizeCorrectionFactor,
     correctedCostPerSqm,
     finalCostPerSqm,
+    benchmarkPreviewPerQuality,
+    customBenchmarkPreviewPerSqm,
     constructionCost,
     contractorCost,
     poolCost,
@@ -1530,7 +1555,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     manualContingencyPercent, setManualContingencyPercent,
     manualContingencyCost, setManualContingencyCost, contingencyManualOverrideActive, appliedContingencyPercent,
     location, quality, buildingArea, baseCostPerSqm, costPerSqm,
-    sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm,
+    sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm, benchmarkPreviewPerQuality, customBenchmarkPreviewPerSqm,
     constructionCost, contractorCost, poolCost, permitDesignFee, totalCost, group100Total, projectTotalBeforeVat,
     utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, utilityConnectionCost, utilityGroup220Cost, utilityGroup230Cost,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,
