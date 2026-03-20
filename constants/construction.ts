@@ -35,7 +35,9 @@ export interface CostCategory {
   description: string;
 }
 
-export const MID_RANGE_BENCHMARK_BASE_COST_PER_SQM = 1930;
+export const ECONOMY_BENCHMARK_BASE_COST_PER_SQM = 1545;
+export const MID_RANGE_BENCHMARK_BASE_COST_PER_SQM = 1850;
+export const LUXURY_BENCHMARK_BASE_COST_PER_SQM = 2220;
 export const DEFAULT_QUALITY_ID: QualityId = 'midRange';
 
 export function normalizeQualityId(value: CompatibleQualityId | string | null | undefined): QualityId {
@@ -117,7 +119,7 @@ export const QUALITY_LEVELS: QualityLevel[] = [
     id: 'economy',
     name: 'Economy',
     description: 'Cost-conscious materials, energy-efficient, practical finishes',
-    baseCostPerSqm: Math.round(MID_RANGE_BENCHMARK_BASE_COST_PER_SQM * 0.90),
+    baseCostPerSqm: ECONOMY_BENCHMARK_BASE_COST_PER_SQM,
     benchmarkFactor: 0.90,
   },
   {
@@ -131,7 +133,7 @@ export const QUALITY_LEVELS: QualityLevel[] = [
     id: 'luxury',
     name: 'Luxury',
     description: 'Top-tier materials, bespoke design, luxury finishes throughout',
-    baseCostPerSqm: Math.round(MID_RANGE_BENCHMARK_BASE_COST_PER_SQM * 1.15),
+    baseCostPerSqm: LUXURY_BENCHMARK_BASE_COST_PER_SQM,
     benchmarkFactor: 1.15,
   },
 ];
