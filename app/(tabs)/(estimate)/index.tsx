@@ -712,12 +712,138 @@ export default function EstimateScreen() {
   const [showUtilityInfo, setShowUtilityInfo] = React.useState<boolean>(false);
   const [showGroundwaterInfo, setShowGroundwaterInfo] = React.useState<boolean>(false);
   const [showAccessibilityInfo, setShowAccessibilityInfo] = React.useState<boolean>(false);
+  const [showLandPlotGroup, setShowLandPlotGroup] = React.useState<boolean>(true);
   const [showBuildingInteriorGroup, setShowBuildingInteriorGroup] = React.useState<boolean>(true);
   const [showPlotExternalGroup, setShowPlotExternalGroup] = React.useState<boolean>(true);
   const [showBenchmarkGroup, setShowBenchmarkGroup] = React.useState<boolean>(true);
   const [showOutdoorAdditionsGroup, setShowOutdoorAdditionsGroup] = React.useState<boolean>(true);
   const [showSystemsUpgradesGroup, setShowSystemsUpgradesGroup] = React.useState<boolean>(true);
   const [showFeesMarginsGroup, setShowFeesMarginsGroup] = React.useState<boolean>(true);
+
+  const renderLandPlotGroup = () => (
+    <CollapsibleGroup
+      title="Land & Plot"
+      icon={<LandPlot size={16} color={Colors.accent} />}
+      expanded={showLandPlotGroup}
+      onToggle={() => setShowLandPlotGroup((prev) => !prev)}
+    >
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Land Acquisition</Text>
+        <View style={styles.card}>
+          <SliderInput
+            label="Land cost"
+            subtitle={formatCurrency(landValue)}
+            value={landValue}
+            onChangeValue={setLandValue}
+            min={10000}
+            max={1500000}
+            step={1000}
+            suffix={` ${EURO_SYMBOL}`}
+            testID="slider-land-value"
+          />
+
+          <View style={styles.divider} />
+          <Text style={styles.poolSubsectionTitle}>Incidental Land Acquisition Costs</Text>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'auto' && styles.utilityOptionRowSelected]}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setLandAcquisitionCostsMode('auto');
+            }}
+            testID="land-acquisition-mode-auto"
+          >
+            <View style={styles.optionInfo}>
+              <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'auto' && { color: Colors.accent }]}>
+                Auto estimate (6%)
+              </Text>
+              <Text style={styles.optionSubtext}>Derived from land cost {MULTIPLY_SYMBOL} {formatDecimal(0.06, 2)}</Text>
+            </View>
+            <View style={[styles.radioOuter, landAcquisitionCostsMode === 'auto' && styles.radioOuterSelected]}>
+              {landAcquisitionCostsMode === 'auto' && <View style={styles.radioInner} />}
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'manual' && styles.utilityOptionRowSelected]}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setLandAcquisitionCostsMode('manual');
+            }}
+            testID="land-acquisition-mode-manual"
+          >
+            <View style={styles.optionInfo}>
+              <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'manual' && { color: Colors.accent }]}>
+                Manual override
+              </Text>
+              <Text style={styles.optionSubtext}>Enter incidental acquisition costs directly</Text>
+            </View>
+            <View style={[styles.radioOuter, landAcquisitionCostsMode === 'manual' && styles.radioOuterSelected]}>
+              {landAcquisitionCostsMode === 'manual' && <View style={styles.radioInner} />}
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          {landAcquisitionCostsMode === 'manual' ? (
+            <>
+              <View style={styles.costInputRow}>
+                <TextInput
+                  style={styles.costInput}
+                  value={landAcquisitionCosts > 0 ? formatNumber(landAcquisitionCosts) : ''}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9]/g, '');
+                    setLandAcquisitionCosts(parseInt(cleaned, 10) || 0);
+                  }}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={Colors.textTertiary}
+                  testID="land-acquisition-costs-input"
+                />
+                <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
+              </View>
+              <View style={styles.divider} />
+            </>
+          ) : null}
+
+          <View style={styles.effectiveRow}>
+            <Text style={styles.effectiveLabel}>Estimated Acquisition Costs</Text>
+            <Text style={styles.effectiveValue}>{formatCurrency(displayedLandAcquisitionCosts)}</Text>
+          </View>
+          <Text style={styles.effectiveFormula}>
+            {landAcquisitionCostsMode === 'auto'
+              ? `${formatCurrency(displayedLandAcquisitionCosts)} (6% of ${formatCurrency(landValue)})`
+              : 'Manual override value'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Plot Size</Text>
+        <View style={styles.card}>
+          <SliderInput
+            label="Plot size"
+            subtitle=""
+            value={plotSize}
+            onChangeValue={setPlotSize}
+            min={500}
+            max={10000}
+            step={100}
+            suffix={SQUARE_METER_UNIT}
+            testID="slider-plot-size"
+          />
+        </View>
+      </View>
+    </CollapsibleGroup>
+  );
 
   const renderBuildingDefinitionGroup = () => (
     <CollapsibleGroup
@@ -1128,7 +1254,7 @@ export default function EstimateScreen() {
   const renderSiteParametersGroup = () => (
     <CollapsibleGroup
       title="Site Parameters"
-      icon={<LandPlot size={16} color={Colors.accent} />}
+      icon={<Mountain size={16} color={Colors.accent} />}
       expanded={showPlotExternalGroup}
       onToggle={() => setShowPlotExternalGroup((prev) => !prev)}
     >
@@ -1159,129 +1285,6 @@ export default function EstimateScreen() {
             );
           })}
         </ScrollView>
-      </View>
-
-      <View style={styles.groupSection}>
-        <Text style={styles.groupSectionTitle}>Land Acquisition</Text>
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Land Cost</Text>
-          </View>
-          <View style={styles.costInputRow}>
-            <TextInput
-              style={styles.costInput}
-              value={landValue > 0 ? formatNumber(landValue) : ''}
-              onChangeText={(text) => {
-                const cleaned = text.replace(/[^0-9]/g, '');
-                setLandValue(parseInt(cleaned, 10) || 0);
-              }}
-              keyboardType="numeric"
-              placeholder="0"
-              placeholderTextColor={Colors.textTertiary}
-              testID="land-value-input"
-            />
-            <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-          </View>
-
-          <View style={styles.divider} />
-          <Text style={styles.poolSubsectionTitle}>Incidental Land Acquisition Costs</Text>
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'auto' && styles.utilityOptionRowSelected]}
-            onPress={() => {
-              if (Platform.OS !== 'web') {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
-              setLandAcquisitionCostsMode('auto');
-            }}
-            testID="land-acquisition-mode-auto"
-          >
-            <View style={styles.optionInfo}>
-              <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'auto' && { color: Colors.accent }]}>
-                Auto estimate (6%)
-              </Text>
-              <Text style={styles.optionSubtext}>Derived from land cost {MULTIPLY_SYMBOL} {formatDecimal(0.06, 2)}</Text>
-            </View>
-            <View style={[styles.radioOuter, landAcquisitionCostsMode === 'auto' && styles.radioOuterSelected]}>
-              {landAcquisitionCostsMode === 'auto' && <View style={styles.radioInner} />}
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={[styles.utilityOptionRow, landAcquisitionCostsMode === 'manual' && styles.utilityOptionRowSelected]}
-            onPress={() => {
-              if (Platform.OS !== 'web') {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
-              setLandAcquisitionCostsMode('manual');
-            }}
-            testID="land-acquisition-mode-manual"
-          >
-            <View style={styles.optionInfo}>
-              <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'manual' && { color: Colors.accent }]}>
-                Manual override
-              </Text>
-              <Text style={styles.optionSubtext}>Enter incidental acquisition costs directly</Text>
-            </View>
-            <View style={[styles.radioOuter, landAcquisitionCostsMode === 'manual' && styles.radioOuterSelected]}>
-              {landAcquisitionCostsMode === 'manual' && <View style={styles.radioInner} />}
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          {landAcquisitionCostsMode === 'manual' ? (
-            <>
-              <View style={styles.costInputRow}>
-                <TextInput
-                  style={styles.costInput}
-                  value={landAcquisitionCosts > 0 ? formatNumber(landAcquisitionCosts) : ''}
-                  onChangeText={(text) => {
-                    const cleaned = text.replace(/[^0-9]/g, '');
-                    setLandAcquisitionCosts(parseInt(cleaned, 10) || 0);
-                  }}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={Colors.textTertiary}
-                  testID="land-acquisition-costs-input"
-                />
-                <Text style={styles.costInputUnit}> {EURO_SYMBOL}</Text>
-              </View>
-              <View style={styles.divider} />
-            </>
-          ) : null}
-
-          <View style={styles.effectiveRow}>
-            <Text style={styles.effectiveLabel}>Estimated Acquisition Costs</Text>
-            <Text style={styles.effectiveValue}>{formatCurrency(displayedLandAcquisitionCosts)}</Text>
-          </View>
-          <Text style={styles.effectiveFormula}>
-            {landAcquisitionCostsMode === 'auto'
-              ? `${formatCurrency(displayedLandAcquisitionCosts)} (6% of ${formatCurrency(landValue)})`
-              : 'Manual override value'}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.groupSection}>
-        <Text style={styles.groupSectionTitle}>Plot Size</Text>
-        <View style={styles.card}>
-          <SliderInput
-            label="Plot size"
-            subtitle=""
-            value={plotSize}
-            onChangeValue={setPlotSize}
-            min={500}
-            max={10000}
-            step={100}
-            suffix={SQUARE_METER_UNIT}
-            testID="slider-plot-size"
-          />
-        </View>
       </View>
 
       <View style={styles.groupSection}>
@@ -2056,11 +2059,12 @@ export default function EstimateScreen() {
         keyboardShouldPersistTaps="handled"
       >
 
-      {renderSiteParametersGroup()}
+      {renderLandPlotGroup()}
       {renderConstructionBenchmarkGroup()}
       {renderBuildingDefinitionGroup()}
       {renderOutdoorAdditionsGroup()}
       {renderSystemsUpgradesGroup()}
+      {renderSiteParametersGroup()}
       {renderFeesMarginsGroup()}
 
       <TouchableOpacity
