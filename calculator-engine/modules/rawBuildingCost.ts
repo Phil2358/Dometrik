@@ -32,14 +32,17 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
   const baseCostPerSqm =
     input.customCostPerSqm ?? quality.baseCostPerSqm
 
-  const costPerSqm =
-    Math.round(baseCostPerSqm * location.multiplier)
-
   const sizeCorrectionFactor =
     getSizeCorrectionFactor(input.buildingArea)
 
+  const sizeAdjustedCostPerSqm =
+    Math.round(baseCostPerSqm * sizeCorrectionFactor)
+
+  const costPerSqm =
+    Math.round(baseCostPerSqm * location.multiplier)
+
   const correctedCostPerSqm =
-    Math.round(costPerSqm * sizeCorrectionFactor)
+    Math.round(sizeAdjustedCostPerSqm * location.multiplier)
 
   const rawBuildingCost =
     Math.round(input.buildingArea * correctedCostPerSqm)
@@ -54,6 +57,7 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
     baseCostPerSqm,
     costPerSqm,
     sizeCorrectionFactor,
+    sizeAdjustedCostPerSqm,
     correctedCostPerSqm,
     rawBuildingCost: kg300Base + kg400Base,
     baseConstructionCost: rawBuildingCost,

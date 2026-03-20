@@ -54,7 +54,7 @@ import {
   CONTRACTOR_MIN_PERCENTAGE,
   CONTRACTOR_MAX_PERCENTAGE,
   CONTRACTOR_STEP,
-  getSizeCorrectionLabel,
+  formatSizeCorrectionFactorLabel,
 } from '@/constants/construction';
 import { formatCurrency, formatDecimal, formatNumber } from '@/utils/format';
 
@@ -613,7 +613,7 @@ export default function EstimateScreen() {
   } = useEstimate();
 
   const isLargeProject = permitDesignBuildingArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
-  const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
+  const sizeCorrectionLabel = formatSizeCorrectionFactorLabel(sizeCorrectionFactor);
   const displaySizeCorrectionLabel = sizeCorrectionLabel.toLowerCase() === 'base'
     ? '0%'
     : sanitizeEstimateText(sizeCorrectionLabel);

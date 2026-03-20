@@ -35,9 +35,9 @@ export interface CostCategory {
   description: string;
 }
 
-export const ECONOMY_BENCHMARK_BASE_COST_PER_SQM = 1545;
-export const MID_RANGE_BENCHMARK_BASE_COST_PER_SQM = 1850;
-export const LUXURY_BENCHMARK_BASE_COST_PER_SQM = 2220;
+export const ECONOMY_BENCHMARK_BASE_COST_PER_SQM = 1430;
+export const MID_RANGE_BENCHMARK_BASE_COST_PER_SQM = 1710;
+export const LUXURY_BENCHMARK_BASE_COST_PER_SQM = 2150;
 export const DEFAULT_QUALITY_ID: QualityId = 'midRange';
 
 export function normalizeQualityId(value: CompatibleQualityId | string | null | undefined): QualityId {
@@ -100,18 +100,16 @@ export const BASEMENT_KG300_SUBGROUP_FACTORS = {
 } as const;
 
 export const LOCATIONS: Location[] = [
-  { id: 'corfu', name: 'Corfu', region: 'Ionian Islands', multiplier: 1.15 },
   { id: 'athens', name: 'Athens', region: 'Attica', multiplier: 1.00 },
-  { id: 'thessaloniki', name: 'Thessaloniki', region: 'Central Macedonia', multiplier: 0.95 },
-  { id: 'mykonos', name: 'Mykonos', region: 'Cyclades', multiplier: 1.35 },
-  { id: 'santorini', name: 'Santorini', region: 'Cyclades', multiplier: 1.30 },
-  { id: 'crete', name: 'Crete (Chania)', region: 'Crete', multiplier: 1.08 },
-  { id: 'rhodes', name: 'Rhodes', region: 'Dodecanese', multiplier: 1.10 },
-  { id: 'paros', name: 'Paros', region: 'Cyclades', multiplier: 1.20 },
-  { id: 'peloponnese', name: 'Peloponnese', region: 'Peloponnese', multiplier: 0.95 },
-  { id: 'lefkada', name: 'Lefkada', region: 'Ionian Islands', multiplier: 1.12 },
-  { id: 'zakynthos', name: 'Zakynthos', region: 'Ionian Islands', multiplier: 1.10 },
-  { id: 'kefalonia', name: 'Kefalonia', region: 'Ionian Islands', multiplier: 1.12 },
+  { id: 'thessaloniki', name: 'Thessaloniki', region: 'Central Macedonia', multiplier: 1.00 },
+  { id: 'peloponnese', name: 'Peloponnese', region: 'Peloponnese', multiplier: 1.00 },
+  { id: 'crete', name: 'Crete (Chania)', region: 'Crete', multiplier: 1.05 },
+  { id: 'corfu', name: 'Corfu', region: 'Ionian Islands', multiplier: 1.08 },
+  { id: 'rhodes', name: 'Rhodes', region: 'Dodecanese', multiplier: 1.08 },
+  { id: 'paros', name: 'Paros', region: 'Cyclades', multiplier: 1.10 },
+  { id: 'paxos_antipaxos', name: 'Paxos / Antipaxos', region: 'Ionian Islands', multiplier: 1.10 },
+  { id: 'santorini', name: 'Santorini', region: 'Cyclades', multiplier: 1.10 },
+  { id: 'mykonos', name: 'Mykonos', region: 'Cyclades', multiplier: 1.10 },
 ];
 
 export const QUALITY_LEVELS: QualityLevel[] = [
@@ -419,20 +417,80 @@ export const LANDSCAPING_BASE_COST_PER_SQM = 40;
 
 export const BASE_EXCAVATION_COST_PER_SQM = 80;
 
-export function getSizeCorrectionFactor(livingArea: number): number {
-  if (livingArea < 120) return 1.10;
-  if (livingArea < 160) return 1.05;
-  if (livingArea < 220) return 1.00;
-  if (livingArea < 300) return 0.95;
-  return 0.90;
+interface SizeCorrectionAnchor {
+  area: number;
+  factor: number;
 }
 
-export function getSizeCorrectionLabel(livingArea: number): string {
-  if (livingArea < 120) return '+10%';
-  if (livingArea < 160) return '+5%';
-  if (livingArea < 220) return 'base';
-  if (livingArea < 300) return '-5%';
-  return '-10%';
+export const SIZE_CORRECTION_ANCHORS: SizeCorrectionAnchor[] = [
+  { area: 20, factor: 1.03 },
+  { area: 40, factor: 1.027 },
+  { area: 60, factor: 1.022 },
+  { area: 90, factor: 1.012 },
+  { area: 130, factor: 1.0 },
+  { area: 180, factor: 0.992 },
+  { area: 250, factor: 0.985 },
+  { area: 350, factor: 0.975 },
+  { area: 500, factor: 0.965 },
+  { area: 700, factor: 0.955 },
+];
+
+function interpolateLinearly(
+  value: number,
+  startValue: number,
+  startFactor: number,
+  endValue: number,
+  endFactor: number,
+): number {
+  if (endValue === startValue) return startFactor;
+
+  return startFactor + ((value - startValue) / (endValue - startValue)) * (endFactor - startFactor);
+}
+
+export function getSizeCorrectionFactor(livingArea: number): number {
+  const resolvedArea = Math.max(0, livingArea);
+  const firstAnchor = SIZE_CORRECTION_ANCHORS[0];
+  const lastAnchor = SIZE_CORRECTION_ANCHORS[SIZE_CORRECTION_ANCHORS.length - 1];
+
+  if (resolvedArea <= firstAnchor.area) {
+    return firstAnchor.factor;
+  }
+
+  if (resolvedArea >= lastAnchor.area) {
+    return lastAnchor.factor;
+  }
+
+  for (let index = 1; index < SIZE_CORRECTION_ANCHORS.length; index += 1) {
+    const previousAnchor = SIZE_CORRECTION_ANCHORS[index - 1];
+    const currentAnchor = SIZE_CORRECTION_ANCHORS[index];
+
+    if (resolvedArea <= currentAnchor.area) {
+      return Number(
+        interpolateLinearly(
+          resolvedArea,
+          previousAnchor.area,
+          previousAnchor.factor,
+          currentAnchor.area,
+          currentAnchor.factor,
+        ).toFixed(6),
+      );
+    }
+  }
+
+  return lastAnchor.factor;
+}
+
+export function formatSizeCorrectionFactorLabel(factor: number): string {
+  const adjustmentPercent = Math.round((factor - 1) * 1000) / 10;
+
+  if (adjustmentPercent === 0) {
+    return 'base';
+  }
+
+  const fractionDigits = Number.isInteger(adjustmentPercent) ? 0 : 1;
+  const formattedPercent = formatDisplayNumber(Math.abs(adjustmentPercent), fractionDigits);
+
+  return `${adjustmentPercent > 0 ? '+' : '-'}${formattedPercent}%`;
 }
 
 export function getBasementExcavationCost(

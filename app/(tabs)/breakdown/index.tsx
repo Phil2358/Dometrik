@@ -55,7 +55,7 @@ import type { UserMode } from '@/contexts/UserModeContext';
 import {
   DISCLAIMER_TEXT,
   CONSTRUCTION_SUBTOTAL_DISCLAIMER,
-  getSizeCorrectionLabel,
+  formatSizeCorrectionFactorLabel,
 } from '@/constants/construction';
 import { getDin276Group, getDin276Subgroup } from '@/constants/din276Groups';
 import type { ProjectBreakdownGroup, ProjectBreakdownSubgroup } from '@/calculator-engine/buildProjectCostBreakdown';
@@ -473,7 +473,7 @@ export default function BreakdownScreen() {
     hvacCosts,
     mainArea,
     buildingArea,
-    correctedCostPerSqm,
+    finalCostPerSqm,
     basementBenchmarkRate,
     baseBuildingAreaBenchmarkContribution,
     coveredTerracesBenchmarkContribution,
@@ -502,7 +502,7 @@ export default function BreakdownScreen() {
     sizeCorrectionFactor,
   } = useEstimate();
 
-  const sizeCorrectionLabel = getSizeCorrectionLabel(mainArea);
+  const sizeCorrectionLabel = formatSizeCorrectionFactorLabel(sizeCorrectionFactor);
   const enabledHvac = hvacCosts.filter((h) => h.enabled);
   const basementSummary = formatBasementSummary(
     storageBasementArea,
@@ -653,7 +653,7 @@ export default function BreakdownScreen() {
             <Text style={styles.basementTotal}>{formatCurrency(terraceBalconyBenchmarkContribution)}</Text>
           </View>
           <Text style={styles.basementRate}>
-            {`Benchmark rate source: ${formatCurrency(correctedCostPerSqm)}/${SQUARE_METER_UNIT}`}
+            {`Benchmark rate source: ${formatCurrency(finalCostPerSqm)}/${SQUARE_METER_UNIT}`}
           </Text>
           <View style={styles.basementRow}>
             <Text style={styles.basementLabel}>Base Building Area Benchmark Contribution</Text>

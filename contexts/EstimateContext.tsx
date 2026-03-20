@@ -23,7 +23,6 @@ import {
   UTILITY_CONNECTION_OPTIONS,
   GROUNDWATER_CONDITIONS,
   SITE_ACCESSIBILITY_OPTIONS,
-  getSizeCorrectionFactor,
   type AutomationPackageLevel,
   type CompatibleQualityId,
   type DataSecurityPackageLevel,
@@ -905,16 +904,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const group250Cost = 0;
   const siteAccessibilityCost = group250Cost;
 
-  const baseCostPerSqm = customCostPerSqm ?? quality.baseCostPerSqm;
-  const costPerSqm = Math.round(baseCostPerSqm * location.multiplier);
-
-  const sizeCorrectionFactor = useMemo(
-    () => getSizeCorrectionFactor(mainArea),
-    [mainArea],
-  );
-
-  const correctedCostPerSqm = Math.round(baseCostPerSqm * sizeCorrectionFactor);
-  const finalCostPerSqm = Math.round(correctedCostPerSqm * location.multiplier);
   const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms;
   const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms;
   const wcDelta = wcs - residentialProgramBaseline.wcs;
@@ -958,6 +947,11 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     qualityId,
     customCostPerSqm,
   ]);
+  const baseCostPerSqm = benchmarkBuildingCost.baseCostPerSqm;
+  const costPerSqm = benchmarkBuildingCost.costPerSqm;
+  const sizeCorrectionFactor = benchmarkBuildingCost.sizeCorrectionFactor;
+  const correctedCostPerSqm = benchmarkBuildingCost.sizeAdjustedCostPerSqm;
+  const finalCostPerSqm = benchmarkBuildingCost.correctedCostPerSqm;
   const siteExcavationBaseCost = useMemo(
     () => Math.max(300, Math.round(Math.max(0, buildingArea) + Math.max(0, landscapingArea))),
     [buildingArea, landscapingArea],

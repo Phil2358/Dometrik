@@ -1,4 +1,4 @@
-import { formatEuro } from '@/constants/construction';
+import { formatEuro, formatSizeCorrectionFactorLabel } from '@/constants/construction';
 import { formatBasementSummary } from '@/utils/computeScenarioCosts';
 
 export interface ClientReportData {
@@ -67,6 +67,8 @@ const CHART_COLORS = [
 ];
 
 function getSizeCorrectionText(factor: number): string {
+  const label = formatSizeCorrectionFactorLabel(factor);
+  return label === 'base' ? 'none' : label;
   if (factor > 1.05) return '+10%';
   if (factor > 1.0) return '+5%';
   if (factor < 0.95) return '−10%';
