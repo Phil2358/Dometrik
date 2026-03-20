@@ -1259,35 +1259,6 @@ export default function EstimateScreen() {
       onToggle={() => setShowPlotExternalGroup((prev) => !prev)}
     >
       <View style={styles.groupSection}>
-        <Text style={styles.groupSectionTitle}>Location</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-        >
-          {LOCATIONS.map((loc) => {
-            const isSelected = locationId === loc.id;
-            return (
-              <TouchableOpacity
-                key={loc.id}
-                activeOpacity={0.7}
-                style={[styles.chip, isSelected && styles.chipSelected]}
-                onPress={() => handleLocationSelect(loc.id)}
-                testID={`location-${loc.id}`}
-              >
-                <Text style={[styles.chipName, isSelected && styles.chipNameSelected]}>
-                  {loc.name}
-                </Text>
-                <Text style={[styles.chipMult, isSelected && styles.chipMultSelected]}>
-                  {MULTIPLY_SYMBOL}{formatDecimal(loc.multiplier, 2)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      <View style={styles.groupSection}>
         <Text style={styles.groupSectionTitle}>Site Conditions & Infrastructure</Text>
 
         <View style={styles.groupNestedBlock}>
@@ -1763,6 +1734,35 @@ export default function EstimateScreen() {
       expanded={showBenchmarkGroup}
       onToggle={() => setShowBenchmarkGroup((prev) => !prev)}
     >
+      <View style={styles.groupSection}>
+        <Text style={styles.groupSectionTitle}>Location</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
+          {LOCATIONS.map((loc) => {
+            const isSelected = locationId === loc.id;
+            return (
+              <TouchableOpacity
+                key={loc.id}
+                activeOpacity={0.7}
+                style={[styles.chip, isSelected && styles.chipSelected]}
+                onPress={() => handleLocationSelect(loc.id)}
+                testID={`location-${loc.id}`}
+              >
+                <Text style={[styles.chipName, isSelected && styles.chipNameSelected]}>
+                  {loc.name}
+                </Text>
+                <Text style={[styles.chipMult, isSelected && styles.chipMultSelected]}>
+                  {MULTIPLY_SYMBOL}{formatDecimal(loc.multiplier, 2)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       <View style={styles.groupSection}>
         <View style={styles.groupSectionHeader}>
           <Text style={styles.groupSectionHeaderTitle}>Quality Benchmark Selection</Text>

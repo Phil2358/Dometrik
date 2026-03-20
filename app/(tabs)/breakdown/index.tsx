@@ -473,12 +473,9 @@ export default function BreakdownScreen() {
     hvacCosts,
     mainArea,
     buildingArea,
-    finalCostPerSqm,
     basementBenchmarkRate,
-    baseBuildingAreaBenchmarkContribution,
     coveredTerracesBenchmarkContribution,
     balconyAreaBenchmarkContribution,
-    totalBenchmarkContributionBeforeGroupAllocation,
     basementBaseCost,
     breakdownGroups,
     contractorCost,
@@ -511,8 +508,6 @@ export default function BreakdownScreen() {
   );
   const investmentTotal = projectTotalBeforeVat;
   const group100Total = breakdownGroups.find((group) => group.code === '100')?.subtotal ?? 0;
-  const terraceBalconyBenchmarkContribution =
-    coveredTerracesBenchmarkContribution + balconyAreaBenchmarkContribution;
 
   const dinGroups = useMemo<DinGroup[]>(() => {
     const enabledHvacIds = new Set(enabledHvac.map((item) => item.option.id));
@@ -645,42 +640,6 @@ export default function BreakdownScreen() {
       {dinGroups.map((group) => (
         <CollapsibleGroup key={group.code} group={group} />
       ))}
-
-      {terraceBalconyBenchmarkContribution > 0 && (
-        <View style={styles.basementCard}>
-          <View style={styles.basementHeaderRow}>
-            <Text style={styles.basementTitle}>Benchmark Contributions</Text>
-            <Text style={styles.basementTotal}>{formatCurrency(terraceBalconyBenchmarkContribution)}</Text>
-          </View>
-          <Text style={styles.basementRate}>
-            {`Benchmark rate source: ${formatCurrency(finalCostPerSqm)}/${SQUARE_METER_UNIT}`}
-          </Text>
-          <View style={styles.basementRow}>
-            <Text style={styles.basementLabel}>Base Building Area Benchmark Contribution</Text>
-            <Text style={styles.basementValue}>{formatCurrency(baseBuildingAreaBenchmarkContribution)}</Text>
-          </View>
-          {coveredTerracesBenchmarkContribution > 0 && (
-            <View style={styles.basementRow}>
-              <Text style={styles.basementLabel}>
-                {`Covered Terraces ${MIDDLE_DOT} ${formatNumber(terraceArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} 50%`}
-              </Text>
-              <Text style={styles.basementValue}>{formatCurrency(coveredTerracesBenchmarkContribution)}</Text>
-            </View>
-          )}
-          {balconyAreaBenchmarkContribution > 0 && (
-            <View style={styles.basementRow}>
-              <Text style={styles.basementLabel}>
-                {`Balcony Area ${MIDDLE_DOT} ${formatNumber(balconyArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} 30%`}
-              </Text>
-              <Text style={styles.basementValue}>{formatCurrency(balconyAreaBenchmarkContribution)}</Text>
-            </View>
-          )}
-          <View style={styles.basementRow}>
-            <Text style={styles.basementLabel}>Total Benchmark Contribution Before Group Allocation</Text>
-            <Text style={styles.basementValue}>{formatCurrency(totalBenchmarkContributionBeforeGroupAllocation)}</Text>
-          </View>
-        </View>
-      )}
 
       <View style={styles.constructionSubtotalCard}>
         <Text style={styles.constructionSubtotalLabel}>{`Construction Subtotal (KG 300${EN_DASH}600)`}</Text>
