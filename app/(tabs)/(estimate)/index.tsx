@@ -733,7 +733,6 @@ export default function EstimateScreen() {
       onToggle={() => setShowLandPlotGroup((prev) => !prev)}
     >
       <View style={styles.groupSection}>
-        <Text style={styles.groupSectionTitle}>Land Acquisition</Text>
         <View style={styles.card}>
           <SliderInput
             label="Land cost"
@@ -1861,9 +1860,14 @@ export default function EstimateScreen() {
                             </Text>
                           </TouchableOpacity>
                           {option.benchmarkLabel ? (
-                            <Text style={[styles.qualityLivePrice, isSelected && styles.qualityLivePriceSelected]}>
-                              {option.benchmarkLabel}
-                            </Text>
+                            <View style={styles.qualityLivePriceRow}>
+                              <Text style={[styles.qualityLivePrice, isSelected && styles.qualityLivePriceSelected]}>
+                                added location factor:{' '}
+                              </Text>
+                              <Text style={[styles.qualityLivePrice, isSelected && styles.qualityLivePriceSelected]}>
+                                {option.benchmarkLabel}
+                              </Text>
+                            </View>
                           ) : null}
                         </View>
                       ) : (
@@ -1877,13 +1881,6 @@ export default function EstimateScreen() {
               );
             })}
           </View>
-        </View>
-
-        <View style={styles.costBasisNote}>
-          <Info size={12} color={Colors.textTertiary} />
-          <Text style={styles.costBasisNoteText}>
-            The selected benchmark mainly applies to KG300, KG400, and KG600. Some parts of KG200 are also benchmark-linked, while other items are calculated separately.
-          </Text>
         </View>
 
         <View style={styles.card}>
@@ -2378,6 +2375,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
+  },
+  qualityLivePriceRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'baseline' as const,
+    justifyContent: 'flex-end' as const,
   },
   qualityLivePriceSelected: {
     color: Colors.accent,
@@ -2928,21 +2930,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.borderLight,
     marginVertical: 10,
-  },
-  costBasisNote: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    gap: 6,
-    marginHorizontal: 16,
-    marginTop: 6,
-    marginBottom: 2,
-    paddingHorizontal: 4,
-  },
-  costBasisNoteText: {
-    flex: 1,
-    fontSize: 11,
-    color: Colors.textTertiary,
-    lineHeight: 16,
   },
   warningCard: {
     flexDirection: 'row' as const,
