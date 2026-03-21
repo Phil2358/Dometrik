@@ -31,6 +31,8 @@ export interface ClientReportData {
   kg500Total: number;
   kg600Cost: number;
   basementBaseCost: number;
+  basementKg300Total: number;
+  basementKg400Total: number;
   permitDesignFee: number;
   contingencyCost: number;
   contractorCost: number;
@@ -93,6 +95,7 @@ function buildAssumptions(data: ClientReportData): string[] {
   }
   if (data.basementArea > 0) {
     assumptions.push(`Basement mix: ${formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea)}`);
+    assumptions.push(`Basement DIN contribution: ${formatEuro(data.basementBaseCost)} integrated into KG 300 and KG 400`);
   }
   if (data.includePool) {
     assumptions.push(`${data.poolQualityName} · ${data.poolTypeName}`);
@@ -118,7 +121,6 @@ function buildChartSegments(data: ClientReportData): ChartSegment[] {
     { label: 'Structure', value: data.kg300Cost },
     { label: 'Technical systems', value: data.kg400Total },
     { label: 'Interior fit-out', value: data.kg600Cost },
-    { label: 'Basement', value: data.basementBaseCost },
     { label: 'External works', value: data.kg500Total },
     { label: 'Planning & fees', value: data.permitDesignFee },
   ];
@@ -192,7 +194,6 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     { label: 'Building construction (KG 300)', value: data.kg300Cost },
     { label: 'Technical systems (KG 400)', value: data.kg400Total },
     { label: 'Built-in equipment (KG 600)', value: data.kg600Cost },
-    { label: 'Basement (separate bucket)', value: data.basementBaseCost },
     { label: 'External works (KG 500)', value: data.kg500Total },
     { label: 'Planning & professional fees (KG 700)', value: data.permitDesignFee },
     { label: 'Construction contingency', value: data.contingencyCost },
@@ -221,6 +222,9 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
   overviewItems.push({ label: 'Total benchmark before allocation', value: formatEuro(data.totalBenchmarkContributionBeforeGroupAllocation) });
   if (data.basementArea > 0) {
     overviewItems.push({ label: 'Basement', value: formatBasementSummary(data.storageBasementArea, data.parkingBasementArea, data.habitableBasementArea) });
+    overviewItems.push({ label: 'Basement contribution', value: `${formatEuro(data.basementBaseCost)} integrated into DIN` });
+    overviewItems.push({ label: 'Basement -> KG 300', value: formatEuro(data.basementKg300Total) });
+    overviewItems.push({ label: 'Basement -> KG 400', value: formatEuro(data.basementKg400Total) });
   }
   if (data.includePool) {
     overviewItems.push({ label: 'Swimming pool', value: `${data.poolArea} m² · ${data.poolDepth.toFixed(2)} m · ${data.poolTypeName}` });
@@ -257,7 +261,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     )
     .join('');
 
-  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300 + KG 400 + KG 600) from above-ground building area only. Covered Terraces and Balcony Area do not count into building area; instead, they feed upstream into the benchmark allocation as weighted benchmark contributions using the corrected benchmark rate. Basement is calculated separately as its own bucket. Site preparation (KG 200), external works (KG 500), contractor margin, planning costs, and VAT are calculated separately. A size-dependent cost correction is applied to reflect economies of scale.`;
+  const costBasisNote = `The base construction cost reflects direct building construction costs (KG 300 + KG 400 + KG 600). Building Area drives the above-ground benchmark directly. Covered Terraces and Balcony Area do not count into building area; instead, they feed upstream into the benchmark allocation as weighted benchmark contributions using the corrected benchmark rate. Basement is benchmarked separately by basement type, then merged into KG 300 and KG 400 for DIN reporting. Site preparation (KG 200), external works (KG 500), contractor margin, planning costs, and VAT are calculated separately. A size-dependent cost correction is applied to reflect economies of scale.`;
 
   return `<!DOCTYPE html>
 <html>

@@ -196,6 +196,35 @@ export interface ProjectCostResult {
   breakdownGroups: ProjectBreakdownGroup[]
 }
 
+function addCostsById(
+  left: Record<string, number>,
+  right: Record<string, number>
+): Record<string, number> {
+  const categoryIds = new Set([...Object.keys(left), ...Object.keys(right)])
+
+  return Array.from(categoryIds).reduce<Record<string, number>>((sum, categoryId) => {
+    sum[categoryId] = (left[categoryId] ?? 0) + (right[categoryId] ?? 0)
+    return sum
+  }, {})
+}
+
+function addKg300SubgroupCosts(
+  left: ProjectCostResult["kg300SubgroupCosts"],
+  right: ProjectCostResult["kg300SubgroupCosts"]
+): ProjectCostResult["kg300SubgroupCosts"] {
+  return {
+    subgroup310Cost: left.subgroup310Cost + right.subgroup310Cost,
+    subgroup320Cost: left.subgroup320Cost + right.subgroup320Cost,
+    subgroup330Cost: left.subgroup330Cost + right.subgroup330Cost,
+    subgroup340Cost: left.subgroup340Cost + right.subgroup340Cost,
+    subgroup350Cost: left.subgroup350Cost + right.subgroup350Cost,
+    subgroup360Cost: left.subgroup360Cost + right.subgroup360Cost,
+    subgroup370Cost: left.subgroup370Cost + right.subgroup370Cost,
+    subgroup380Cost: left.subgroup380Cost + right.subgroup380Cost,
+    subgroup390Cost: left.subgroup390Cost + right.subgroup390Cost,
+  }
+}
+
 export function calculateProjectCost(input: ProjectCalculationInput): ProjectCostResult {
   const totalBasementArea =
     (input.storageBasementArea ?? 0) +
@@ -387,6 +416,13 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     })
   const kg300Total = kg300ModifierResult.kg300Total
   const kg300SubgroupCosts = kg300ModifierResult.kg300SubgroupCosts
+  const mergedKg300SubgroupCosts =
+    addKg300SubgroupCosts(kg300SubgroupCosts, basementKg300ModifierResult.kg300SubgroupCosts)
+  const mergedKg300Total = kg300Total + basementKg300Total
+  const mergedKg400CategoryCostsById =
+    addCostsById(kg400Costs.categoryCostsById, basementBaseCosts.basementKg400CategoryCostsById)
+  const mergedKg400Total =
+    Object.values(mergedKg400CategoryCostsById).reduce((sum, cost) => sum + cost, 0)
 
 
   // -----------------------------------------
@@ -446,7 +482,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const kg700Total = kg700SubgroupResult.kg700Total
 
   const constructionSubtotal =
-    kg300Total + kg400Costs.kg400Total + kg600Costs.kg600Cost
+    mergedKg300Total + mergedKg400Total + kg600Costs.kg600Cost
 
   const contingencyCosts =
     calculateContingencyCosts({
@@ -471,7 +507,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const coreProjectTotal =
       kg200Costs.kg200Total
     + constructionSubtotal
-    + basementBaseCost
     + kg500Total
     + kg700Total
     + contingencyCosts.contingencyCost
@@ -487,8 +522,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     + kg700Total
 
   const nonDinAdditionsSubtotal =
-      basementBaseCost
-    + contractorMarginCosts.contractorCost
+      contractorMarginCosts.contractorCost
     + contingencyCosts.contingencyCost
     + efkaCosts.appliedCost
 
@@ -514,10 +548,10 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       siteExcavationCost: kg200Costs.siteExcavationCost,
       utilityGroup220Cost: kg200Costs.group220Cost,
       utilityGroup230Cost: kg200Costs.group230Cost,
-      kg300Total,
-      kg300SubgroupCosts,
-      kg400Total: kg400Costs.kg400Total,
-      kg400CategoryCostsById: kg400Costs.categoryCostsById,
+      kg300Total: mergedKg300Total,
+      kg300SubgroupCosts: mergedKg300SubgroupCosts,
+      kg400Total: mergedKg400Total,
+      kg400CategoryCostsById: mergedKg400CategoryCostsById,
       kg500Subgroups: kg500SubgroupResult.kg500Subgroups,
       hvacSelections: input.hvacSelections,
       siteConditionId: input.siteConditionId,
@@ -582,8 +616,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     efkaInsuranceManualOverrideActive: efkaCosts.manualOverrideActive,
     kg100Total: kg100Costs.kg100Total,
     kg200Total: kg200Costs.kg200Total,
-    kg300Total,
-    kg400Total: kg400Costs.kg400Total,
+    kg300Total: mergedKg300Total,
+    kg400Total: mergedKg400Total,
     kg500Total,
     kg700Total,
     kg600Cost: kg600Costs.kg600Cost,
@@ -608,7 +642,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     parkingBasementCost: basementBaseCosts.parkingBasementCost,
     habitableBasementCost: basementBaseCosts.habitableBasementCost,
     basementCostItems: basementBaseCosts.breakdownItems,
-    kg300SubgroupCosts,
+    kg300SubgroupCosts: mergedKg300SubgroupCosts,
     kg300ModifierDetails: kg300ModifierResult.modifierDetails,
     kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
     kg500Subgroups: kg500SubgroupResult.kg500Subgroups,

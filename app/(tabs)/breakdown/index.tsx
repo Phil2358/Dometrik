@@ -333,6 +333,8 @@ function GenerateReportButton() {
     kg600SubgroupCosts,
     bathroomWcFurnishingSliceCost,
     basementBaseCost,
+    basementKg300Total,
+    basementBucket400,
     permitDesignFee,
     contingencyCost,
     contractorCost,
@@ -382,6 +384,8 @@ function GenerateReportButton() {
         kg500Total,
         kg600Cost,
         basementBaseCost,
+        basementKg300Total,
+        basementKg400Total: basementBucket400,
         permitDesignFee,
         contingencyCost,
         contractorCost,
@@ -428,7 +432,7 @@ function GenerateReportButton() {
     includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption,
     siteCondition, groundwaterCondition, siteAccessibility, hvacCosts, kg200Total, kg300Total, kg400Total, kg500Total,
     kg600Cost, baseBuildingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation, permitDesignFee, contingencyCost, contractorCost, projectTotalBeforeVat, estimatedRangeLow, estimatedRangeHigh,
-    constructionSubtotal, basementBaseCost, contingencyPercent, sizeCorrectionFactor,
+    constructionSubtotal, basementBaseCost, basementKg300Total, basementBucket400, contingencyPercent, sizeCorrectionFactor,
     userMode,
   ]);
 
@@ -478,6 +482,8 @@ export default function BreakdownScreen() {
     mainArea,
     buildingArea,
     basementBenchmarkRate,
+    basementKg300Total,
+    basementBucket400,
     coveredTerracesBenchmarkContribution,
     balconyAreaBenchmarkContribution,
     basementBaseCost,
@@ -579,6 +585,12 @@ export default function BreakdownScreen() {
             <View style={styles.assumptionItem}>
               <Text style={styles.assumptionLabel}>Basement</Text>
               <Text style={styles.assumptionValue}>{basementSummary}</Text>
+            </View>
+          )}
+          {basementBaseCost > 0 && (
+            <View style={styles.assumptionItem}>
+              <Text style={styles.assumptionLabel}>Basement DIN contribution</Text>
+              <Text style={styles.assumptionValue}>{`${formatCurrency(basementBaseCost)} included in KG 300/KG 400 (${formatCurrency(basementKg300Total)} + ${formatCurrency(basementBucket400)})`}</Text>
             </View>
           )}
           {terraceArea > 0 && (
@@ -690,7 +702,7 @@ export default function BreakdownScreen() {
         </View>
         <View style={styles.grandTotalBreakdown}>
           <Text style={styles.grandTotalBreakdownText}>
-            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + Basement ${formatCurrency(basementBaseCost)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + e-EFKA ${formatCurrency(efkaInsuranceAmount)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
+            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + e-EFKA ${formatCurrency(efkaInsuranceAmount)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
           </Text>
         </View>
       </View>

@@ -143,8 +143,10 @@ function getGroupedCostRows(scenarios: ComputedScenarioCosts[]): CostGroupRow[] 
   rows.push(makeRow('Technical systems', (s) => s.kg400Total));
   rows.push(makeRow('Built-in equipment', (s) => s.kg600Cost));
 
-  rows.push(makeRow('Basement', (s) => s.basementBaseCost, { isGroupHeader: true }));
-  rows.push(makeRow('Basement base bucket', (s) => s.basementBaseCost));
+  rows.push(makeRow('Basement traceability', (s) => s.basementBaseCost, { isGroupHeader: true }));
+  rows.push(makeRow('Basement contribution (included in DIN)', (s) => s.basementBaseCost));
+  rows.push(makeRow('Basement -> KG 300', (s) => s.basementKg300Total));
+  rows.push(makeRow('Basement -> KG 400', (s) => s.basementKg400Total));
 
   rows.push(makeRow('Site & External', (s) => s.kg200Total + s.kg500Total, { isGroupHeader: true }));
   rows.push(makeRow('Site preparation', (s) => s.kg200Total));
@@ -176,7 +178,7 @@ function getLargestCostDriver(
     { label: 'Building construction', getter: (s) => s.kg300Cost },
     { label: 'Technical systems', getter: (s) => s.kg400Total },
     { label: 'Built-in equipment', getter: (s) => s.kg600Cost },
-    { label: 'Basement', getter: (s) => s.basementBaseCost },
+    { label: 'Basement contribution', getter: (s) => s.basementBaseCost },
     { label: 'Site preparation', getter: (s) => s.kg200Total },
     { label: 'External works', getter: (s) => s.kg500Total },
     { label: 'Planning & fees', getter: (s) => s.permitDesignFee },

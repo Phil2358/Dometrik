@@ -670,7 +670,7 @@ export const CONTINGENCY_PERCENTAGES: Record<QualityId, number> = {
   luxury: 0.20,
 };
 
-export const CONSTRUCTION_SUBTOTAL_DISCLAIMER = `The construction subtotal includes direct building construction costs (KG 300 + KG 400 + KG 600) with size correction applied.\nSite preparation (KG 200), external works (KG 500), and planning fees (KG 700) are calculated separately.`;
+export const CONSTRUCTION_SUBTOTAL_DISCLAIMER = `The construction subtotal includes direct building construction costs (KG 300 + KG 400 + KG 600), including basement contributions merged into KG 300 and KG 400, with size correction applied.\nSite preparation (KG 200), external works (KG 500), and planning fees (KG 700) are calculated separately.`;
 
 export const DIN276_GROUPS = {
   KG100: { code: 'KG 100', name: getDin276Group('100')?.label ?? 'Land' },

@@ -53,6 +53,8 @@ export interface ComputedScenarioCosts {
   balconyAreaBenchmarkContribution: number
   totalBenchmarkContributionBeforeGroupAllocation: number
   basementBaseCost: number
+  basementKg300Total: number
+  basementKg400Total: number
   permitFee: number
   permitDesignFee: number
   landscapingCost: number
@@ -167,6 +169,8 @@ export function computeScenarioCosts(config: CompareScenarioInput): ComputedScen
     balconyAreaBenchmarkContribution: result.balconyAreaBenchmarkContribution,
     totalBenchmarkContributionBeforeGroupAllocation: result.totalBenchmarkContributionBeforeGroupAllocation,
     basementBaseCost: result.basementBaseCost,
+    basementKg300Total: result.basementKg300Total,
+    basementKg400Total: result.basementBucket400,
     permitFee: result.permitFee,
     permitDesignFee: result.permitFee,
     landscapingCost: result.landscapingCost,

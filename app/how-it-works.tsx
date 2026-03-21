@@ -136,35 +136,38 @@ export default function HowItWorksScreen() {
           <View style={styles.definitionItem}>
             <Text style={styles.definitionLabel}>Benchmark Contributions</Text>
             <Text style={styles.definitionValue}>
-              Building Area feeds the core benchmark directly. Covered Terraces contribute at 50% of area and Balcony Area at 30% of area as separate upstream benchmark contributions. Basement remains a separate cost bucket.
+              Building Area feeds the core benchmark directly. Covered Terraces contribute at 50% of area and Balcony Area at 30% of area as separate upstream benchmark contributions. Basement is benchmarked separately by basement type, then merged into the main KG 300 and KG 400 totals.
             </Text>
           </View>
         </SectionCard>
 
         <SectionCard title="Site Condition Effects" icon={Mountain}>
           <Text style={styles.bodyText}>
-            Soil conditions, groundwater, and slope affect excavation costs in KG 200. These factors do not change the base building cost (KG 300–600).
+            Soil conditions, groundwater, and slope affect site preparation in KG 200 and also apply targeted surcharges to the basement-related KG 300 subgroups. The above-ground benchmark allocation for KG 300–600 does not change directly.
           </Text>
           <View style={styles.bulletList}>
             <Text style={styles.bullet}>• Terrain multipliers increase excavation, foundation, and landscaping costs</Text>
-            <Text style={styles.bullet}>• Rocky soil increases basement excavation costs</Text>
-            <Text style={styles.bullet}>• High groundwater increases waterproofing and drainage costs</Text>
+            <Text style={styles.bullet}>• Rocky or difficult terrain increases basement-related structural surcharges in KG 300</Text>
+            <Text style={styles.bullet}>• High groundwater increases basement waterproofing and below-grade structural costs</Text>
             <Text style={styles.bullet}>• Site accessibility affects material transport logistics</Text>
           </View>
         </SectionCard>
 
         <SectionCard title="Basement Cost Logic" icon={Layers}>
           <Text style={styles.bodyText}>
-            Basement cost is not a simple € /m² multiplier. It is calculated as two separate components:
+            Basement cost is not a simple € /m² multiplier. Each basement type is benchmarked separately, split into DIN groups, and then merged into the main DIN totals:
           </Text>
           <View style={styles.formulaCard}>
-            <Text style={styles.formulaLine}>Excavation component (KG 200)</Text>
-            <Text style={styles.formulaDetail}>Depends on basement area, soil, groundwater, slope</Text>
+            <Text style={styles.formulaLine}>Type-based basement benchmark</Text>
+            <Text style={styles.formulaDetail}>Area × corrected benchmark rate × basement type factor</Text>
             <View style={styles.formulaDivider} />
-            <Text style={styles.formulaLine}>Structure component (KG 300)</Text>
-            <Text style={styles.formulaDetail}>Slab, walls, reinforcement, waterproofing, insulation</Text>
+            <Text style={styles.formulaLine}>KG 300 share</Text>
+            <Text style={styles.formulaDetail}>Split into basement KG 300 subgroups, then adjusted for site condition, groundwater, and accessibility</Text>
+            <View style={styles.formulaDivider} />
+            <Text style={styles.formulaLine}>KG 400 share</Text>
+            <Text style={styles.formulaDetail}>Allocated into KG 400 categories and merged into the main KG 400 total</Text>
             <View style={styles.formulaTotalDivider} />
-            <Text style={styles.formulaTotal}>= Total basement cost</Text>
+            <Text style={styles.formulaTotal}>= Basement contribution included in the main DIN 300 / 400 totals</Text>
           </View>
         </SectionCard>
 
