@@ -1006,7 +1006,7 @@ export default function EstimateScreen() {
           ) : null}
           <View style={styles.divider} />
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>General Furniture</Text>
+            <Text style={styles.cardTitle}>KG 610 Furniture Allowance</Text>
           </View>
           <OverrideValueField
             value={formatNumber(appliedGeneralFurniture)}
@@ -1017,8 +1017,8 @@ export default function EstimateScreen() {
             editable={generalFurnitureCustomized}
             unit={` ${EURO_SYMBOL}`}
             helperText={generalFurnitureCustomized
-              ? `Automatic reference: ${formatCurrency(suggestedGeneralFurniture)} based on bedrooms and building area.`
-              : 'Automatically recommended based on bedrooms and building area.'}
+              ? `Automatic reference: ${formatCurrency(suggestedGeneralFurniture)} based on bedrooms, building area, kitchen count, and quality.`
+              : 'Automatically recommended from bedrooms, building area, kitchen count, and quality.'}
             onSetEditable={(nextEditable) => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

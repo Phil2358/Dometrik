@@ -206,10 +206,10 @@ function getSubgroupSublabel(
     case '580':
       return `Pool ${formatNumber(context.poolArea)} ${SQUARE_METER_UNIT} ${MIDDLE_DOT} ${context.poolQualityName} ${MIDDLE_DOT} ${context.poolTypeName}`;
     case '610':
-      return 'General movable furniture';
+      return `Bedroom packages ${MIDDLE_DOT} area-based furniture allowance ${MIDDLE_DOT} kitchen furniture packages`;
     case '620':
-      return Number(subgroup.meta?.bathroomWcFurnishingSliceCost ?? 0) > 0
-        ? `Kitchen ${MIDDLE_DOT} wardrobes ${MIDDLE_DOT} bathroom/WC furnishing slices`
+      return Number(subgroup.meta?.bathroomWcFurnishingSliceCost ?? 0) !== 0
+        ? `Kitchen ${MIDDLE_DOT} built-in wardrobes ${MIDDLE_DOT} bathroom/WC furnishing slices`
         : 'Kitchen, built-in wardrobes, fixed furniture';
     case '710':
       return 'Design, documentation, site supervision';

@@ -85,7 +85,7 @@ export default function HowItWorksScreen() {
           <View style={styles.bulletList}>
             <Text style={styles.bullet}>• KG 300 – Building construction (structure, walls, roof, insulation, windows, interior finishes)</Text>
             <Text style={styles.bullet}>• KG 400 – Technical systems (HVAC, electrical, plumbing)</Text>
-            <Text style={styles.bullet}>• KG 600 – Built-in equipment (kitchen, wardrobes, fixtures)</Text>
+            <Text style={styles.bullet}>• KG 600 – Built-in equipment (kitchen, built-in wardrobes, fixtures)</Text>
           </View>
           <View style={styles.infoBox}>
             <Text style={styles.infoBoxText}>

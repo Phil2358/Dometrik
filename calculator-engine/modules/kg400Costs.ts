@@ -5,7 +5,7 @@ import {
   type DataSecurityPackageLevel,
   KG400_AUTOMATION_UPLIFT_PER_SQM,
   KG400_BATHROOM_DELTA_BASE_COST,
-  KG400_BEDROOM_DELTA_BASE_COST,
+  KG400_BEDROOM_DELTA_BASE_COSTS,
   KG400_DATA_SECURITY_UPLIFT_PER_SQM,
   KG400_OPTION_PACKAGE_QUALITY_FACTORS,
   type Kg400PackageSelection,
@@ -110,25 +110,40 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
   const qualityPackageMultiplier =
     KG400_OPTION_PACKAGE_QUALITY_FACTORS[input.qualityId] ??
     KG400_OPTION_PACKAGE_QUALITY_FACTORS[DEFAULT_QUALITY_ID]
+  const bedroomDeltaBaseCost =
+    KG400_BEDROOM_DELTA_BASE_COSTS[input.qualityId] ??
+    KG400_BEDROOM_DELTA_BASE_COSTS[DEFAULT_QUALITY_ID]
   const benchmarkBucket400 = Math.max(0, input.benchmarkBucket400)
 
   const kg400BedroomDeltaCost =
-    Math.round(input.bedroomDelta * KG400_BEDROOM_DELTA_BASE_COST * qualityPackageMultiplier)
+    Math.round(input.bedroomDelta * bedroomDeltaBaseCost)
   const kg400BathroomDeltaCost =
     Math.round(input.bathroomDelta * KG400_BATHROOM_DELTA_BASE_COST * qualityPackageMultiplier)
   const kg400WcDeltaCost =
     Math.round(input.wcDelta * KG400_WC_DELTA_BASE_COST * qualityPackageMultiplier)
 
-  const kg400BedroomVentilationAdjustment = Math.round(kg400BedroomDeltaCost * 0.45)
+  const kg400BedroomHeatingAdjustment = Math.round(kg400BedroomDeltaCost * 0.20)
+  const kg400BedroomVentilationAdjustment = Math.round(kg400BedroomDeltaCost * 0.30)
   const kg400BedroomElectricalAdjustment =
-    kg400BedroomDeltaCost - kg400BedroomVentilationAdjustment
-  const kg400BathroomPlumbingAdjustment = Math.round(kg400BathroomDeltaCost * 0.75)
-  const kg400BathroomHeatingAdjustment = Math.round(kg400BathroomDeltaCost * 0.15)
+    kg400BedroomDeltaCost
+    - kg400BedroomHeatingAdjustment
+    - kg400BedroomVentilationAdjustment
+  const kg400BathroomPlumbingAdjustment = Math.round(kg400BathroomDeltaCost * 0.65)
+  const kg400BathroomHeatingAdjustment = Math.round(kg400BathroomDeltaCost * 0.10)
+  const kg400BathroomVentilationAdjustment = Math.round(kg400BathroomDeltaCost * 0.05)
   const kg400BathroomElectricalAdjustment =
-    kg400BathroomDeltaCost - kg400BathroomPlumbingAdjustment - kg400BathroomHeatingAdjustment
-  const kg400WcPlumbingAdjustment = Math.round(kg400WcDeltaCost * 0.80)
+    kg400BathroomDeltaCost
+    - kg400BathroomPlumbingAdjustment
+    - kg400BathroomHeatingAdjustment
+    - kg400BathroomVentilationAdjustment
+  const kg400WcPlumbingAdjustment = Math.round(kg400WcDeltaCost * 0.75)
+  const kg400WcHeatingAdjustment = Math.round(kg400WcDeltaCost * 0.05)
+  const kg400WcVentilationAdjustment = Math.round(kg400WcDeltaCost * 0.05)
   const kg400WcElectricalAdjustment =
-    kg400WcDeltaCost - kg400WcPlumbingAdjustment
+    kg400WcDeltaCost
+    - kg400WcPlumbingAdjustment
+    - kg400WcHeatingAdjustment
+    - kg400WcVentilationAdjustment
 
   const hvacCosts =
     calculateHvacExtras({
@@ -179,17 +194,21 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     ),
     heating: Math.max(
       0,
-      Math.round(
-        (benchmarkCategoryCostsById.heating ?? 0)
-        + kg400BathroomHeatingAdjustment
-        + (hvacCosts.adjustmentsByCategory.heating ?? 0)
-      )
+        Math.round(
+          (benchmarkCategoryCostsById.heating ?? 0)
+          + kg400BedroomHeatingAdjustment
+          + kg400BathroomHeatingAdjustment
+          + kg400WcHeatingAdjustment
+          + (hvacCosts.adjustmentsByCategory.heating ?? 0)
+        )
     ),
     ventilation_cooling: Math.max(
       0,
       Math.round(
         (benchmarkCategoryCostsById.ventilation_cooling ?? 0)
         + kg400BedroomVentilationAdjustment
+        + kg400BathroomVentilationAdjustment
+        + kg400WcVentilationAdjustment
       )
     ),
     electrical: Math.max(

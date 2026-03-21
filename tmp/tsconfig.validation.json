@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./before",
+    "rootDir": "..",
+    "module": "node16",
+    "moduleResolution": "node16"
+  },
+  "include": [
+    "../calculator-engine/**/*.ts",
+    "../constants/construction.ts",
+    "../constants/din276Groups.ts",
+    "../utils/format.ts"
+  ]
+}

@@ -55,9 +55,9 @@ export function normalizeQualityId(value: CompatibleQualityId | string | null | 
   }
 }
 
-export const BASE_GROUP_SHARE_KG200 = 0.015;
-export const BASE_GROUP_SHARE_KG300 = 0.64;
-export const BASE_GROUP_SHARE_KG400 = 0.345;
+export const BASE_GROUP_SHARE_KG200 = 0;
+export const BASE_GROUP_SHARE_KG300 = 0.65;
+export const BASE_GROUP_SHARE_KG400 = 0.35;
 
 export const KG300_BASE_SHARE = BASE_GROUP_SHARE_KG300;
 export const KG400_BASE_SHARE = BASE_GROUP_SHARE_KG400;
@@ -157,7 +157,26 @@ export const KG600_WARDROBE_PACKAGE_BASE_COST = 1800;
 export const KG600_GENERAL_FURNITURE_PER_BEDROOM_INCREMENT = 2500;
 export const KG600_EXTRA_BATHROOM_FURNISHING_SLICE_BASE_COST = 600;
 export const KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST = 300;
-export const KG400_BEDROOM_DELTA_BASE_COST = 1200;
+export const BEDROOM_PACKAGE_RATES: Record<QualityId, number> = {
+  economy: 2500,
+  midRange: 5000,
+  luxury: 10000,
+};
+export const AREA_610_RATES: Record<QualityId, number> = {
+  economy: 20,
+  midRange: 35,
+  luxury: 60,
+};
+export const KITCHEN_FURNITURE_PACKAGE_RATES: Record<QualityId, number> = {
+  economy: 1500,
+  midRange: 3000,
+  luxury: 6000,
+};
+export const KG400_BEDROOM_DELTA_BASE_COSTS: Record<QualityId, number> = {
+  economy: 950,
+  midRange: 1150,
+  luxury: 1350,
+};
 export const KG400_BATHROOM_DELTA_BASE_COST = 4500;
 export const KG400_WC_DELTA_BASE_COST = 2500;
 export const KG400_DATA_SECURITY_BASELINE_COST_PER_SQM = 6;
@@ -228,16 +247,25 @@ export function getKitchenAreaFactor(buildingArea: number): number {
   return 1.65;
 }
 
-export function getSuggestedGeneralFurniture(buildingArea: number, bedroomCount: number): number {
-  let areaBase = 4500;
+export function getSuggestedGeneralFurniture(
+  buildingArea: number,
+  qualityId: QualityId,
+  bedroomCount: number,
+  kitchenCount: number
+): number {
+  const resolvedBedroomCount = Math.max(0, bedroomCount);
+  const resolvedKitchenCount = Math.max(0, kitchenCount);
+  const bedroomPackageCost =
+    resolvedBedroomCount * (BEDROOM_PACKAGE_RATES[qualityId] ?? BEDROOM_PACKAGE_RATES[DEFAULT_QUALITY_ID]);
+  const areaBased610Cost =
+    Math.max(0, buildingArea) * (AREA_610_RATES[qualityId] ?? AREA_610_RATES[DEFAULT_QUALITY_ID]);
+  const kitchenFurnitureCost =
+    resolvedKitchenCount * (
+      KITCHEN_FURNITURE_PACKAGE_RATES[qualityId]
+      ?? KITCHEN_FURNITURE_PACKAGE_RATES[DEFAULT_QUALITY_ID]
+    );
 
-  if (buildingArea > 80) areaBase = 5500;
-  if (buildingArea > 140) areaBase = 7000;
-  if (buildingArea > 220) areaBase = 8500;
-  if (buildingArea > 320) areaBase = 10000;
-
-  const bedroomAdjustment = Math.max(0, bedroomCount - 1) * 500;
-  return areaBase + bedroomAdjustment;
+  return Math.round(bedroomPackageCost + areaBased610Cost + kitchenFurnitureCost);
 }
 
 export interface BasementType {

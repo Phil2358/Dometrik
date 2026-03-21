@@ -172,6 +172,11 @@ export interface ProjectCostResult {
   kg700Subgroups: ReturnType<typeof calculateKg700Subgroups>["kg700Subgroups"]
   suggestedKitchenUnitCost: number
   suggestedGeneralFurniture: number
+  bedroomPackageCost: number
+  areaBased610Cost: number
+  kitchenFurnitureCost: number
+  kg610AutoTotal: number
+  kg610Total: number
   kitchenUnitCost: number
   kitchenPackageCost: number
   wardrobePackageCost: number
@@ -350,8 +355,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       kitchenCount,
       customKitchenUnitCost: input.customKitchenUnitCost,
       generalFurniture: input.generalFurniture,
-      bathroomDelta,
-      wcDelta,
+      bathrooms,
+      wcs,
     })
 
 
@@ -372,7 +377,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     calculateLevel1BenchmarkAllocation({
       benchmarkTotal: totalBenchmarkContributionBeforeGroupAllocation,
       siteExcavationBaseCost: kg200Costs.siteExcavationBaseCost,
-      wardrobePackageCost: kg600Costs.wardrobePackageCost,
       qualityId,
     })
 
@@ -557,6 +561,9 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       siteConditionId: input.siteConditionId,
       kg600Cost: kg600Costs.kg600Cost,
       kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
+      bedroomPackageCost: kg600Costs.bedroomPackageCost,
+      areaBased610Cost: kg600Costs.areaBased610Cost,
+      kitchenFurnitureCost: kg600Costs.kitchenFurnitureCost,
       bathroomWcFurnishingSliceCost: kg600Costs.bathroomWcFurnishingSliceCost,
       kg700Subgroups: kg700SubgroupResult.kg700Subgroups,
     })
@@ -649,6 +656,11 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg700Subgroups: kg700SubgroupResult.kg700Subgroups,
     suggestedKitchenUnitCost: kg600Costs.suggestedKitchenUnitCost,
     suggestedGeneralFurniture: kg600Costs.suggestedGeneralFurniture,
+    bedroomPackageCost: kg600Costs.bedroomPackageCost,
+    areaBased610Cost: kg600Costs.areaBased610Cost,
+    kitchenFurnitureCost: kg600Costs.kitchenFurnitureCost,
+    kg610AutoTotal: kg600Costs.kg610AutoTotal,
+    kg610Total: kg600Costs.kg610Total,
     kitchenUnitCost: kg600Costs.kitchenUnitCost,
     kitchenPackageCost: kg600Costs.kitchenPackageCost,
     wardrobePackageCost: kg600Costs.wardrobePackageCost,

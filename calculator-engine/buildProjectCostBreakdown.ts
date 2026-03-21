@@ -44,6 +44,9 @@ interface BuildProjectCostBreakdownInput {
     subgroup610Cost: number
     subgroup620Cost: number
   }
+  bedroomPackageCost: number
+  areaBased610Cost: number
+  kitchenFurnitureCost: number
   bathroomWcFurnishingSliceCost: number
   kg700Subgroups: ProjectBreakdownSubgroup[]
 }
@@ -138,7 +141,16 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
       subtotal: input.kg600Cost,
       percentOfTotal: input.investmentTotal > 0 ? (input.kg600Cost / input.investmentTotal) * 100 : 0,
       subgroups: [
-        { code: "610", cost: input.kg600SubgroupCosts.subgroup610Cost, visible: input.kg600SubgroupCosts.subgroup610Cost > 0 },
+        {
+          code: "610",
+          cost: input.kg600SubgroupCosts.subgroup610Cost,
+          visible: input.kg600SubgroupCosts.subgroup610Cost > 0,
+          meta: {
+            bedroomPackageCost: input.bedroomPackageCost,
+            areaBased610Cost: input.areaBased610Cost,
+            kitchenFurnitureCost: input.kitchenFurnitureCost,
+          },
+        },
         {
           code: "620",
           cost: input.kg600SubgroupCosts.subgroup620Cost,
