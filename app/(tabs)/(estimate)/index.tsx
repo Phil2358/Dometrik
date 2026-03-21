@@ -487,7 +487,6 @@ export default function EstimateScreen() {
     setParkingBasementArea,
     habitableBasementArea,
     setHabitableBasementArea,
-    basementArea,
     includePool,
     setIncludePool,
     poolSizeId,
@@ -570,11 +569,11 @@ export default function EstimateScreen() {
     location,
     quality,
     buildingArea,
+    benchmarkEffectiveArea,
     benchmarkPreviewPerQuality,
     plotSize,
     setPlotSize,
     sizeCorrectionFactor,
-    correctedCostPerSqm,
     finalCostPerSqm,
     contractorCost,
     poolCost,
@@ -893,18 +892,6 @@ export default function EstimateScreen() {
             badge="85%"
             testID="slider-habitable-basement-area"
           />
-          {basementArea > 0 && (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.effectiveRow}>
-                <Text style={styles.effectiveLabel}>Basement Mix</Text>
-                <Text style={styles.effectiveValue}>{`${formatNumber(basementArea)} ${SQUARE_METER_UNIT}`}</Text>
-              </View>
-              <Text style={styles.effectiveFormula}>
-                {`${storageBasementArea > 0 ? `${formatNumber(storageBasementArea)} ${SQUARE_METER_UNIT} Storage/Technical Basement Area` : ''}${storageBasementArea > 0 && (parkingBasementArea > 0 || habitableBasementArea > 0) ? ` ${MIDDLE_DOT} ` : ''}${parkingBasementArea > 0 ? `${formatNumber(parkingBasementArea)} ${SQUARE_METER_UNIT} Parking Basement Area` : ''}${parkingBasementArea > 0 && habitableBasementArea > 0 ? ` ${MIDDLE_DOT} ` : ''}${habitableBasementArea > 0 ? `${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT} Habitable Basement Area` : ''}`}
-              </Text>
-            </>
-          )}
           <View style={styles.divider} />
           <SliderInput
             label="Covered Terraces"
@@ -928,6 +915,12 @@ export default function EstimateScreen() {
             max={80}
             step={5}
             testID="slider-balcony-area"
+          />
+          <View style={styles.divider} />
+          <HighlightSummaryRow
+            label="Benchmark Effective Area"
+            value={`${formatDecimal(benchmarkEffectiveArea, 2)} ${SQUARE_METER_UNIT}`}
+            subtitle="Weighted area used to apply the benchmark €/m². Building Area counts at 100%, while basement areas, covered terraces, and balconies contribute with their defined benchmark factors."
           />
         </View>
       </View>
@@ -1943,7 +1936,7 @@ export default function EstimateScreen() {
               styles.sizeCorrectionValue,
               sizeCorrectionFactor > 1 ? styles.sizeCorrectionUp : styles.sizeCorrectionDown,
             ]}>
-              {`${displaySizeCorrectionLabel} ${ARROW_SYMBOL} ${formatCurrency(correctedCostPerSqm)} /${SQUARE_METER_UNIT}`}
+              {displaySizeCorrectionLabel}
             </Text>
           </View>
         </View>

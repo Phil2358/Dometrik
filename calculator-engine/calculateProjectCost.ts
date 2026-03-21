@@ -113,6 +113,7 @@ export interface ProjectCostResult {
   sizeCorrectionFactor: number
   sizeAdjustedCostPerSqm: number
   correctedCostPerSqm: number
+  benchmarkEffectiveArea: number
   benchmarkPreviewPerQuality: Record<QualityId, number>
   residentialProgramBaseline: ReturnType<typeof getResidentialProgramBaseline>
   recommendedBedrooms: number
@@ -325,6 +326,13 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       parkingBasementArea: input.parkingBasementArea,
       habitableBasementArea: input.habitableBasementArea,
     })
+  const benchmarkEffectiveArea =
+    Math.max(0, buildingArea)
+    + basementBaseCosts.breakdownItems.reduce((sum, item) => (
+      sum + (Math.max(0, item.area) * item.benchmarkRateFactor)
+    ), 0)
+    + (Math.max(0, input.terraceArea) * 0.50)
+    + (Math.max(0, input.balconyArea) * 0.30)
 
 
   // -----------------------------------------
@@ -647,6 +655,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     sizeCorrectionFactor: buildingCost.sizeCorrectionFactor,
     sizeAdjustedCostPerSqm: buildingCost.sizeAdjustedCostPerSqm,
     correctedCostPerSqm: buildingCost.correctedCostPerSqm,
+    benchmarkEffectiveArea,
     benchmarkPreviewPerQuality,
     residentialProgramBaseline,
     recommendedBedrooms: residentialProgramBaseline.bedrooms,

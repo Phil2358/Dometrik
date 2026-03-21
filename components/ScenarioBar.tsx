@@ -15,7 +15,7 @@ import { Copy, Pencil, X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import type { QualityId } from '@/constants/construction';
 import { useEstimate } from '@/contexts/EstimateContext';
-import { formatNumber } from '@/utils/format';
+import { formatDecimal } from '@/utils/format';
 
 function getScenarioQualityMeta(scenario: { qualityId: QualityId; benchmarkOverridePerSqm: number | null }) {
   const manualSuffix = scenario.benchmarkOverridePerSqm !== null ? ' · Manual' : '';
@@ -41,6 +41,7 @@ export default function ScenarioBar() {
     renameScenario,
     deleteScenario,
     canCloneScenario,
+    scenarioBenchmarkEffectiveAreas,
   } = useEstimate();
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -119,6 +120,7 @@ export default function ScenarioBar() {
           const isEditing = editingIndex === index;
           const isOnlyScenario = scenarios.length <= 1;
           const qualityMeta = getScenarioQualityMeta(scenario);
+          const benchmarkEffectiveArea = scenarioBenchmarkEffectiveAreas[scenario.id] ?? 0;
 
           return (
             <View key={scenario.id} style={[s.tab, isActive && s.tabActive]}>
@@ -154,7 +156,7 @@ export default function ScenarioBar() {
                         <Text style={[s.qualityBadgeText, { color: qualityMeta.tone }]}>{qualityMeta.label}</Text>
                       </View>
                       <Text style={[s.tabMetaValue, isActive && s.tabMetaValueActive]}>
-                        {`${formatNumber(scenario.mainArea ?? 0)} m${String.fromCharCode(0x00B2)}`}
+                        {`${formatDecimal(benchmarkEffectiveArea, 2)} m${String.fromCharCode(0x00B2)}`}
                       </Text>
                     </View>
                   </View>

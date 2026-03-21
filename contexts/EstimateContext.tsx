@@ -1051,6 +1051,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   ]);
 
   const buildingArea = projectRollupResult.buildingArea;
+  const benchmarkEffectiveArea = projectRollupResult.benchmarkEffectiveArea;
   const baseCostPerSqm = projectRollupResult.baseCostPerSqm;
   const costPerSqm = projectRollupResult.locationAdjustedBaseCostPerSqm;
   const sizeCorrectionFactor = projectRollupResult.sizeCorrectionFactor;
@@ -1192,6 +1193,18 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     });
   }, [scenarios, serializeCurrentState]);
 
+  const allScenarioConfigs = useMemo(
+    () => getAllScenarioConfigs(),
+    [getAllScenarioConfigs, activeScenarioIndex],
+  );
+
+  const scenarioBenchmarkEffectiveAreas = useMemo(() => {
+    return allScenarioConfigs.reduce<Record<string, number>>((areas, scenario) => {
+      areas[scenario.id] = calculateProjectCost(scenario).benchmarkEffectiveArea;
+      return areas;
+    }, {});
+  }, [allScenarioConfigs]);
+
   return useMemo(() => ({
     locationId,
     setLocationId,
@@ -1313,6 +1326,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     location,
     quality,
     buildingArea,
+    benchmarkEffectiveArea,
     baseCostPerSqm,
     costPerSqm,
     sizeCorrectionFactor,
@@ -1398,6 +1412,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     renameScenario,
     deleteScenario,
     canCloneScenario,
+    scenarioBenchmarkEffectiveAreas,
     getAllScenarioConfigs,
     resetAllData,
   }), [
@@ -1436,7 +1451,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     efkaInsuranceManualCost, setEfkaInsuranceManualCost, efkaInsuranceAutoCost, efkaInsuranceAmount, efkaInsuranceManualOverrideActive,
     manualContingencyPercent, setManualContingencyPercent,
     manualContingencyCost, setManualContingencyCost, contingencyManualOverrideActive, appliedContingencyPercent,
-    location, quality, buildingArea, baseCostPerSqm, costPerSqm,
+    location, quality, buildingArea, benchmarkEffectiveArea, baseCostPerSqm, costPerSqm,
     sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm, benchmarkPreviewPerQuality,
     constructionCost, contractorCost, poolCost, permitDesignFee, totalCost, group100Total, projectTotalBeforeVat,
     utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, utilityConnectionCost, utilityGroup220Cost, utilityGroup230Cost,
@@ -1452,6 +1467,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     contingencyPercent, recommendedContingencyCost, contingencyCost, permitDesignBuildingArea,
     basementTotalCost, siteExcavationCost, breakdownGroups,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
-    getAllScenarioConfigs, resetAllData,
+    scenarioBenchmarkEffectiveAreas, getAllScenarioConfigs, resetAllData,
   ]);
 });
