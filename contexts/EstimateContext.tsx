@@ -80,7 +80,8 @@ export interface ScenarioConfig {
   bedroomCountMode?: ProgramCountMode;
   bedroomCountManualValue?: number | null;
   kitchenCount: number;
-  kitchenCountCustomized?: boolean;
+  kitchenCountMode?: ProgramCountMode;
+  kitchenCountManualValue?: number | null;
   customKitchenUnitCost: number | null;
   generalFurniture: number;
   generalFurnitureCustomized?: boolean;
@@ -102,6 +103,7 @@ type PersistedScenarioConfig = Omit<ScenarioConfig, 'qualityId'> & {
   effectiveArea?: number;
   generalFurnitureBaseAmount?: number;
   generalFurnitureBaseAmountCustomized?: boolean;
+  kitchenCountCustomized?: boolean;
 };
 
 const DEFAULT_LAND_ACQUISITION_PERCENTAGE = 0.06;
@@ -225,6 +227,7 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
       mainArea: persistedBuildingArea,
     })
   );
+  const recommendedKitchens = 1;
   const bathroomsMode = config.bathroomsMode ?? 'auto';
   const bathroomsManualValue = bathroomsMode === 'manual'
     ? Math.max(0, config.bathroomsManualValue ?? config.bathrooms ?? defaultProgramBaseline.bathrooms)
@@ -237,9 +240,14 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
   const bedroomCountManualValue = bedroomCountMode === 'manual'
     ? Math.max(1, config.bedroomCountManualValue ?? config.bedroomCount ?? defaultProgramBaseline.bedrooms)
     : null;
-  const kitchenCountCustomized = config.kitchenCountCustomized ?? (
-    config.kitchenCount !== undefined && config.kitchenCount !== 1
+  const kitchenCountMode = config.kitchenCountMode ?? (
+    config.kitchenCountCustomized
+      ? 'manual'
+      : 'auto'
   );
+  const kitchenCountManualValue = kitchenCountMode === 'manual'
+    ? Math.max(0, config.kitchenCountManualValue ?? config.kitchenCount ?? recommendedKitchens)
+    : null;
   const bathrooms = bathroomsMode === 'manual'
     ? (bathroomsManualValue ?? defaultProgramBaseline.bathrooms)
     : defaultProgramBaseline.bathrooms;
@@ -249,9 +257,9 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
   const bedroomCount = bedroomCountMode === 'manual'
     ? (bedroomCountManualValue ?? defaultProgramBaseline.bedrooms)
     : defaultProgramBaseline.bedrooms;
-  const kitchenCount = kitchenCountCustomized
-    ? (config.kitchenCount ?? 0)
-    : 0;
+  const kitchenCount = kitchenCountMode === 'manual'
+    ? (kitchenCountManualValue ?? recommendedKitchens)
+    : recommendedKitchens;
   const customKitchenUnitCost = config.customKitchenUnitCost ?? null;
   const suggestedGeneralFurniture = getSuggestedGeneralFurniture(defaultBuildingArea, bedroomCount);
   const generalFurnitureCustomized = config.generalFurnitureCustomized ?? config.generalFurnitureBaseAmountCustomized ?? (
@@ -303,7 +311,8 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
     bedroomCountMode,
     bedroomCountManualValue,
     kitchenCount,
-    kitchenCountCustomized,
+    kitchenCountMode,
+    kitchenCountManualValue,
     customKitchenUnitCost,
     generalFurniture,
     generalFurnitureCustomized,
@@ -384,8 +393,9 @@ function createDefaultConfig(name: string): ScenarioConfig {
     wcsManualValue: null,
     bedroomCountMode: 'auto',
     bedroomCountManualValue: null,
-    kitchenCount: 0,
-    kitchenCountCustomized: false,
+    kitchenCount: 1,
+    kitchenCountMode: 'auto',
+    kitchenCountManualValue: null,
     customKitchenUnitCost: null,
     generalFurniture: getSuggestedGeneralFurniture(defaultBuildingArea, defaultProgramBaseline.bedrooms),
     generalFurnitureCustomized: false,
@@ -488,8 +498,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const [wcsManualValue, setWcsManualValue] = useState<number | null>(null);
   const [bedroomCountMode, setBedroomCountMode] = useState<ProgramCountMode>('auto');
   const [bedroomCountManualValue, setBedroomCountManualValue] = useState<number | null>(null);
-  const [kitchenCount, setKitchenCountState] = useState<number>(0);
-  const [kitchenCountCustomized, setKitchenCountCustomized] = useState<boolean>(false);
+  const [kitchenCountMode, setKitchenCountMode] = useState<ProgramCountMode>('auto');
+  const [kitchenCountManualValue, setKitchenCountManualValue] = useState<number | null>(null);
   const [customKitchenUnitCost, setCustomKitchenUnitCost] = useState<number | null>(null);
   const [generalFurniture, setGeneralFurnitureState] = useState<number>(
     getSuggestedGeneralFurniture(initialProgramDefaultBuildingArea, initialResidentialProgramBaseline.bedrooms)
@@ -515,15 +525,22 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [mainArea],
   );
   const residentialProgramBaseline = getResidentialProgramBaseline(mainArea);
+  const recommendedBedrooms = residentialProgramBaseline.bedrooms;
+  const recommendedBathrooms = residentialProgramBaseline.bathrooms;
+  const recommendedWcs = 1;
+  const recommendedKitchens = 1;
   const bathrooms = bathroomsMode === 'manual'
-    ? Math.max(0, bathroomsManualValue ?? residentialProgramBaseline.bathrooms)
-    : residentialProgramBaseline.bathrooms;
+    ? Math.max(0, bathroomsManualValue ?? recommendedBathrooms)
+    : recommendedBathrooms;
   const wcs = wcsMode === 'manual'
-    ? Math.max(0, wcsManualValue ?? residentialProgramBaseline.wcs)
-    : residentialProgramBaseline.wcs;
+    ? Math.max(0, wcsManualValue ?? recommendedWcs)
+    : recommendedWcs;
   const bedroomCount = bedroomCountMode === 'manual'
-    ? Math.max(1, bedroomCountManualValue ?? residentialProgramBaseline.bedrooms)
-    : residentialProgramBaseline.bedrooms;
+    ? Math.max(1, bedroomCountManualValue ?? recommendedBedrooms)
+    : recommendedBedrooms;
+  const kitchenCount = kitchenCountMode === 'manual'
+    ? Math.max(0, kitchenCountManualValue ?? recommendedKitchens)
+    : recommendedKitchens;
 
   const snapshotCurrentState = useCallback((): Omit<ScenarioConfig, 'id' | 'name'> => {
     return {
@@ -568,7 +585,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       bedroomCountMode,
       bedroomCountManualValue: bedroomCountMode === 'manual' ? bedroomCount : null,
       kitchenCount,
-      kitchenCountCustomized,
+      kitchenCountMode,
+      kitchenCountManualValue: kitchenCountMode === 'manual' ? kitchenCount : null,
       customKitchenUnitCost,
       generalFurniture,
       generalFurnitureCustomized,
@@ -590,7 +608,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
     bathrooms, wcs, bedroomCount, bathroomsMode, bathroomsManualValue, wcsMode, wcsManualValue, bedroomCountMode, bedroomCountManualValue,
-    kitchenCount, kitchenCountCustomized, customKitchenUnitCost, generalFurniture, generalFurnitureCustomized,
+    kitchenCount, kitchenCountMode, kitchenCountManualValue, customKitchenUnitCost, generalFurniture, generalFurnitureCustomized,
     dataSecurityPackageLevel, dataSecurityManualQuote, automationPackageLevel, automationManualQuote,
     hvacSelections, utilityConnectionId, customUtilityCost,
     groundwaterConditionId, siteAccessibilityId,
@@ -630,8 +648,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setWcsManualValue(normalizedConfig.wcsManualValue ?? null);
     setBedroomCountMode(normalizedConfig.bedroomCountMode ?? 'auto');
     setBedroomCountManualValue(normalizedConfig.bedroomCountManualValue ?? null);
-    setKitchenCountState(normalizedConfig.kitchenCount);
-    setKitchenCountCustomized(normalizedConfig.kitchenCountCustomized ?? false);
+    setKitchenCountMode(normalizedConfig.kitchenCountMode ?? 'auto');
+    setKitchenCountManualValue(normalizedConfig.kitchenCountManualValue ?? null);
     setCustomKitchenUnitCost(normalizedConfig.customKitchenUnitCost);
     setGeneralFurnitureState(normalizedConfig.generalFurniture);
     setGeneralFurnitureCustomized(normalizedConfig.generalFurnitureCustomized ?? false);
@@ -1029,12 +1047,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     ],
   );
   useEffect(() => {
-    if (!kitchenCountCustomized && kitchenCount !== 0) {
-      setKitchenCountState(0);
-    }
-  }, [kitchenCount, kitchenCountCustomized]);
-
-  useEffect(() => {
     if (!generalFurnitureCustomized && generalFurniture !== suggestedGeneralFurniture) {
       setGeneralFurnitureState(suggestedGeneralFurniture);
     }
@@ -1048,20 +1060,36 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setBathroomsMode('manual');
     setBathroomsManualValue(Math.max(0, value));
   }, []);
+  const resetBathrooms = useCallback(() => {
+    setBathroomsMode('auto');
+    setBathroomsManualValue(null);
+  }, []);
 
   const setWcs = useCallback((value: number) => {
     setWcsMode('manual');
     setWcsManualValue(Math.max(0, value));
+  }, []);
+  const resetWcs = useCallback(() => {
+    setWcsMode('auto');
+    setWcsManualValue(null);
   }, []);
 
   const setBedroomCount = useCallback((value: number) => {
     setBedroomCountMode('manual');
     setBedroomCountManualValue(Math.max(1, value));
   }, []);
+  const resetBedroomCount = useCallback(() => {
+    setBedroomCountMode('auto');
+    setBedroomCountManualValue(null);
+  }, []);
 
   const setKitchenCount = useCallback((value: number) => {
-    setKitchenCountCustomized(true);
-    setKitchenCountState(value);
+    setKitchenCountMode('manual');
+    setKitchenCountManualValue(Math.max(0, value));
+  }, []);
+  const resetKitchenCount = useCallback(() => {
+    setKitchenCountMode('auto');
+    setKitchenCountManualValue(null);
   }, []);
 
   const setGeneralFurniture = useCallback((value: number) => {
@@ -1336,13 +1364,25 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landAcquisitionCostsMode,
     setLandAcquisitionCostsMode,
     bathrooms,
+    recommendedBathrooms,
+    bathroomsMode,
     setBathrooms,
+    resetBathrooms,
     wcs,
+    recommendedWcs,
+    wcsMode,
     setWcs,
+    resetWcs,
     bedroomCount,
+    recommendedBedrooms,
+    bedroomCountMode,
     setBedroomCount,
+    resetBedroomCount,
     kitchenCount,
+    recommendedKitchens,
+    kitchenCountMode,
     setKitchenCount,
+    resetKitchenCount,
     customKitchenUnitCost,
     setCustomKitchenUnitCost,
     generalFurniture,
@@ -1522,8 +1562,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landscapingArea, setLandscapingArea, landscapingCost,
     landValue, setLandValue, landAcquisitionCosts, setLandAcquisitionCosts,
     landAcquisitionCostsMode, setLandAcquisitionCostsMode,
-    bathrooms, setBathrooms, wcs, setWcs,
-    bedroomCount, setBedroomCount, kitchenCount, setKitchenCount,
+    bathrooms, recommendedBathrooms, bathroomsMode, setBathrooms, resetBathrooms, wcs, recommendedWcs, wcsMode, setWcs, resetWcs,
+    bedroomCount, recommendedBedrooms, bedroomCountMode, setBedroomCount, resetBedroomCount, kitchenCount, recommendedKitchens, kitchenCountMode, setKitchenCount, resetKitchenCount,
     customKitchenUnitCost, setCustomKitchenUnitCost,
     generalFurniture, setGeneralFurniture,
     generalFurnitureCustomized, setGeneralFurnitureMode,
