@@ -188,26 +188,26 @@ export const WC_ROOM_COUNT_ADDON_TOTAL_COSTS: Record<QualityId, number> = {
   luxury: 5000,
 };
 export const BATHROOM_ROOM_COUNT_ADDON_SPLITS = {
-  kg340: 0.18,
-  kg350: 0.27,
-  kg400: 0.55,
+  kg340: 0.30,
+  kg350: 0.30,
+  kg400: 0.40,
 } as const;
 export const WC_ROOM_COUNT_ADDON_SPLITS = {
-  kg340: 0.20,
-  kg350: 0.20,
-  kg400: 0.60,
+  kg340: 0.34,
+  kg350: 0.22,
+  kg400: 0.44,
 } as const;
 export const BATHROOM_ROOM_COUNT_ADDON_KG400_CATEGORY_SPLITS = {
-  plumbing: 0.65,
-  heating: 0.10,
+  plumbing: 0.80,
+  heating: 0.075,
   ventilation_cooling: 0.05,
-  electrical: 0.20,
+  electrical: 0.075,
 } as const;
 export const WC_ROOM_COUNT_ADDON_KG400_CATEGORY_SPLITS = {
-  plumbing: 0.75,
-  heating: 0.05,
-  ventilation_cooling: 0.05,
-  electrical: 0.15,
+  plumbing: 0.818181818,
+  heating: 0.045454545,
+  ventilation_cooling: 0.045454545,
+  electrical: 0.090909092,
 } as const;
 export const KG400_DATA_SECURITY_BASELINE_COST_PER_SQM = 6;
 export type SmartSystemsPackageLevel = 'none' | 'connected' | 'integrated' | 'custom';
