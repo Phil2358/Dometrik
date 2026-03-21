@@ -19,6 +19,8 @@ import { calculateKg100Costs } from "./modules/kg100Costs"
 import { calculateDetailedKg300SubgroupCosts } from "./modules/kg300SubgroupCosts"
 import { calculateKg300Modifiers } from "./modules/kg300Modifiers"
 import { calculateBasementKg300Modifiers } from "./modules/basementKg300Modifiers"
+import { calculateKg500Subgroups } from "./modules/kg500Subgroups"
+import { calculateKg700Subgroups } from "./modules/kg700Subgroups"
 import { buildProjectCostBreakdown, type ProjectBreakdownGroup } from "./buildProjectCostBreakdown"
 import {
   type AutomationPackageLevel,
@@ -101,6 +103,8 @@ export interface ProjectCostResult {
   finalTotal: number
   totalCostInclVat: number
   vatPercent: number
+  estimatedRangeLow: number
+  estimatedRangeHigh: number
   constructionSubtotal: number
   buildingArea: number
   baseCostPerSqm: number
@@ -139,6 +143,7 @@ export interface ProjectCostResult {
   kg300Total: number
   kg400Total: number
   kg500Total: number
+  kg700Total: number
   kg600Cost: number
   baseBuildingAreaBenchmarkContribution: number
   coveredTerracesBenchmarkContribution: number
@@ -163,6 +168,8 @@ export interface ProjectCostResult {
   kg300SubgroupCosts: ReturnType<typeof calculateKg300Modifiers>["kg300SubgroupCosts"]
   kg300ModifierDetails: ReturnType<typeof calculateKg300Modifiers>["modifierDetails"]
   kg600SubgroupCosts: ReturnType<typeof calculateKg600Costs>["kg600SubgroupCosts"]
+  kg500Subgroups: ReturnType<typeof calculateKg500Subgroups>["kg500Subgroups"]
+  kg700Subgroups: ReturnType<typeof calculateKg700Subgroups>["kg700Subgroups"]
   suggestedKitchenUnitCost: number
   suggestedGeneralFurniture: number
   kitchenUnitCost: number
@@ -184,6 +191,7 @@ export interface ProjectCostResult {
   utilityGroup230Cost: number
   siteExcavationCost: number
   landAcquisitionAmount: number
+  landAcquisitionRatePercent: number
   kg100SubgroupCosts: ReturnType<typeof calculateKg100Costs>["subgroupCosts"]
   breakdownGroups: ProjectBreakdownGroup[]
 }
@@ -406,6 +414,21 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       landscapingArea: input.landscapingArea,
       siteConditionId: input.siteConditionId
     })
+  const kg500SubgroupResult =
+    calculateKg500Subgroups({
+      landscapingCost: landscapingCosts.landscapingCost,
+      landscapingArea: input.landscapingArea,
+      poolCost: poolCosts.poolCost,
+      includePool: input.includePool,
+      poolArea: poolCosts.poolArea,
+      poolQualityId: input.poolQualityId,
+      poolTypeId: input.poolTypeId,
+      siteConditionId: input.siteConditionId,
+    })
+  const kg700SubgroupResult =
+    calculateKg700Subgroups({
+      permitFee: permitCosts.permitFee,
+    })
 
 
   // -----------------------------------------
@@ -419,8 +442,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       landAcquisitionCostsMode: input.landAcquisitionCostsMode,
     })
 
-  const kg500Total =
-    poolCosts.poolCost + landscapingCosts.landscapingCost
+  const kg500Total = kg500SubgroupResult.kg500Total
+  const kg700Total = kg700SubgroupResult.kg700Total
 
   const constructionSubtotal =
     kg300Total + kg400Costs.kg400Total + kg600Costs.kg600Cost
@@ -450,7 +473,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     + constructionSubtotal
     + basementBaseCost
     + kg500Total
-    + permitCosts.permitFee
+    + kg700Total
     + contingencyCosts.contingencyCost
     + contractorMarginCosts.contractorCost
 
@@ -461,7 +484,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     + kg200Costs.kg200Total
     + constructionSubtotal
     + kg500Total
-    + permitCosts.permitFee
+    + kg700Total
 
   const nonDinAdditionsSubtotal =
       basementBaseCost
@@ -477,6 +500,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       baseAmount: preVatTotal,
       vatPercent: input.vatPercent ?? 24,
     })
+  const estimatedRangeLow = Math.round(preVatTotal * 0.88)
+  const estimatedRangeHigh = Math.round(preVatTotal * 1.12)
 
   const breakdownGroups =
     buildProjectCostBreakdown({
@@ -484,6 +509,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       landValue: kg100Costs.landValue,
       landAcquisitionCosts: kg100Costs.incidentalLandAcquisitionCosts,
       landAcquisitionCostsMode: kg100Costs.landAcquisitionCostsMode,
+      landAcquisitionRatePercent: kg100Costs.landAcquisitionRatePercent,
       kg200Total: kg200Costs.kg200Total,
       siteExcavationCost: kg200Costs.siteExcavationCost,
       utilityGroup220Cost: kg200Costs.group220Cost,
@@ -492,20 +518,13 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       kg300SubgroupCosts,
       kg400Total: kg400Costs.kg400Total,
       kg400CategoryCostsById: kg400Costs.categoryCostsById,
-      kg500Total,
-      landscapingCost: landscapingCosts.landscapingCost,
-      landscapingArea: input.landscapingArea,
-      poolCost: poolCosts.poolCost,
-      includePool: input.includePool,
-      poolArea: poolCosts.poolArea,
-      poolQualityId: input.poolQualityId,
-      poolTypeId: input.poolTypeId,
+      kg500Subgroups: kg500SubgroupResult.kg500Subgroups,
       hvacSelections: input.hvacSelections,
       siteConditionId: input.siteConditionId,
       kg600Cost: kg600Costs.kg600Cost,
       kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
       bathroomWcFurnishingSliceCost: kg600Costs.bathroomWcFurnishingSliceCost,
-      permitDesignFee: permitCosts.permitFee,
+      kg700Subgroups: kg700SubgroupResult.kg700Subgroups,
     })
 
 
@@ -526,6 +545,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     finalTotal: vatCosts.totalIncludingVat,
     totalCostInclVat: vatCosts.totalIncludingVat,
     vatPercent: vatCosts.vatPercent,
+    estimatedRangeLow,
+    estimatedRangeHigh,
     constructionSubtotal,
     buildingArea,
     baseCostPerSqm: buildingCost.baseCostPerSqm,
@@ -564,6 +585,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg300Total,
     kg400Total: kg400Costs.kg400Total,
     kg500Total,
+    kg700Total,
     kg600Cost: kg600Costs.kg600Cost,
     baseBuildingAreaBenchmarkContribution,
     coveredTerracesBenchmarkContribution,
@@ -589,6 +611,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg300SubgroupCosts,
     kg300ModifierDetails: kg300ModifierResult.modifierDetails,
     kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
+    kg500Subgroups: kg500SubgroupResult.kg500Subgroups,
+    kg700Subgroups: kg700SubgroupResult.kg700Subgroups,
     suggestedKitchenUnitCost: kg600Costs.suggestedKitchenUnitCost,
     suggestedGeneralFurniture: kg600Costs.suggestedGeneralFurniture,
     kitchenUnitCost: kg600Costs.kitchenUnitCost,
@@ -598,7 +622,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     includedWardrobes: kg600Costs.includedWardrobes,
     totalWardrobeCount: kg600Costs.totalWardrobeCount,
     kg100SubgroupCosts: kg100Costs.subgroupCosts,
-    permitFee: permitCosts.permitFee,
+    permitFee: kg700Total,
     landscapingCost: landscapingCosts.landscapingCost,
     poolCost: poolCosts.poolCost,
     poolArea: poolCosts.poolArea,
@@ -611,6 +635,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     utilityGroup230Cost: kg200Costs.group230Cost,
     siteExcavationCost: kg200Costs.siteExcavationCost,
     landAcquisitionAmount: kg100Costs.incidentalLandAcquisitionCosts,
+    landAcquisitionRatePercent: kg100Costs.landAcquisitionRatePercent,
     breakdownGroups,
 
   }

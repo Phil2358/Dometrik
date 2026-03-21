@@ -49,21 +49,21 @@ interface ParameterRow {
 
 function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
   const params: { label: string; getter: (s: ComputedScenarioCosts) => string }[] = [
-    { label: 'Location', getter: (s) => s.locationName ?? '' },
-    { label: 'Quality level', getter: (s) => s.qualityName ?? '' },
+    { label: 'Location', getter: (s) => s.locationName },
+    { label: 'Quality level', getter: (s) => s.qualityName },
 
-    { label: 'Interior area', getter: (s) => `${formatNumber(s.mainArea ?? 0)} ${SQUARE_METER_UNIT}` },
-    { label: 'Covered terrace', getter: (s) => `${formatNumber(s.terraceArea ?? 0)} ${SQUARE_METER_UNIT}` },
-    { label: 'Balcony', getter: (s) => `${formatNumber(s.balconyArea ?? 0)} ${SQUARE_METER_UNIT}` },
+    { label: 'Interior area', getter: (s) => `${formatNumber(s.mainArea)} ${SQUARE_METER_UNIT}` },
+    { label: 'Covered terrace', getter: (s) => `${formatNumber(s.terraceArea)} ${SQUARE_METER_UNIT}` },
+    { label: 'Balcony', getter: (s) => `${formatNumber(s.balconyArea)} ${SQUARE_METER_UNIT}` },
 
     {
       label: 'Basement',
       getter: (s) =>
-        (s.basementArea ?? 0) > 0
-          ? `${formatNumber(s.basementArea ?? 0)} ${SQUARE_METER_UNIT} · ${formatBasementSummary(
-            s.storageBasementArea ?? 0,
-            s.parkingBasementArea ?? 0,
-            s.habitableBasementArea ?? 0,
+        s.basementArea > 0
+          ? `${formatNumber(s.basementArea)} ${SQUARE_METER_UNIT} · ${formatBasementSummary(
+            s.storageBasementArea,
+            s.parkingBasementArea,
+            s.habitableBasementArea,
           )}`
           : 'None',
     },
@@ -130,7 +130,7 @@ function getGroupedCostRows(scenarios: ComputedScenarioCosts[]): CostGroupRow[] 
     getter: (s: ComputedScenarioCosts) => number,
     opts?: { isGroupHeader?: boolean; isBold?: boolean }
   ): CostGroupRow => {
-    const values = scenarios.map((s) => getter(s) ?? 0);
+    const values = scenarios.map((s) => getter(s));
     const isDifferent = new Set(values).size > 1;
     return { label, values, isDifferent, ...opts };
   };
@@ -172,7 +172,7 @@ function getLargestCostDriver(
   if (scenarios.length < 2) return null;
 
   const categories: { label: string; getter: (s: ComputedScenarioCosts) => number }[] = [
-    { label: 'Land & acquisition', getter: (s) => s.group100Total ?? 0 },
+    { label: 'Land & acquisition', getter: (s) => s.group100Total },
     { label: 'Building construction', getter: (s) => s.kg300Cost },
     { label: 'Technical systems', getter: (s) => s.kg400Total },
     { label: 'Built-in equipment', getter: (s) => s.kg600Cost },
@@ -189,7 +189,7 @@ function getLargestCostDriver(
   let maxLabel = '';
 
   for (const cat of categories) {
-    const vals = scenarios.map((s) => cat.getter(s) ?? 0);
+    const vals = scenarios.map((s) => cat.getter(s));
     const diff = Math.max(...vals) - Math.min(...vals);
 
     if (diff > maxDiff) {
@@ -210,8 +210,7 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
   onUseScenario: () => void;
 }) {
   const color = COMPARE_COLORS[index];
-  const vatAmount = scenario.vatAmount ?? 0;
-  const totalWithVat = scenario.finalTotal ?? (scenario.totalCost + vatAmount);
+  const totalWithVat = scenario.finalTotal;
   const cheapestWithVat = cheapestTotal;
 
   const diffFromCheapest = totalWithVat - cheapestWithVat;
@@ -241,7 +240,7 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
           <Text style={summaryStyles.totalCost}>{formatEuro(totalWithVat)}</Text>
           <Text style={summaryStyles.vatLabel}> incl. VAT</Text>
         </View>
-        <Text style={summaryStyles.subtotalLabel}>{formatEuro(scenario.preVatTotal ?? scenario.totalCost)} excl. VAT</Text>
+        <Text style={summaryStyles.subtotalLabel}>{formatEuro(scenario.preVatTotal)} excl. VAT</Text>
 
         {rank === 'cheapest' && (
           <Text style={summaryStyles.diffText}>baseline</Text>
@@ -272,7 +271,7 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
 }
 
 function CostBarChart({ scenarios }: { scenarios: ComputedScenarioCosts[] }) {
-const maxCost = Math.max(...scenarios.map(s => s.finalTotal ?? 0));
+const maxCost = Math.max(...scenarios.map(s => s.finalTotal));
   const scaleSteps = useMemo(() => {
     const step = Math.ceil(maxCost / 4 / 50000) * 50000;
     const steps: number[] = [];
@@ -291,7 +290,7 @@ const maxCost = Math.max(...scenarios.map(s => s.finalTotal ?? 0));
         ))}
       </View>
       {scenarios.map((s, i) => {
-        const totalWithVat = s.finalTotal ?? 0;
+        const totalWithVat = s.finalTotal;
         const pct = (totalWithVat / maxCost) * 100;
         return (
           <View key={i} style={chartStyles.barRow}>
@@ -335,14 +334,14 @@ export default function CompareScreen() {
 
   const paramRows = useMemo(() => computed.length >= 2 ? getParameterRows(computed) : [], [computed]);
   const groupedCostRows = useMemo(() => computed.length >= 2 ? getGroupedCostRows(computed) : [], [computed]);
-  const totalValues = useMemo(() => computed.map((s) => s.finalTotal ?? 0), [computed]);
+  const totalValues = useMemo(() => computed.map((s) => s.finalTotal), [computed]);
   const minTotal = useMemo(() => totalValues.length > 0 ? Math.min(...totalValues) : 0, [totalValues]);
   const maxTotal = useMemo(() => totalValues.length > 0 ? Math.max(...totalValues) : 0, [totalValues]);
   const totalDiff = maxTotal - minTotal;
   const totalDiffWithVat = totalDiff;
 
   const sortedByTotal = useMemo(
-    () => [...computed].sort((a, b) => (a.finalTotal ?? 0) - (b.finalTotal ?? 0)),
+    () => [...computed].sort((a, b) => a.finalTotal - b.finalTotal),
     [computed]
   );
   const cheapestName = sortedByTotal.length > 0 ? sortedByTotal[0].name : '';
@@ -357,7 +356,7 @@ export default function CompareScreen() {
     if (sortedByTotal.length < 2) return [];
     const diffs: { from: string; to: string; diff: number }[] = [];
     for (let i = 0; i < sortedByTotal.length - 1; i++) {
-      const diff = (sortedByTotal[i + 1].finalTotal ?? 0) - (sortedByTotal[i].finalTotal ?? 0);
+      const diff = sortedByTotal[i + 1].finalTotal - sortedByTotal[i].finalTotal;
       diffs.push({
         from: sortedByTotal[i].name,
         to: sortedByTotal[i + 1].name,
@@ -589,7 +588,7 @@ export default function CompareScreen() {
             </View>
             {computed.map((s, i) => (
               <View key={i} style={styles.tableValueCell}>
-                <Text style={styles.tableSubtotalValue}>{formatEuro(s.preVatTotal ?? s.totalCost)}</Text>
+                <Text style={styles.tableSubtotalValue}>{formatEuro(s.preVatTotal)}</Text>
               </View>
             ))}
           </View>
@@ -600,7 +599,7 @@ export default function CompareScreen() {
             </View>
             {computed.map((s, i) => (
               <View key={i} style={styles.tableValueCell}>
-                <Text style={styles.tableVatValue}>{formatEuro(s.vatAmount ?? 0)}</Text>
+                <Text style={styles.tableVatValue}>{formatEuro(s.vatAmount)}</Text>
               </View>
             ))}
           </View>
@@ -612,7 +611,7 @@ export default function CompareScreen() {
             {computed.map((s, i) => (
               <View key={i} style={styles.tableValueCell}>
                 <Text style={[styles.tableTotalValue, { color: COMPARE_COLORS[i] }]}>
-                  {formatEuro(s.finalTotal ?? 0)}
+                  {formatEuro(s.finalTotal)}
                 </Text>
               </View>
             ))}

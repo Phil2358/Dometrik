@@ -17,6 +17,7 @@ interface BuildProjectCostBreakdownInput {
   landValue: number
   landAcquisitionCosts: number
   landAcquisitionCostsMode: "auto" | "manual"
+  landAcquisitionRatePercent: number
   kg200Total: number
   siteExcavationCost: number
   utilityGroup220Cost: number
@@ -35,14 +36,7 @@ interface BuildProjectCostBreakdownInput {
   }
   kg400Total: number
   kg400CategoryCostsById: Record<string, number>
-  kg500Total: number
-  landscapingCost: number
-  landscapingArea: number
-  poolCost: number
-  includePool: boolean
-  poolArea: number
-  poolQualityId: string
-  poolTypeId: string
+  kg500Subgroups: ProjectBreakdownSubgroup[]
   hvacSelections: Record<string, boolean>
   siteConditionId: string
   kg600Cost: number
@@ -51,16 +45,14 @@ interface BuildProjectCostBreakdownInput {
     subgroup620Cost: number
   }
   bathroomWcFurnishingSliceCost: number
-  permitDesignFee: number
+  kg700Subgroups: ProjectBreakdownSubgroup[]
 }
 
 export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput): ProjectBreakdownGroup[] {
-  const landscapingEarthworksCost = input.landscapingCost > 0 ? Math.round(input.landscapingCost * 0.20) : 0
-  const landscapingSurfaceCost = input.landscapingCost > 0 ? Math.round(input.landscapingCost * 0.30) : 0
-  const landscapingBuiltInCost = input.landscapingCost > 0 ? Math.round(input.landscapingCost * 0.20) : 0
-  const landscapingGreenCost = input.landscapingCost > 0
-    ? input.landscapingCost - landscapingEarthworksCost - landscapingSurfaceCost - landscapingBuiltInCost
-    : 0
+  const kg500Total =
+    input.kg500Subgroups.reduce((sum, subgroup) => sum + subgroup.cost, 0)
+  const kg700Total =
+    input.kg700Subgroups.reduce((sum, subgroup) => sum + subgroup.cost, 0)
 
   return [
     {
@@ -76,6 +68,7 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
           meta: {
             mode: input.landAcquisitionCostsMode,
             landValue: input.landValue,
+            ratePercent: input.landAcquisitionRatePercent,
           },
         },
       ],
@@ -136,24 +129,9 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
     },
     {
       code: "500",
-      subtotal: input.kg500Total,
-      percentOfTotal: input.investmentTotal > 0 ? (input.kg500Total / input.investmentTotal) * 100 : 0,
-      subgroups: [
-        { code: "510", cost: landscapingEarthworksCost, visible: input.landscapingCost > 0, meta: { siteConditionId: input.siteConditionId } },
-        { code: "530", cost: landscapingSurfaceCost, visible: input.landscapingCost > 0 },
-        { code: "560", cost: landscapingBuiltInCost, visible: input.landscapingCost > 0 },
-        { code: "570", cost: landscapingGreenCost, visible: input.landscapingCost > 0, meta: { landscapingArea: input.landscapingArea } },
-        {
-          code: "580",
-          cost: input.poolCost,
-          visible: input.includePool && input.poolCost > 0,
-          meta: {
-            poolArea: input.poolArea,
-            poolQualityId: input.poolQualityId,
-            poolTypeId: input.poolTypeId,
-          },
-        },
-      ],
+      subtotal: kg500Total,
+      percentOfTotal: input.investmentTotal > 0 ? (kg500Total / input.investmentTotal) * 100 : 0,
+      subgroups: input.kg500Subgroups,
     },
     {
       code: "600",
@@ -171,17 +149,9 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
     },
     {
       code: "700",
-      subtotal: input.permitDesignFee,
-      percentOfTotal: input.investmentTotal > 0 ? (input.permitDesignFee / input.investmentTotal) * 100 : 0,
-      subgroups: [
-        { code: "710", cost: Math.round(input.permitDesignFee * 0.50), visible: true },
-        { code: "720", cost: Math.round(input.permitDesignFee * 0.30), visible: true },
-        {
-          code: "750",
-          cost: input.permitDesignFee - Math.round(input.permitDesignFee * 0.50) - Math.round(input.permitDesignFee * 0.30),
-          visible: true,
-        },
-      ],
+      subtotal: kg700Total,
+      percentOfTotal: input.investmentTotal > 0 ? (kg700Total / input.investmentTotal) * 100 : 0,
+      subgroups: input.kg700Subgroups,
     },
   ]
 }

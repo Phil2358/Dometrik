@@ -17,6 +17,7 @@ export function calculateKg100Costs(input: Kg100CostsInput) {
     landValue,
     incidentalLandAcquisitionCosts,
     landAcquisitionCostsMode,
+    landAcquisitionRatePercent: DEFAULT_LAND_ACQUISITION_PERCENTAGE * 100,
     kg100Total: landValue + incidentalLandAcquisitionCosts,
     subgroupCosts: {
       subgroup110Cost: landValue,

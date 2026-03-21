@@ -57,7 +57,7 @@ import {
   CONTRACTOR_STEP,
   formatSizeCorrectionFactorLabel,
 } from '@/constants/construction';
-import { formatCurrency, formatDecimal, formatNumber } from '@/utils/format';
+import { formatCurrency, formatDecimal, formatNumber, formatPercent } from '@/utils/format';
 
 const DATA_SECURITY_LEVEL_OPTIONS = [
   {
@@ -526,6 +526,7 @@ export default function EstimateScreen() {
      landAcquisitionCosts,
      setLandAcquisitionCosts,
      landAcquisitionAmount,
+     landAcquisitionRatePercent,
      landAcquisitionCostsMode,
      setLandAcquisitionCostsMode,
      bathrooms,
@@ -743,9 +744,11 @@ export default function EstimateScreen() {
           >
             <View style={styles.optionInfo}>
               <Text style={[styles.optionLabel, landAcquisitionCostsMode === 'auto' && { color: Colors.accent }]}>
-                Auto estimate (6%)
+                {`Auto estimate (${formatPercent(landAcquisitionRatePercent)})`}
               </Text>
-              <Text style={styles.optionSubtext}>Derived from land cost {MULTIPLY_SYMBOL} {formatDecimal(0.06, 2)}</Text>
+              <Text style={styles.optionSubtext}>
+                {`Derived from land cost ${MULTIPLY_SYMBOL} ${formatDecimal(landAcquisitionRatePercent / 100, 2)}`}
+              </Text>
             </View>
             <View style={[styles.radioOuter, landAcquisitionCostsMode === 'auto' && styles.radioOuterSelected]}>
               {landAcquisitionCostsMode === 'auto' && <View style={styles.radioInner} />}
@@ -808,7 +811,7 @@ export default function EstimateScreen() {
           </View>
           <Text style={styles.effectiveFormula}>
             {landAcquisitionCostsMode === 'auto'
-              ? `${formatCurrency(displayedLandAcquisitionCosts)} (6% of ${formatCurrency(landValue)})`
+              ? `${formatCurrency(displayedLandAcquisitionCosts)} (${formatPercent(landAcquisitionRatePercent)} of ${formatCurrency(landValue)})`
               : 'Manual override value'}
           </Text>
         </View>

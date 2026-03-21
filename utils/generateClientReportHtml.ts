@@ -35,6 +35,8 @@ export interface ClientReportData {
   contingencyCost: number;
   contractorCost: number;
   totalCost: number;
+  estimatedRangeLow: number;
+  estimatedRangeHigh: number;
   constructionSubtotal: number;
   contingencyPercent: number;
   sizeCorrectionFactor: number;
@@ -184,9 +186,6 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
   const title = reportTitle || 'Project Cost Estimate';
   const segments = buildChartSegments(data);
   const assumptions = buildAssumptions(data);
-
-  const rangeLow = Math.round(data.totalCost * 0.88);
-  const rangeHigh = Math.round(data.totalCost * 1.12);
 
   const breakdownRows = [
     { label: 'Site preparation (KG 200)', value: data.kg200Total },
@@ -391,7 +390,7 @@ export function generateClientReportHtml(data: ClientReportData, reportTitle?: s
     <div class="section-heading" style="margin-top:0;">Estimated Cost Range</div>
     <div style="background:${BG_WARM};border:1px solid ${BORDER};border-radius:8px;padding:18px 22px;text-align:center;">
       <div style="font-size:8.5px;text-transform:uppercase;letter-spacing:1px;color:${TEXT_MUTED};margin-bottom:5px;font-weight:600;">Likely project cost</div>
-      <div style="font-size:22px;font-weight:800;color:${PRIMARY};letter-spacing:-0.5px;">${formatEuro(rangeLow)}  –  ${formatEuro(rangeHigh)}</div>
+      <div style="font-size:22px;font-weight:800;color:${PRIMARY};letter-spacing:-0.5px;">${formatEuro(data.estimatedRangeLow)}  –  ${formatEuro(data.estimatedRangeHigh)}</div>
       <div style="font-size:9px;color:${TEXT_FAINT};margin-top:5px;">Based on ±12% estimation uncertainty</div>
     </div>
   </div>

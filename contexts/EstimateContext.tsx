@@ -1079,6 +1079,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const poolArea = projectRollupResult.poolArea;
   const poolCost = projectRollupResult.poolCost;
   const landAcquisitionAmount = projectRollupResult.landAcquisitionAmount;
+  const landAcquisitionRatePercent = projectRollupResult.landAcquisitionRatePercent;
   const permitDesignBuildingArea = buildingArea;
 
   const setGeneralFurnitureMode = useCallback((isManual: boolean) => {
@@ -1137,6 +1138,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const projectTotalBeforeVat = projectRollupResult.preVatTotal;
   const vatAmount = projectRollupResult.vatAmount;
   const totalCostInclVat = projectRollupResult.finalTotal;
+  const estimatedRangeLow = projectRollupResult.estimatedRangeLow;
+  const estimatedRangeHigh = projectRollupResult.estimatedRangeHigh;
 
   const selectQuality = useCallback((id: QualityId) => {
     setQualityId(id);
@@ -1186,6 +1189,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     landAcquisitionCosts,
     setLandAcquisitionCosts,
     landAcquisitionAmount,
+    landAcquisitionRatePercent,
     landAcquisitionCostsMode,
     setLandAcquisitionCostsMode,
     bathrooms,
@@ -1274,6 +1278,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     setVatPercent,
     vatAmount,
     totalCostInclVat,
+    estimatedRangeLow,
+    estimatedRangeHigh,
     efkaInsuranceManualCost,
     setEfkaInsuranceManualCost,
     efkaInsuranceAutoCost,
@@ -1375,7 +1381,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     locationId, setLocationId, qualityId, selectQuality,
     siteConditionId, setSiteConditionId, siteCondition,
     landscapingArea, setLandscapingArea, landscapingCost,
-    landValue, setLandValue, landAcquisitionCosts, setLandAcquisitionCosts, landAcquisitionAmount,
+    landValue, setLandValue, landAcquisitionCosts, setLandAcquisitionCosts, landAcquisitionAmount, landAcquisitionRatePercent,
     landAcquisitionCostsMode, setLandAcquisitionCostsMode,
     bathrooms, recommendedBathrooms, bathroomsMode, setBathrooms, resetBathrooms, wcs, recommendedWcs, wcsMode, setWcs, resetWcs,
     bedroomCount, recommendedBedrooms, bedroomCountMode, setBedroomCount, resetBedroomCount, kitchenCount, recommendedKitchens, kitchenCountMode, setKitchenCount, resetKitchenCount,
@@ -1403,7 +1409,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     poolTypeId, setPoolTypeId, poolTypeOption,
     poolArea, poolDepth,
     contractorPercent, setContractorPercent,
-    vatPercent, setVatPercent, vatAmount, totalCostInclVat,
+    vatPercent, setVatPercent, vatAmount, totalCostInclVat, estimatedRangeLow, estimatedRangeHigh,
     efkaInsuranceManualCost, setEfkaInsuranceManualCost, efkaInsuranceAutoCost, efkaInsuranceAmount, efkaInsuranceManualOverrideActive,
     manualContingencyPercent, setManualContingencyPercent,
     manualContingencyCost, setManualContingencyCost, contingencyManualOverrideActive, appliedContingencyPercent,

@@ -150,7 +150,7 @@ function getSubgroupSublabel(
   switch (subgroup.code) {
     case '120':
       return subgroup.meta?.mode === 'auto'
-        ? `${formatCurrency(subgroup.cost)} (6 % of ${formatCurrency(Number(subgroup.meta?.landValue ?? 0))})`
+        ? `${formatCurrency(subgroup.cost)} (${formatPercent(Number(subgroup.meta?.ratePercent ?? 0))} of ${formatCurrency(Number(subgroup.meta?.landValue ?? 0))})`
         : 'Manual override';
     case '210':
       return `Basic plot preparation ${MIDDLE_DOT} ${context.siteConditionName}`;
@@ -337,6 +337,8 @@ function GenerateReportButton() {
     contingencyCost,
     contractorCost,
     projectTotalBeforeVat,
+    estimatedRangeLow,
+    estimatedRangeHigh,
     constructionSubtotal,
     contingencyPercent,
     sizeCorrectionFactor,
@@ -384,6 +386,8 @@ function GenerateReportButton() {
         contingencyCost,
         contractorCost,
         totalCost: projectTotalBeforeVat,
+        estimatedRangeLow,
+        estimatedRangeHigh,
         constructionSubtotal,
         contingencyPercent,
         sizeCorrectionFactor,
@@ -423,7 +427,7 @@ function GenerateReportButton() {
     storageBasementArea, parkingBasementArea, habitableBasementArea,
     includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption,
     siteCondition, groundwaterCondition, siteAccessibility, hvacCosts, kg200Total, kg300Total, kg400Total, kg500Total,
-    kg600Cost, baseBuildingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation, permitDesignFee, contingencyCost, contractorCost, projectTotalBeforeVat,
+    kg600Cost, baseBuildingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation, permitDesignFee, contingencyCost, contractorCost, projectTotalBeforeVat, estimatedRangeLow, estimatedRangeHigh,
     constructionSubtotal, basementBaseCost, contingencyPercent, sizeCorrectionFactor,
     userMode,
   ]);
