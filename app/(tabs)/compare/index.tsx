@@ -70,40 +70,40 @@ function getParameterRows(scenarios: ComputedScenarioCosts[]): ParameterRow[] {
 
     {
       label: 'Building area',
-      getter: (s) => `${formatNumber((s as any).buildingArea ?? 0)} ${SQUARE_METER_UNIT}`,
+      getter: (s) => `${formatNumber(s.buildingArea)} ${SQUARE_METER_UNIT}`,
     },
 
     {
       label: 'Pool',
       getter: (s) =>
-        (s as any).includePool
-          ? `${(s as any).poolSizeName ?? ''} (${formatNumber((s as any).poolArea ?? 0)} ${SQUARE_METER_UNIT})`
+        s.includePool
+          ? `${s.poolSizeName} (${formatNumber(s.poolArea)} ${SQUARE_METER_UNIT})`
           : 'None',
     },
 
-    { label: 'Site conditions', getter: (s) => (s as any).siteConditionName ?? '' },
-    { label: 'Groundwater', getter: (s) => (s as any).groundwaterConditionName ?? '' },
-    { label: 'Site access', getter: (s) => (s as any).siteAccessibilityName ?? '' },
+    { label: 'Site conditions', getter: (s) => s.siteConditionName },
+    { label: 'Groundwater', getter: (s) => s.groundwaterConditionName },
+    { label: 'Site access', getter: (s) => s.siteAccessibilityName },
 
     {
       label: 'Landscaping',
       getter: (s) =>
-        ((s as any).landscapingArea ?? 0) > 0
-          ? `${formatNumber((s as any).landscapingArea ?? 0)} ${SQUARE_METER_UNIT}`
+        s.landscapingArea > 0
+          ? `${formatNumber(s.landscapingArea)} ${SQUARE_METER_UNIT}`
           : 'None',
     },
 
     {
       label: 'HVAC add-ons',
       getter: (s) =>
-        ((s as any).hvacNames?.length ?? 0) > 0
-          ? (s as any).hvacNames.join(', ')
+        s.hvacNames.length > 0
+          ? s.hvacNames.join(', ')
           : 'Base only',
     },
 
     {
       label: 'Contractor overhead',
-      getter: (s) => formatPercent((s as any).contractorPercent ?? 0, 1),
+      getter: (s) => formatPercent(s.contractorPercent, 1),
     },
   ];
 
@@ -173,16 +173,16 @@ function getLargestCostDriver(
 
   const categories: { label: string; getter: (s: ComputedScenarioCosts) => number }[] = [
     { label: 'Land & acquisition', getter: (s) => s.group100Total ?? 0 },
-    { label: 'Building construction', getter: (s) => (s as any).kg300Cost ?? 0 },
-    { label: 'Technical systems', getter: (s) => (s as any).kg400Total ?? 0 },
-    { label: 'Built-in equipment', getter: (s) => (s as any).kg600Cost ?? 0 },
-    { label: 'Basement', getter: (s) => (s as any).basementBaseCost ?? 0 },
-    { label: 'Site preparation', getter: (s) => (s as any).kg200Total ?? 0 },
-    { label: 'External works', getter: (s) => (s as any).kg500Total ?? 0 },
-    { label: 'Planning & fees', getter: (s) => (s as any).permitDesignFee ?? 0 },
-    { label: 'Contractor overhead', getter: (s) => (s as any).contractorCost ?? 0 },
-    { label: 'Construction contingency', getter: (s) => (s as any).contingencyCost ?? 0 },
-    { label: 'e-EFKA worker insurance', getter: (s) => (s as any).efkaInsuranceAmount ?? 0 },
+    { label: 'Building construction', getter: (s) => s.kg300Cost },
+    { label: 'Technical systems', getter: (s) => s.kg400Total },
+    { label: 'Built-in equipment', getter: (s) => s.kg600Cost },
+    { label: 'Basement', getter: (s) => s.basementBaseCost },
+    { label: 'Site preparation', getter: (s) => s.kg200Total },
+    { label: 'External works', getter: (s) => s.kg500Total },
+    { label: 'Planning & fees', getter: (s) => s.permitDesignFee },
+    { label: 'Contractor overhead', getter: (s) => s.contractorCost },
+    { label: 'Construction contingency', getter: (s) => s.contingencyCost },
+    { label: 'e-EFKA worker insurance', getter: (s) => s.efkaInsuranceAmount },
   ];
 
   let maxDiff = 0;

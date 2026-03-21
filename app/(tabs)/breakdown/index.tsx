@@ -336,7 +336,7 @@ function GenerateReportButton() {
     permitDesignFee,
     contingencyCost,
     contractorCost,
-    totalCost,
+    projectTotalBeforeVat,
     constructionSubtotal,
     contingencyPercent,
     sizeCorrectionFactor,
@@ -383,7 +383,7 @@ function GenerateReportButton() {
         permitDesignFee,
         contingencyCost,
         contractorCost,
-        totalCost,
+        totalCost: projectTotalBeforeVat,
         constructionSubtotal,
         contingencyPercent,
         sizeCorrectionFactor,
@@ -423,7 +423,7 @@ function GenerateReportButton() {
     storageBasementArea, parkingBasementArea, habitableBasementArea,
     includePool, poolArea, poolDepth, poolQualityOption, poolTypeOption,
     siteCondition, groundwaterCondition, siteAccessibility, hvacCosts, kg200Total, kg300Total, kg400Total, kg500Total,
-    kg600Cost, baseBuildingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation, permitDesignFee, contingencyCost, contractorCost, totalCost,
+    kg600Cost, baseBuildingAreaBenchmarkContribution, coveredTerracesBenchmarkContribution, balconyAreaBenchmarkContribution, totalBenchmarkContributionBeforeGroupAllocation, permitDesignFee, contingencyCost, contractorCost, projectTotalBeforeVat,
     constructionSubtotal, basementBaseCost, contingencyPercent, sizeCorrectionFactor,
     userMode,
   ]);
@@ -491,6 +491,7 @@ export default function BreakdownScreen() {
     permitDesignFee,
     projectTotalBeforeVat,
     totalCostInclVat,
+    group100Total,
     kg200Total,
     kg500Total,
     constructionSubtotal,
@@ -507,7 +508,6 @@ export default function BreakdownScreen() {
     habitableBasementArea,
   );
   const investmentTotal = projectTotalBeforeVat;
-  const group100Total = breakdownGroups.find((group) => group.code === '100')?.subtotal ?? 0;
 
   const dinGroups = useMemo<DinGroup[]>(() => {
     const enabledHvacIds = new Set(enabledHvac.map((item) => item.option.id));

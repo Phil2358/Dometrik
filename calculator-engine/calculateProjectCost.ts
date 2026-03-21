@@ -28,6 +28,8 @@ import {
   normalizeQualityId,
   getResidentialProgramBaseline,
   SITE_ACCESSIBILITY_OPTIONS,
+  QUALITY_LEVELS,
+  type QualityId,
 } from "../constants/construction"
 
 export interface ProjectCalculationInput {
@@ -101,6 +103,24 @@ export interface ProjectCostResult {
   vatPercent: number
   constructionSubtotal: number
   buildingArea: number
+  baseCostPerSqm: number
+  locationAdjustedBaseCostPerSqm: number
+  sizeCorrectionFactor: number
+  sizeAdjustedCostPerSqm: number
+  correctedCostPerSqm: number
+  benchmarkPreviewPerQuality: Record<QualityId, number>
+  residentialProgramBaseline: ReturnType<typeof getResidentialProgramBaseline>
+  recommendedBedrooms: number
+  recommendedBathrooms: number
+  recommendedWcs: number
+  recommendedKitchens: number
+  bedroomCount: number
+  bathrooms: number
+  wcs: number
+  kitchenCount: number
+  bedroomDelta: number
+  bathroomDelta: number
+  wcDelta: number
   contractorMargin: number
   contractorCost: number
   contingency: number
@@ -143,15 +163,27 @@ export interface ProjectCostResult {
   kg300SubgroupCosts: ReturnType<typeof calculateKg300Modifiers>["kg300SubgroupCosts"]
   kg300ModifierDetails: ReturnType<typeof calculateKg300Modifiers>["modifierDetails"]
   kg600SubgroupCosts: ReturnType<typeof calculateKg600Costs>["kg600SubgroupCosts"]
+  suggestedKitchenUnitCost: number
+  suggestedGeneralFurniture: number
+  kitchenUnitCost: number
+  kitchenPackageCost: number
+  wardrobePackageCost: number
+  bathroomWcFurnishingSliceCost: number
+  includedWardrobes: number
+  totalWardrobeCount: number
   permitFee: number
   landscapingCost: number
   poolCost: number
+  poolArea: number
+  hvacOptionCosts: ReturnType<typeof calculateKg400Costs>["hvacOptionCosts"]
   hvacExtrasCost: number
+  packageCosts: ReturnType<typeof calculateKg400Costs>["packageCosts"]
   siteCost: number
   utilityConnectionCost: number
   utilityGroup220Cost: number
   utilityGroup230Cost: number
   siteExcavationCost: number
+  landAcquisitionAmount: number
   kg100SubgroupCosts: ReturnType<typeof calculateKg100Costs>["subgroupCosts"]
   breakdownGroups: ProjectBreakdownGroup[]
 }
@@ -195,6 +227,16 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       qualityId,
       customCostPerSqm: input.benchmarkOverridePerSqm
     })
+  const benchmarkPreviewPerQuality =
+    QUALITY_LEVELS.reduce<Record<QualityId, number>>((previews, entry) => {
+      previews[entry.id] = calculateRawBuildingCost({
+        buildingArea,
+        locationId: input.locationId,
+        qualityId: entry.id,
+      }).correctedCostPerSqm
+
+      return previews
+    }, {} as Record<QualityId, number>)
   const baseBuildingAreaBenchmarkContribution = buildingCost.baseConstructionCost
   const coveredTerracesBenchmarkContribution = Math.round(
     input.terraceArea * buildingCost.correctedCostPerSqm * 0.50
@@ -227,8 +269,11 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const bedroomCount = input.bedroomCount ?? residentialProgramBaseline.bedrooms
   const bathrooms = input.bathrooms ?? residentialProgramBaseline.bathrooms
   const wcs = input.wcs ?? residentialProgramBaseline.wcs
+  const recommendedKitchens = 1
+  const kitchenCount = input.kitchenCount ?? recommendedKitchens
   const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms
   const wcDelta = wcs - residentialProgramBaseline.wcs
+  const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms
   const resolvedAccessibilityId =
     input.siteAccessibilityId ??
     input.accessibilityId ??
@@ -265,7 +310,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       buildingArea,
       qualityId,
       bedroomCount,
-      kitchenCount: input.kitchenCount ?? 0,
+      kitchenCount,
       customKitchenUnitCost: input.customKitchenUnitCost,
       generalFurniture: input.generalFurniture,
       bathroomDelta,
@@ -304,7 +349,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       benchmarkBucket400: level1BenchmarkAllocation.benchmarkBucket400,
       mainArea: input.mainArea,
       qualityId,
-      bedroomDelta: bedroomCount - residentialProgramBaseline.bedrooms,
+      bedroomDelta,
       bathroomDelta,
       wcDelta,
       dataSecurityPackageLevel: input.dataSecurityPackageLevel,
@@ -483,6 +528,24 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     vatPercent: vatCosts.vatPercent,
     constructionSubtotal,
     buildingArea,
+    baseCostPerSqm: buildingCost.baseCostPerSqm,
+    locationAdjustedBaseCostPerSqm: buildingCost.costPerSqm,
+    sizeCorrectionFactor: buildingCost.sizeCorrectionFactor,
+    sizeAdjustedCostPerSqm: buildingCost.sizeAdjustedCostPerSqm,
+    correctedCostPerSqm: buildingCost.correctedCostPerSqm,
+    benchmarkPreviewPerQuality,
+    residentialProgramBaseline,
+    recommendedBedrooms: residentialProgramBaseline.bedrooms,
+    recommendedBathrooms: residentialProgramBaseline.bathrooms,
+    recommendedWcs: residentialProgramBaseline.wcs,
+    recommendedKitchens,
+    bedroomCount,
+    bathrooms,
+    wcs,
+    kitchenCount,
+    bedroomDelta,
+    bathroomDelta,
+    wcDelta,
     contractorMargin: contractorMarginCosts.contractorCost,
     contractorCost: contractorMarginCosts.contractorCost,
     contingency: contingencyCosts.contingencyCost,
@@ -526,16 +589,28 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg300SubgroupCosts,
     kg300ModifierDetails: kg300ModifierResult.modifierDetails,
     kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
+    suggestedKitchenUnitCost: kg600Costs.suggestedKitchenUnitCost,
+    suggestedGeneralFurniture: kg600Costs.suggestedGeneralFurniture,
+    kitchenUnitCost: kg600Costs.kitchenUnitCost,
+    kitchenPackageCost: kg600Costs.kitchenPackageCost,
+    wardrobePackageCost: kg600Costs.wardrobePackageCost,
+    bathroomWcFurnishingSliceCost: kg600Costs.bathroomWcFurnishingSliceCost,
+    includedWardrobes: kg600Costs.includedWardrobes,
+    totalWardrobeCount: kg600Costs.totalWardrobeCount,
     kg100SubgroupCosts: kg100Costs.subgroupCosts,
     permitFee: permitCosts.permitFee,
     landscapingCost: landscapingCosts.landscapingCost,
     poolCost: poolCosts.poolCost,
+    poolArea: poolCosts.poolArea,
+    hvacOptionCosts: kg400Costs.hvacOptionCosts,
     hvacExtrasCost: kg400Costs.hvacExtrasCost,
+    packageCosts: kg400Costs.packageCosts,
     siteCost: kg200Costs.kg200Total,
     utilityConnectionCost: kg200Costs.utilityConnectionCost,
     utilityGroup220Cost: kg200Costs.group220Cost,
     utilityGroup230Cost: kg200Costs.group230Cost,
     siteExcavationCost: kg200Costs.siteExcavationCost,
+    landAcquisitionAmount: kg100Costs.incidentalLandAcquisitionCosts,
     breakdownGroups,
 
   }

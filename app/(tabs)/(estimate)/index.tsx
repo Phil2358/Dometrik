@@ -525,6 +525,7 @@ export default function EstimateScreen() {
      setLandValue,
      landAcquisitionCosts,
      setLandAcquisitionCosts,
+     landAcquisitionAmount,
      landAcquisitionCostsMode,
      setLandAcquisitionCostsMode,
      bathrooms,
@@ -604,9 +605,7 @@ export default function EstimateScreen() {
   const displaySizeCorrectionLabel = sizeCorrectionLabel.toLowerCase() === 'base'
     ? '0%'
     : sanitizeEstimateText(sizeCorrectionLabel);
-  const displayedLandAcquisitionCosts = landAcquisitionCostsMode === 'auto'
-    ? landValue * 0.06
-    : landAcquisitionCosts;
+  const displayedLandAcquisitionCosts = landAcquisitionAmount;
   const feesQualityLabel = getFeesQualityLabel(qualityId);
   const appliedGeneralFurniture = generalFurnitureCustomized
     ? generalFurniture
@@ -656,26 +655,29 @@ export default function EstimateScreen() {
   );
 
   const handleQualitySelect = useCallback(
-    (id: QualityId) => {
+    (id: QualityId, benchmarkValue: number) => {
       if (Platform.OS !== 'web') {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
+      if (benchmarkMode === 'manual') {
+        setBenchmarkOverridePerSqm(benchmarkValue);
+      }
       selectQuality(id);
     },
-    [selectQuality],
+    [benchmarkMode, selectQuality, setBenchmarkOverridePerSqm],
   );
 
-  const activateManualBenchmarkOverride = useCallback(() => {
+  const activateManualBenchmarkOverride = useCallback((defaultBenchmarkValue: number) => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     if (!hasBenchmarkOverride) {
-      setBenchmarkOverridePerSqm(quality.baseCostPerSqm);
+      setBenchmarkOverridePerSqm(defaultBenchmarkValue);
     }
     requestAnimationFrame(() => {
       benchmarkInputRef.current?.focus();
     });
-  }, [hasBenchmarkOverride, quality.baseCostPerSqm, setBenchmarkOverridePerSqm]);
+  }, [hasBenchmarkOverride, setBenchmarkOverridePerSqm]);
 
   const handleSiteConditionSelect = useCallback(
     (id: string) => {
@@ -757,6 +759,9 @@ export default function EstimateScreen() {
             onPress={() => {
               if (Platform.OS !== 'web') {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              if (landAcquisitionCostsMode === 'auto') {
+                setLandAcquisitionCosts(landAcquisitionAmount);
               }
               setLandAcquisitionCostsMode('manual');
             }}
@@ -1835,7 +1840,7 @@ export default function EstimateScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                               activeOpacity={0.7}
-                              onPress={activateManualBenchmarkOverride}
+                              onPress={() => activateManualBenchmarkOverride(option.benchmarkValue)}
                               style={[
                                 styles.qualityModeInlineOption,
                                 benchmarkMode === 'manual'
@@ -1901,7 +1906,7 @@ export default function EstimateScreen() {
                       activeOpacity={0.7}
                       style={styles.qualityCard}
                       onPress={() => {
-                        handleQualitySelect(option.id);
+                        handleQualitySelect(option.id, option.benchmarkValue);
                       }}
                       testID={`quality-${option.id}`}
                     >

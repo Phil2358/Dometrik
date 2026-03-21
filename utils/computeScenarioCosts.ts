@@ -1,6 +1,24 @@
-import { calculateProjectCost } from "../calculator-engine/calculateProjectCost"
-import { BASEMENT_TYPE_NAMES, DEFAULT_QUALITY_ID, QUALITY_LEVELS, normalizeQualityId } from "../constants/construction"
+import { calculateProjectCost, type ProjectCalculationInput } from "../calculator-engine/calculateProjectCost"
+import {
+  BASEMENT_TYPE_NAMES,
+  DEFAULT_QUALITY_ID,
+  GROUNDWATER_CONDITIONS,
+  HVAC_OPTIONS,
+  LOCATIONS,
+  POOL_SIZE_OPTIONS,
+  QUALITY_LEVELS,
+  SITE_ACCESSIBILITY_OPTIONS,
+  SITE_CONDITIONS,
+  normalizeQualityId,
+} from "../constants/construction"
 import { formatNumber } from "./format"
+
+type CompareScenarioInput = ProjectCalculationInput & {
+  name?: string
+}
+
+const SQUARE_METER_UNIT = "m\u00B2"
+const MIDDLE_DOT = " \u00B7 "
 
 export interface ComputedScenarioCosts {
   name: string
@@ -10,10 +28,11 @@ export interface ComputedScenarioCosts {
   finalTotal: number
   dinSubtotal: number
   nonDinAdditionsSubtotal: number
-
   locationName: string
   qualityName: string
-
+  siteConditionName: string
+  groundwaterConditionName: string
+  siteAccessibilityName: string
   buildingArea: number
   mainArea: number
   terraceArea: number
@@ -22,7 +41,12 @@ export interface ComputedScenarioCosts {
   storageBasementArea: number
   parkingBasementArea: number
   habitableBasementArea: number
-
+  includePool: boolean
+  poolArea: number
+  poolSizeName: string
+  landscapingArea: number
+  hvacNames: string[]
+  contractorPercent: number
   rawBuildingCost: number
   baseBuildingAreaBenchmarkContribution: number
   coveredTerracesBenchmarkContribution: number
@@ -56,89 +80,112 @@ export function formatBasementSummary(
   const parts: string[] = []
 
   if (storageBasementArea > 0) {
-    parts.push(`${BASEMENT_TYPE_NAMES.storage} ${formatNumber(storageBasementArea)} m²`)
+    parts.push(`${BASEMENT_TYPE_NAMES.storage} ${formatNumber(storageBasementArea)} ${SQUARE_METER_UNIT}`)
   }
 
   if (parkingBasementArea > 0) {
-    parts.push(`${BASEMENT_TYPE_NAMES.parking} ${formatNumber(parkingBasementArea)} m²`)
+    parts.push(`${BASEMENT_TYPE_NAMES.parking} ${formatNumber(parkingBasementArea)} ${SQUARE_METER_UNIT}`)
   }
 
   if (habitableBasementArea > 0) {
-    parts.push(`${BASEMENT_TYPE_NAMES.habitable} ${formatNumber(habitableBasementArea)} m²`)
+    parts.push(`${BASEMENT_TYPE_NAMES.habitable} ${formatNumber(habitableBasementArea)} ${SQUARE_METER_UNIT}`)
   }
 
   if (parts.length === 0) {
     return "No basement"
   }
 
-  return parts.join(" · ")
+  return parts.join(MIDDLE_DOT)
 }
 
-export function computeScenarioCosts(config: any): ComputedScenarioCosts {
+export function computeScenarioCosts(config: CompareScenarioInput): ComputedScenarioCosts {
   const storageBasementArea = config.storageBasementArea ?? 0
   const parkingBasementArea = config.parkingBasementArea ?? 0
   const habitableBasementArea = config.habitableBasementArea ?? 0
-  const mixedBasementArea =
+  const basementArea =
     storageBasementArea +
     parkingBasementArea +
     habitableBasementArea
 
-  const basementArea =
-    mixedBasementArea > 0
-      ? mixedBasementArea
-      : (config.basementArea ?? 0)
+  const poolSizeOption =
+    POOL_SIZE_OPTIONS.find((option) => option.id === config.poolSizeId)
+    ?? POOL_SIZE_OPTIONS[0]
+  const poolArea = config.poolSizeId === "custom"
+    ? Math.max(0, config.poolCustomArea ?? 0)
+    : poolSizeOption.area
 
   const result = calculateProjectCost(config)
-  const resolvedQualityId = normalizeQualityId(config.qualityId);
-  const resolvedQualityName =
+  const resolvedQualityId = normalizeQualityId(config.qualityId)
+  const qualityName =
     QUALITY_LEVELS.find((entry) => entry.id === resolvedQualityId)?.name
     ?? QUALITY_LEVELS.find((entry) => entry.id === DEFAULT_QUALITY_ID)?.name
-    ?? '';
+    ?? ""
+  const locationName =
+    LOCATIONS.find((entry) => entry.id === config.locationId)?.name
+    ?? ""
+  const siteConditionName =
+    SITE_CONDITIONS.find((entry) => entry.id === config.siteConditionId)?.name
+    ?? ""
+  const groundwaterConditionName =
+    GROUNDWATER_CONDITIONS.find((entry) => entry.id === config.groundwaterConditionId)?.name
+    ?? ""
+  const siteAccessibilityName =
+    SITE_ACCESSIBILITY_OPTIONS.find((entry) => entry.id === (config.siteAccessibilityId ?? config.accessibilityId ?? "normal"))?.name
+    ?? ""
+  const hvacNames =
+    HVAC_OPTIONS
+      .filter((option) => config.hvacSelections?.[option.id])
+      .map((option) => option.name)
 
   return {
     name: config.name ?? "Scenario",
-
-    totalCost: result.preVatTotal ?? result.totalCost ?? 0,
-    preVatTotal: result.preVatTotal ?? result.totalCost ?? 0,
-    vatAmount: result.vatAmount ?? 0,
-    finalTotal: result.finalTotal ?? result.totalCost ?? 0,
-    dinSubtotal: result.dinSubtotal ?? 0,
-    nonDinAdditionsSubtotal: result.nonDinAdditionsSubtotal ?? 0,
-
-    locationName: config.locationName ?? "",
-    qualityName: resolvedQualityName,
-
-    buildingArea: result.buildingArea ?? config.buildingArea ?? config.mainArea ?? 0,
-    mainArea: config.mainArea ?? 0,
-    terraceArea: config.terraceArea ?? 0,
-    balconyArea: config.balconyArea ?? 0,
+    totalCost: result.preVatTotal,
+    preVatTotal: result.preVatTotal,
+    vatAmount: result.vatAmount,
+    finalTotal: result.finalTotal,
+    dinSubtotal: result.dinSubtotal,
+    nonDinAdditionsSubtotal: result.nonDinAdditionsSubtotal,
+    locationName,
+    qualityName,
+    siteConditionName,
+    groundwaterConditionName,
+    siteAccessibilityName,
+    buildingArea: result.buildingArea,
+    mainArea: config.mainArea,
+    terraceArea: config.terraceArea,
+    balconyArea: config.balconyArea,
     basementArea,
     storageBasementArea,
     parkingBasementArea,
     habitableBasementArea,
-
-    rawBuildingCost: result.rawBuildingCost ?? 0,
-    baseBuildingAreaBenchmarkContribution: result.baseBuildingAreaBenchmarkContribution ?? 0,
-    coveredTerracesBenchmarkContribution: result.coveredTerracesBenchmarkContribution ?? 0,
-    balconyAreaBenchmarkContribution: result.balconyAreaBenchmarkContribution ?? 0,
-    totalBenchmarkContributionBeforeGroupAllocation: result.totalBenchmarkContributionBeforeGroupAllocation ?? 0,
-    basementBaseCost: result.basementBaseCost ?? 0,
-    permitFee: result.permitFee ?? 0,
-    permitDesignFee: result.permitFee ?? 0,
-    landscapingCost: result.landscapingCost ?? 0,
-    poolCost: result.poolCost ?? 0,
-    hvacExtrasCost: result.hvacExtrasCost ?? 0,
-    siteCost: result.siteCost ?? 0,
-    group100Total: result.group100Total ?? 0,
-    kg200Total: result.kg200Total ?? 0,
-    kg300Cost: result.kg300Total ?? 0,
-    kg400Total: result.kg400Total ?? 0,
-    kg500Total: result.kg500Total ?? 0,
-    kg600Cost: result.kg600Cost ?? 0,
-    constructionSubtotal: result.constructionSubtotal ?? 0,
-    contractorCost: result.contractorCost ?? 0,
-    contingencyCost: result.contingencyCost ?? 0,
-    efkaInsuranceAmount: result.efkaInsuranceAmount ?? 0,
-    vatPercent: result.vatPercent ?? (config.vatPercent ?? 24),
+    includePool: config.includePool,
+    poolArea,
+    poolSizeName: config.poolSizeId === "custom" ? "Custom" : poolSizeOption.name,
+    landscapingArea: config.landscapingArea,
+    hvacNames,
+    contractorPercent: config.contractorPercent ?? 0,
+    rawBuildingCost: result.rawBuildingCost,
+    baseBuildingAreaBenchmarkContribution: result.baseBuildingAreaBenchmarkContribution,
+    coveredTerracesBenchmarkContribution: result.coveredTerracesBenchmarkContribution,
+    balconyAreaBenchmarkContribution: result.balconyAreaBenchmarkContribution,
+    totalBenchmarkContributionBeforeGroupAllocation: result.totalBenchmarkContributionBeforeGroupAllocation,
+    basementBaseCost: result.basementBaseCost,
+    permitFee: result.permitFee,
+    permitDesignFee: result.permitFee,
+    landscapingCost: result.landscapingCost,
+    poolCost: result.poolCost,
+    hvacExtrasCost: result.hvacExtrasCost,
+    siteCost: result.siteCost,
+    group100Total: result.group100Total,
+    kg200Total: result.kg200Total,
+    kg300Cost: result.kg300Total,
+    kg400Total: result.kg400Total,
+    kg500Total: result.kg500Total,
+    kg600Cost: result.kg600Cost,
+    constructionSubtotal: result.constructionSubtotal,
+    contractorCost: result.contractorCost,
+    contingencyCost: result.contingencyCost,
+    efkaInsuranceAmount: result.efkaInsuranceAmount,
+    vatPercent: result.vatPercent,
   }
 }

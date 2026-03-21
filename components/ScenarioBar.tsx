@@ -154,7 +154,7 @@ export default function ScenarioBar() {
                         <Text style={[s.qualityBadgeText, { color: qualityMeta.tone }]}>{qualityMeta.label}</Text>
                       </View>
                       <Text style={[s.tabMetaValue, isActive && s.tabMetaValueActive]}>
-                        {`${formatNumber(scenario.buildingArea ?? scenario.mainArea ?? 0)} m${String.fromCharCode(0x00B2)}`}
+                        {`${formatNumber(scenario.mainArea ?? 0)} m${String.fromCharCode(0x00B2)}`}
                       </Text>
                     </View>
                   </View>
