@@ -12,25 +12,25 @@ const KG300_BASE_FLEXIBLE_SHARES: Record<QualityId, {
   subgroup390Share: number
 }> = {
   economy: {
-    subgroup330Share: 0.495,
-    subgroup340Share: 0.243,
-    subgroup350Share: 0.10,
-    subgroup360Share: 0.117,
-    subgroup390Share: 0.045,
+    subgroup330Share: 0.518,
+    subgroup340Share: 0.255,
+    subgroup350Share: 0.105,
+    subgroup360Share: 0.122,
+    subgroup390Share: 0.000,
   },
   midRange: {
-    subgroup330Share: 0.54,
-    subgroup340Share: 0.216,
-    subgroup350Share: 0.10,
-    subgroup360Share: 0.099,
-    subgroup390Share: 0.045,
+    subgroup330Share: 0.566,
+    subgroup340Share: 0.226,
+    subgroup350Share: 0.105,
+    subgroup360Share: 0.103,
+    subgroup390Share: 0.000,
   },
   luxury: {
-    subgroup330Share: 0.567,
-    subgroup340Share: 0.189,
-    subgroup350Share: 0.10,
-    subgroup360Share: 0.099,
-    subgroup390Share: 0.045,
+    subgroup330Share: 0.594,
+    subgroup340Share: 0.198,
+    subgroup350Share: 0.105,
+    subgroup360Share: 0.103,
+    subgroup390Share: 0.000,
   },
 }
 
@@ -60,14 +60,7 @@ export function calculateDetailedKg300SubgroupCosts(
   const subgroup350FlexibleCost = Math.round(flexibleKg300 * flexibleShares.subgroup350Share)
   const subgroup350Cost = subgroup350StructuralBaseCost + subgroup350FlexibleCost
   const subgroup360Cost = Math.round(flexibleKg300 * flexibleShares.subgroup360Share)
-  const subgroup390Cost =
-    kg300Total
-    - subgroup310BaseCost
-    - subgroup320BaseCost
-    - subgroup330Cost
-    - subgroup340Cost
-    - subgroup350Cost
-    - subgroup360Cost
+  const subgroup390Cost = Math.round(flexibleKg300 * flexibleShares.subgroup390Share)
 
   return {
     kg300Total,
