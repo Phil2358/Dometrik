@@ -152,13 +152,13 @@ function getSubgroupSublabel(
   const wcRoomCountAddonCost = Number(subgroup.meta?.wcRoomCountAddonCost ?? 0);
   const roomCountAddonCost = Number(subgroup.meta?.roomCountAddonCost ?? 0);
   const roomCountAddonTrace =
-    Number.isFinite(baseBeforeRoomCountAddons) && roomCountAddonCost > 0
+    Number.isFinite(baseBeforeRoomCountAddons) && roomCountAddonCost !== 0
       ? [
         `Base before room-count add-ons ${formatCurrency(baseBeforeRoomCountAddons)}`,
-        bathroomRoomCountAddonCost > 0
+        bathroomRoomCountAddonCost !== 0
           ? `bathroom add-ons ${formatCurrency(bathroomRoomCountAddonCost)}`
           : null,
-        wcRoomCountAddonCost > 0
+        wcRoomCountAddonCost !== 0
           ? `WC add-ons ${formatCurrency(wcRoomCountAddonCost)}`
           : null,
       ].filter(Boolean).join(` ${MIDDLE_DOT} `)

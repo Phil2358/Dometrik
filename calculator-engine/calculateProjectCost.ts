@@ -325,8 +325,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const wcs = input.wcs ?? residentialProgramBaseline.wcs
   const recommendedKitchens = 1
   const kitchenCount = input.kitchenCount ?? recommendedKitchens
-  const bathroomDelta = Math.max(0, bathrooms - residentialProgramBaseline.bathrooms)
-  const wcDelta = Math.max(0, wcs - residentialProgramBaseline.wcs)
+  const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms
+  const wcDelta = wcs - residentialProgramBaseline.wcs
   const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms
   const resolvedAccessibilityId =
     input.siteAccessibilityId ??

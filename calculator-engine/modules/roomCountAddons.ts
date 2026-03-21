@@ -62,7 +62,7 @@ function buildRoomCountAddonBreakdown(input: {
   }
   qualityId: QualityId
 }): RoomCountAddonBreakdown {
-  const resolvedRoomCount = Math.max(0, input.roomCount)
+  const resolvedRoomCount = input.roomCount
   const totalCostPerRoom =
     input.totalCostByQuality[input.qualityId] ??
     input.totalCostByQuality[DEFAULT_QUALITY_ID]
