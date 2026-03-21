@@ -64,6 +64,9 @@ interface BuildProjectCostBreakdownInput {
     subgroup610Cost: number
     subgroup620Cost: number
   }
+  kg620BaselineWardrobeCost: number
+  kg620WardrobeDeltaCost: number
+  kg620WardrobeTotal: number
   bedroomPackageCost: number
   areaBased610Cost: number
   kitchenFurnitureCost: number
@@ -241,7 +244,12 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
           code: "620",
           cost: input.kg600SubgroupCosts.subgroup620Cost,
           visible: true,
-          meta: { bathroomWcFurnishingSliceCost: input.bathroomWcFurnishingSliceCost },
+          meta: {
+            bathroomWcFurnishingSliceCost: input.bathroomWcFurnishingSliceCost,
+            kg620BaselineWardrobeCost: input.kg620BaselineWardrobeCost,
+            kg620WardrobeDeltaCost: input.kg620WardrobeDeltaCost,
+            kg620WardrobeTotal: input.kg620WardrobeTotal,
+          },
         },
       ],
     },

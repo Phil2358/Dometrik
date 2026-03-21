@@ -195,6 +195,14 @@ export interface ProjectCostResult {
   bathroomWcFurnishingSliceCost: number
   includedWardrobes: number
   totalWardrobeCount: number
+  baselineWardrobeCount: number
+  wardrobeDelta: number
+  kg620BaselineWardrobeCost: number
+  kg620WardrobeDeltaCost: number
+  kg620WardrobeTotal: number
+  fixedBenchmarkIncluded210: number
+  fixedBenchmarkIncluded620BaselineWardrobes: number
+  benchmarkRemainderAfterFixed210And620: number
   permitFee: number
   landscapingCost: number
   poolCost: number
@@ -363,6 +371,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     calculateKg600Costs({
       buildingArea,
       qualityId,
+      baselineBedroomCount: residentialProgramBaseline.bedrooms,
       bedroomCount,
       kitchenCount,
       customKitchenUnitCost: input.customKitchenUnitCost,
@@ -389,6 +398,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     calculateLevel1BenchmarkAllocation({
       benchmarkTotal: totalBenchmarkContributionBeforeGroupAllocation,
       siteExcavationBaseCost: kg200Costs.siteExcavationBaseCost,
+      fixedWardrobeBaselineCost: kg600Costs.kg620BaselineWardrobeCost,
       qualityId,
     })
 
@@ -592,6 +602,9 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       siteConditionId: input.siteConditionId,
       kg600Cost: kg600Costs.kg600Cost,
       kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
+      kg620BaselineWardrobeCost: kg600Costs.kg620BaselineWardrobeCost,
+      kg620WardrobeDeltaCost: kg600Costs.kg620WardrobeDeltaCost,
+      kg620WardrobeTotal: kg600Costs.kg620WardrobeTotal,
       bedroomPackageCost: kg600Costs.bedroomPackageCost,
       areaBased610Cost: kg600Costs.areaBased610Cost,
       kitchenFurnitureCost: kg600Costs.kitchenFurnitureCost,
@@ -709,6 +722,14 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     bathroomWcFurnishingSliceCost: kg600Costs.bathroomWcFurnishingSliceCost,
     includedWardrobes: kg600Costs.includedWardrobes,
     totalWardrobeCount: kg600Costs.totalWardrobeCount,
+    baselineWardrobeCount: kg600Costs.baselineWardrobeCount,
+    wardrobeDelta: kg600Costs.wardrobeDelta,
+    kg620BaselineWardrobeCost: kg600Costs.kg620BaselineWardrobeCost,
+    kg620WardrobeDeltaCost: kg600Costs.kg620WardrobeDeltaCost,
+    kg620WardrobeTotal: kg600Costs.kg620WardrobeTotal,
+    fixedBenchmarkIncluded210: level1BenchmarkAllocation.fixedBenchmarkIncluded,
+    fixedBenchmarkIncluded620BaselineWardrobes: level1BenchmarkAllocation.fixedWardrobeBaselineBenchmarkIncluded,
+    benchmarkRemainderAfterFixed210And620: level1BenchmarkAllocation.benchmarkRemainderAfterFixed210And620,
     kg100SubgroupCosts: kg100Costs.subgroupCosts,
     permitFee: kg700Total,
     landscapingCost: landscapingCosts.landscapingCost,

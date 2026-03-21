@@ -14,6 +14,7 @@ interface CategoryCostsInput {
 interface Level1BenchmarkAllocationInput {
   benchmarkTotal: number
   siteExcavationBaseCost: number
+  fixedWardrobeBaselineCost: number
   qualityId: QualityId
 }
 
@@ -48,8 +49,15 @@ export function calculateLevel1BenchmarkAllocation(input: Level1BenchmarkAllocat
     ?? LEVEL_1_BENCHMARK_RAW_SHARES[DEFAULT_QUALITY_ID]
   const fixedBenchmarkIncluded =
     Math.max(0, input.siteExcavationBaseCost)
+  const fixedWardrobeBaselineBenchmarkIncluded =
+    Math.max(0, input.fixedWardrobeBaselineCost)
   const remainingBenchmarkPool =
-    Math.max(0, Math.round(input.benchmarkTotal) - fixedBenchmarkIncluded)
+    Math.max(
+      0,
+      Math.round(input.benchmarkTotal)
+      - fixedBenchmarkIncluded
+      - fixedWardrobeBaselineBenchmarkIncluded
+    )
   const rawShareTotal = rawShares.kg300 + rawShares.kg400 || 1
   const benchmarkBucket300 = Math.round(
     remainingBenchmarkPool * (rawShares.kg300 / rawShareTotal)
@@ -59,7 +67,9 @@ export function calculateLevel1BenchmarkAllocation(input: Level1BenchmarkAllocat
 
   return {
     fixedBenchmarkIncluded,
+    fixedWardrobeBaselineBenchmarkIncluded,
     remainingBenchmarkPool,
+    benchmarkRemainderAfterFixed210And620: remainingBenchmarkPool,
     benchmarkBucket300,
     benchmarkBucket400,
   }

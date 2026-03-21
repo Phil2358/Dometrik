@@ -16,6 +16,7 @@ import {
 interface Kg600CostsInput {
   buildingArea: number
   qualityId: QualityId
+  baselineBedroomCount: number
   bedroomCount: number
   kitchenCount?: number
   customKitchenUnitCost?: number | null
@@ -30,7 +31,9 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
     QUALITY_LEVELS.find((entry: any) => entry.id === DEFAULT_QUALITY_ID) ??
     QUALITY_LEVELS[0]
   const qualityPackageMultiplier = quality.benchmarkFactor
+  const baselineWardrobeCount = Math.max(0, input.baselineBedroomCount)
   const totalWardrobeCount = Math.max(0, input.bedroomCount)
+  const wardrobeDelta = totalWardrobeCount - baselineWardrobeCount
   const includedWardrobes = totalWardrobeCount
   const resolvedKitchenCount = Math.max(0, input.kitchenCount ?? 0)
   const kitchenAreaFactor = getKitchenAreaFactor(input.buildingArea)
@@ -47,6 +50,9 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
   const wardrobeUnitCost = Math.round(
     KG600_WARDROBE_PACKAGE_BASE_COST * qualityPackageMultiplier
   )
+  const kg620BaselineWardrobeCost = baselineWardrobeCount * wardrobeUnitCost
+  const kg620WardrobeDeltaCost = wardrobeDelta * wardrobeUnitCost
+  const kg620WardrobeTotal = kg620BaselineWardrobeCost + kg620WardrobeDeltaCost
   const bedroomPackageCost =
     totalWardrobeCount * (BEDROOM_PACKAGE_RATES[input.qualityId] ?? BEDROOM_PACKAGE_RATES[DEFAULT_QUALITY_ID])
   const areaBased610Cost =
@@ -71,7 +77,7 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
     Math.max(0, input.wcs ?? 0) *
     Math.round(KG600_EXTRA_WC_FURNISHING_SLICE_BASE_COST * qualityPackageMultiplier)
   const kitchenPackageCost = resolvedKitchenCount * kitchenUnitCost
-  const wardrobePackageCost = totalWardrobeCount * wardrobeUnitCost
+  const wardrobePackageCost = kg620WardrobeTotal
   const bathroomWcFurnishingSliceCost =
     extraBathroomFurnishingSliceCost + extraWcFurnishingSliceCost
   const kg600SpecialFurnishingsCost =
@@ -81,13 +87,18 @@ export function calculateKg600Costs(input: Kg600CostsInput) {
 
   return {
     qualityPackageMultiplier,
+    baselineWardrobeCount,
     includedWardrobes,
     totalWardrobeCount,
+    wardrobeDelta,
     kitchenAreaFactor,
     suggestedKitchenUnitCost,
     suggestedGeneralFurniture,
     kitchenUnitCost,
     wardrobeUnitCost,
+    kg620BaselineWardrobeCost,
+    kg620WardrobeDeltaCost,
+    kg620WardrobeTotal,
     bedroomPackageCost,
     areaBased610Cost,
     kitchenFurnitureCost,

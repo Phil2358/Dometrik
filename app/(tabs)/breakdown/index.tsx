@@ -241,9 +241,13 @@ function getSubgroupSublabel(
     case '610':
       return `Bedroom packages ${MIDDLE_DOT} area-based furniture allowance ${MIDDLE_DOT} kitchen furniture packages`;
     case '620':
-      return Number(subgroup.meta?.bathroomWcFurnishingSliceCost ?? 0) !== 0
-        ? `Kitchen ${MIDDLE_DOT} built-in wardrobes ${MIDDLE_DOT} bathroom/WC furnishing slices`
-        : 'Kitchen, built-in wardrobes, fixed furniture';
+      return [
+        Number(subgroup.meta?.bathroomWcFurnishingSliceCost ?? 0) !== 0
+          ? `Kitchen ${MIDDLE_DOT} built-in wardrobes ${MIDDLE_DOT} bathroom/WC furnishing slices`
+          : 'Kitchen, built-in wardrobes, fixed furniture',
+        `wardrobe baseline ${formatCurrency(Number(subgroup.meta?.kg620BaselineWardrobeCost ?? 0))}`,
+        `wardrobe delta ${formatCurrency(Number(subgroup.meta?.kg620WardrobeDeltaCost ?? 0))}`,
+      ].join(` ${MIDDLE_DOT} `);
     case '710':
       return 'Design, documentation, site supervision';
     case '720':
