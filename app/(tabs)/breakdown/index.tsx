@@ -459,6 +459,7 @@ export default function BreakdownScreen() {
   const {
     location,
     quality,
+    customCostPerSqm,
     siteCondition,
     groundwaterCondition,
     landscapingArea,
@@ -500,6 +501,7 @@ export default function BreakdownScreen() {
   } = useEstimate();
 
   const sizeCorrectionLabel = formatSizeCorrectionFactorLabel(sizeCorrectionFactor);
+  const qualityDisplayName = customCostPerSqm !== null ? 'Custom' : quality.name;
   const enabledHvac = hvacCosts.filter((h) => h.enabled);
   const basementSummary = formatBasementSummary(
     storageBasementArea,
@@ -557,7 +559,7 @@ export default function BreakdownScreen() {
         <View style={styles.assumptionsGrid}>
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Quality</Text>
-            <Text style={styles.assumptionValue}>{quality.name}</Text>
+            <Text style={styles.assumptionValue}>{qualityDisplayName}</Text>
           </View>
           <View style={styles.assumptionItem}>
             <Text style={styles.assumptionLabel}>Location</Text>
