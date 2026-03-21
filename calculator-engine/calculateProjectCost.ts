@@ -211,8 +211,20 @@ export interface ProjectCostResult {
   benchmarkRemainderAfterFixed210And620And450: number
   permitFee: number
   landscapingCost: number
+  landscapingBaseRatePerSqm: number
+  landscapingBaseCost: number
+  landscapingSiteConditionMultiplier: number
+  landscapingSiteConditionAdjustment: number
   poolCost: number
   poolArea: number
+  poolShellBaseRatePerSqm: number
+  poolShellBaseCost: number
+  poolTypeMultiplier: number
+  poolTerrainMultiplier: number
+  poolDepthFactor: number
+  poolAdjustedShellCost: number
+  poolFinishEquipmentDeltaPerSqm: number
+  poolFinishEquipmentCost: number
   hvacOptionCosts: ReturnType<typeof calculateKg400Costs>["hvacOptionCosts"]
   hvacExtrasCost: number
   packageCosts: ReturnType<typeof calculateKg400Costs>["packageCosts"]
@@ -505,12 +517,17 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const landscapingCosts =
     calculateLandscapingCosts({
       landscapingArea: input.landscapingArea,
-      siteConditionId: input.siteConditionId
+      siteConditionId: input.siteConditionId,
+      qualityId,
     })
   const kg500SubgroupResult =
     calculateKg500Subgroups({
       landscapingCost: landscapingCosts.landscapingCost,
       landscapingArea: input.landscapingArea,
+      landscapingBaseRatePerSqm: landscapingCosts.baseRatePerSqm,
+      landscapingBaseCost: landscapingCosts.baseCost,
+      landscapingSiteConditionMultiplier: landscapingCosts.siteConditionMultiplier,
+      landscapingSiteConditionAdjustment: landscapingCosts.siteConditionAdjustment,
       poolCost: poolCosts.poolCost,
       includePool: input.includePool,
       poolArea: poolCosts.poolArea,
@@ -755,8 +772,20 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg100SubgroupCosts: kg100Costs.subgroupCosts,
     permitFee: kg700Total,
     landscapingCost: landscapingCosts.landscapingCost,
+    landscapingBaseRatePerSqm: landscapingCosts.baseRatePerSqm,
+    landscapingBaseCost: landscapingCosts.baseCost,
+    landscapingSiteConditionMultiplier: landscapingCosts.siteConditionMultiplier,
+    landscapingSiteConditionAdjustment: landscapingCosts.siteConditionAdjustment,
     poolCost: poolCosts.poolCost,
     poolArea: poolCosts.poolArea,
+    poolShellBaseRatePerSqm: poolCosts.poolShellBaseRatePerSqm,
+    poolShellBaseCost: poolCosts.poolShellBaseCost,
+    poolTypeMultiplier: poolCosts.poolTypeMultiplier,
+    poolTerrainMultiplier: poolCosts.poolTerrainMultiplier,
+    poolDepthFactor: poolCosts.poolDepthFactor,
+    poolAdjustedShellCost: poolCosts.poolAdjustedShellCost,
+    poolFinishEquipmentDeltaPerSqm: poolCosts.poolFinishEquipmentDeltaPerSqm,
+    poolFinishEquipmentCost: poolCosts.poolFinishEquipmentCost,
     hvacOptionCosts: kg400Costs.hvacOptionCosts,
     hvacExtrasCost: kg400Costs.hvacExtrasCost,
     packageCosts: kg400Costs.packageCosts,

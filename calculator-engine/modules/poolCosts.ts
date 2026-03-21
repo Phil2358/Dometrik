@@ -3,6 +3,7 @@ import {
   POOL_QUALITY_OPTIONS,
   POOL_TYPE_OPTIONS,
   POOL_TERRAIN_MULTIPLIERS,
+  POOL_BASE_SHELL_COST_PER_SQM,
   DEFAULT_POOL_DEPTH,
   getPoolDepthFactor,
   POOL_MINIMUM_COST
@@ -27,7 +28,15 @@ export function calculatePoolCosts(input: PoolCostsInput) {
   if (!input.includePool) {
     return {
       poolArea: 0,
-      poolCost: 0
+      poolShellBaseRatePerSqm: POOL_BASE_SHELL_COST_PER_SQM,
+      poolShellBaseCost: 0,
+      poolTypeMultiplier: 1,
+      poolTerrainMultiplier: 1,
+      poolDepthFactor: getPoolDepthFactor(DEFAULT_POOL_DEPTH),
+      poolAdjustedShellCost: 0,
+      poolFinishEquipmentDeltaPerSqm: 0,
+      poolFinishEquipmentCost: 0,
+      poolCost: 0,
     }
   }
 
@@ -61,12 +70,23 @@ export function calculatePoolCosts(input: PoolCostsInput) {
   const depthFactor =
     getPoolDepthFactor(depth)
 
-  let poolCost =
+  const poolShellBaseCost =
     poolArea *
-    quality.baseCostPerSqm *
+    POOL_BASE_SHELL_COST_PER_SQM
+
+  const poolAdjustedShellCost =
+    poolShellBaseCost *
     type.multiplier *
     terrainMultiplier *
     depthFactor
+
+  const poolFinishEquipmentCost =
+    poolArea *
+    quality.finishEquipmentDeltaPerSqm
+
+  let poolCost =
+    poolAdjustedShellCost +
+    poolFinishEquipmentCost
 
   if (poolCost < POOL_MINIMUM_COST) {
     poolCost = POOL_MINIMUM_COST
@@ -74,6 +94,14 @@ export function calculatePoolCosts(input: PoolCostsInput) {
 
   return {
     poolArea,
+    poolShellBaseRatePerSqm: POOL_BASE_SHELL_COST_PER_SQM,
+    poolShellBaseCost,
+    poolTypeMultiplier: type.multiplier,
+    poolTerrainMultiplier: terrainMultiplier,
+    poolDepthFactor: depthFactor,
+    poolAdjustedShellCost: Math.round(poolAdjustedShellCost),
+    poolFinishEquipmentDeltaPerSqm: quality.finishEquipmentDeltaPerSqm,
+    poolFinishEquipmentCost: Math.round(poolFinishEquipmentCost),
     poolCost: Math.round(poolCost)
   }
 

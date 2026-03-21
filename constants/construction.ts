@@ -472,7 +472,11 @@ export const DIFFICULT_ACCESS_WARNING = `Limited site access may increase constr
 
 export const VERY_DIFFICULT_ACCESS_WARNING = `Very difficult site access with crane logistics can significantly increase construction costs and project duration.`;
 
-export const LANDSCAPING_BASE_COST_PER_SQM = 40;
+export const LANDSCAPING_BASE_COST_PER_SQM_BY_QUALITY: Record<QualityId, number> = {
+  economy: 30,
+  midRange: 45,
+  luxury: 75,
+};
 
 export const BASE_EXCAVATION_COST_PER_SQM = 80;
 
@@ -608,12 +612,14 @@ export interface PoolQualityOption {
   id: string;
   name: string;
   description: string;
-  baseCostPerSqm: number;
+  finishEquipmentDeltaPerSqm: number;
 }
 
+export const POOL_BASE_SHELL_COST_PER_SQM = 450;
+
 export const POOL_QUALITY_OPTIONS: PoolQualityOption[] = [
-  { id: 'standard', name: 'Standard Pool', description: 'Reinforced concrete pool with standard finishes', baseCostPerSqm: 500 },
-  { id: 'enhanced', name: 'Enhanced Pool', description: 'Higher-grade finishes and equipment', baseCostPerSqm: 675 },
+  { id: 'standard', name: 'Standard Pool', description: 'Reinforced concrete pool shell with standard finishes and equipment', finishEquipmentDeltaPerSqm: 0 },
+  { id: 'enhanced', name: 'Enhanced Pool', description: 'Upgraded finishes and equipment on top of the standard concrete shell', finishEquipmentDeltaPerSqm: 100 },
 ];
 
 export interface PoolTypeOption {
@@ -625,14 +631,14 @@ export interface PoolTypeOption {
 
 export const POOL_TYPE_OPTIONS: PoolTypeOption[] = [
   { id: 'skimmer', name: 'Standard Skimmer Pool', description: 'Traditional skimmer filtration system', multiplier: 1.00 },
-  { id: 'infinity', name: 'Infinity / Overflow Pool', description: 'Overflow edge with additional hydraulic systems', multiplier: 1.40 },
+  { id: 'infinity', name: 'Infinity / Overflow Pool', description: 'Overflow edge with additional hydraulic systems', multiplier: 1.25 },
 ];
 
 export function getPoolDepthFactor(depth: number): number {
-  if (depth <= 1.20) return 0.90;
+  if (depth <= 1.20) return 0.92;
   if (depth <= 1.50) return 1.00;
-  if (depth <= 1.80) return 1.10;
-  return 1.20;
+  if (depth <= 1.80) return 1.08;
+  return 1.16;
 }
 
 export const POOL_TERRAIN_MULTIPLIERS: Record<string, number> = {

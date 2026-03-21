@@ -68,6 +68,7 @@ export const DIN276_GROUPS: Din276Group[] = [
       { code: '520', label: 'Foundations and Substructure' },
       { code: '530', label: 'Base Courses and Surface Layers' },
       { code: '540', label: 'Structural Works' },
+      { code: '548', label: 'Pool Basin / Structural Pool Works' },
       { code: '550', label: 'Technical Systems' },
       { code: '560', label: 'Built-In Elements in External Works and Open Spaces' },
       { code: '570', label: 'Green Areas' },

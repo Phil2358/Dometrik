@@ -126,6 +126,8 @@ const SUBGROUP_ICONS: Record<string, React.ComponentType<{ size?: number; color?
   '480': LayoutGrid,
   '510': LandPlot,
   '530': Hammer,
+  '548': Waves,
+  '550': Wrench,
   '560': Fence,
   '570': Flower2,
   '580': Waves,
@@ -236,6 +238,10 @@ function getSubgroupSublabel(
       return `Grading, retaining walls ${MIDDLE_DOT} ${context.siteConditionName}`;
     case '530':
       return 'Driveways, pathways, patios';
+    case '548':
+      return `Pool basin, vessel waterproofing, internal finish, coping ${MIDDLE_DOT} ${context.poolTypeName}`;
+    case '550':
+      return `Pool filtration, pumps, hydraulics, treatment, controls ${MIDDLE_DOT} ${context.poolQualityName}`;
     case '560':
       return 'Irrigation, outdoor lighting, boundary elements';
     case '570':
