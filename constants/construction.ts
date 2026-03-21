@@ -229,6 +229,7 @@ export const KG400_DATA_SECURITY_UPLIFT_PER_SQM: Record<DataSecurityPackageLevel
   integrated: 6.5,
   custom: 0,
 };
+export const KG450_BASELINE_ESSENTIAL_RATE = 0.008;
 export const KG400_AUTOMATION_UPLIFT_PER_SQM: Record<AutomationPackageLevel, number> = {
   none: 0,
   connected: 50.0,

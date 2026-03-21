@@ -17,6 +17,7 @@ interface Kg400CostsInput {
   mainArea: number
   qualityId: QualityId
   bedroomDelta: number
+  kg450BaselineEssentialCost: number
   dataSecurityPackageLevel?: DataSecurityPackageLevel
   dataSecurityPackageSelection?: Kg400PackageSelection
   dataSecurityManualQuote?: number | null
@@ -30,6 +31,8 @@ interface Kg400CostsInput {
 interface Kg400PackageCostBreakdown {
   defaultCost: number
   appliedCost: number
+  baselineCost: number
+  upgradeCost: number
   manualOverrideActive: boolean
 }
 
@@ -135,13 +138,18 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
   const dataSecurityUpliftPerSqm =
     KG400_DATA_SECURITY_UPLIFT_PER_SQM[dataSecurityPackageLevel]
   const dataSecurityManualQuote = input.dataSecurityManualQuote ?? null
-  const dataSecurityDefaultPackageCost = Math.round(
+  const dataSecurityUpgradeDefaultCost = Math.round(
     Math.max(0, input.mainArea) * dataSecurityUpliftPerSqm
   )
-  const dataSecurityExtraCost = dataSecurityPackageLevel === "custom"
+  const dataSecurityUpgradeCost = dataSecurityPackageLevel === "custom"
     ? Math.max(0, dataSecurityManualQuote ?? 0)
-    : dataSecurityDefaultPackageCost
-  const dataSecurityCategoryCost = dataSecurityExtraCost
+    : dataSecurityUpgradeDefaultCost
+  const dataSecurityBaselineCost = Math.max(0, input.kg450BaselineEssentialCost)
+  const dataSecurityDefaultPackageCost =
+    dataSecurityBaselineCost
+    + (dataSecurityPackageLevel === "custom" ? 0 : dataSecurityUpgradeDefaultCost)
+  const dataSecurityCategoryCost =
+    dataSecurityBaselineCost + dataSecurityUpgradeCost
   const automationPackageLevel =
     input.automationPackageLevel
     ?? ((input.automationPackageSelection ?? "no") === "yes" ? "connected" : "none")
@@ -205,11 +213,15 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
       dataSecurity: {
         defaultCost: dataSecurityDefaultPackageCost,
         appliedCost: dataSecurityCategoryCost,
+        baselineCost: dataSecurityBaselineCost,
+        upgradeCost: dataSecurityUpgradeCost,
         manualOverrideActive: dataSecurityPackageLevel === "custom",
       },
       automation: {
         defaultCost: automationDefaultPackageCost,
         appliedCost: automationCategoryCost,
+        baselineCost: 0,
+        upgradeCost: automationCategoryCost,
         manualOverrideActive: automationPackageLevel === "custom",
       },
     },

@@ -56,6 +56,8 @@ interface BuildProjectCostBreakdownInput {
   }
   kg400Total: number
   kg400CategoryCostsById: Record<string, number>
+  kg450BaselineEssentialCost: number
+  kg450UpgradeCost: number
   kg500Subgroups: ProjectBreakdownSubgroup[]
   hvacSelections: Record<string, boolean>
   siteConditionId: string
@@ -215,7 +217,15 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             photovoltaic: input.hvacSelections.photovoltaic ?? false,
           },
         },
-        { code: "450", cost: input.kg400CategoryCostsById.data_security ?? 0, visible: true },
+        {
+          code: "450",
+          cost: input.kg400CategoryCostsById.data_security ?? 0,
+          visible: true,
+          meta: {
+            kg450BaselineEssentialCost: input.kg450BaselineEssentialCost,
+            kg450UpgradeCost: input.kg450UpgradeCost,
+          },
+        },
         { code: "480", cost: input.kg400CategoryCostsById.automation ?? 0, visible: true },
       ],
     },

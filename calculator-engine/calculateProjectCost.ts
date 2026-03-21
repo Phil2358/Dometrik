@@ -203,6 +203,11 @@ export interface ProjectCostResult {
   fixedBenchmarkIncluded210: number
   fixedBenchmarkIncluded620BaselineWardrobes: number
   benchmarkRemainderAfterFixed210And620: number
+  kg450BaselineEssentialRate: number
+  kg450BaselineEssentialCost: number
+  kg450UpgradeCost: number
+  benchmarkRemainderAfterFixed210: number
+  benchmarkRemainderAfterFixed210And620And450: number
   permitFee: number
   landscapingCost: number
   poolCost: number
@@ -413,6 +418,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       mainArea: input.mainArea,
       qualityId,
       bedroomDelta,
+      kg450BaselineEssentialCost: level1BenchmarkAllocation.kg450BaselineEssentialCost,
       dataSecurityPackageLevel: input.dataSecurityPackageLevel,
       dataSecurityPackageSelection: input.dataSecurityPackageSelection,
       dataSecurityManualQuote: input.dataSecurityManualQuote,
@@ -597,6 +603,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       wcRoomCountAddons: roomCountAddons.wcRoomCountAddons,
       kg400Total: mergedKg400Total,
       kg400CategoryCostsById: mergedKg400CategoryCostsById,
+      kg450BaselineEssentialCost: level1BenchmarkAllocation.kg450BaselineEssentialCost,
+      kg450UpgradeCost: kg400Costs.packageCosts.dataSecurity.upgradeCost,
       kg500Subgroups: kg500SubgroupResult.kg500Subgroups,
       hvacSelections: input.hvacSelections,
       siteConditionId: input.siteConditionId,
@@ -729,7 +737,12 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     kg620WardrobeTotal: kg600Costs.kg620WardrobeTotal,
     fixedBenchmarkIncluded210: level1BenchmarkAllocation.fixedBenchmarkIncluded,
     fixedBenchmarkIncluded620BaselineWardrobes: level1BenchmarkAllocation.fixedWardrobeBaselineBenchmarkIncluded,
+    kg450BaselineEssentialRate: level1BenchmarkAllocation.kg450BaselineEssentialRate,
+    kg450BaselineEssentialCost: level1BenchmarkAllocation.kg450BaselineEssentialCost,
+    kg450UpgradeCost: kg400Costs.packageCosts.dataSecurity.upgradeCost,
+    benchmarkRemainderAfterFixed210: level1BenchmarkAllocation.benchmarkRemainderAfterFixed210,
     benchmarkRemainderAfterFixed210And620: level1BenchmarkAllocation.benchmarkRemainderAfterFixed210And620,
+    benchmarkRemainderAfterFixed210And620And450: level1BenchmarkAllocation.benchmarkRemainderAfterFixed210And620And450,
     kg100SubgroupCosts: kg100Costs.subgroupCosts,
     permitFee: kg700Total,
     landscapingCost: landscapingCosts.landscapingCost,

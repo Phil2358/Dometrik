@@ -225,7 +225,11 @@ function getSubgroupSublabel(
           ? 'Wiring, panels, lighting, PV-ready systems'
           : 'Wiring, panels, sockets, lighting';
     case '450':
-      return 'Data cabling, networking, alarm, access control';
+      return [
+        'Data cabling, networking, alarm, access control',
+        `450 baseline ${formatCurrency(Number(subgroup.meta?.kg450BaselineEssentialCost ?? 0))}`,
+        `450 upgrade ${formatCurrency(Number(subgroup.meta?.kg450UpgradeCost ?? 0))}`,
+      ].join(` ${MIDDLE_DOT} `);
     case '480':
       return 'Building automation, controls, smart-home integration';
     case '510':

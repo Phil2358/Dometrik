@@ -2,6 +2,7 @@ import {
   COST_CATEGORIES,
   DEFAULT_QUALITY_ID,
   KG300_CATEGORY_IDS,
+  KG450_BASELINE_ESSENTIAL_RATE,
   KG600_CATEGORY_IDS,
   LEVEL_1_BENCHMARK_RAW_SHARES,
   type QualityId,
@@ -49,14 +50,20 @@ export function calculateLevel1BenchmarkAllocation(input: Level1BenchmarkAllocat
     ?? LEVEL_1_BENCHMARK_RAW_SHARES[DEFAULT_QUALITY_ID]
   const fixedBenchmarkIncluded =
     Math.max(0, input.siteExcavationBaseCost)
+  const benchmarkRemainderAfterFixed210 =
+    Math.max(0, Math.round(input.benchmarkTotal) - fixedBenchmarkIncluded)
   const fixedWardrobeBaselineBenchmarkIncluded =
     Math.max(0, input.fixedWardrobeBaselineCost)
+  const benchmarkRemainderAfterFixed210And620 =
+    Math.max(0, benchmarkRemainderAfterFixed210 - fixedWardrobeBaselineBenchmarkIncluded)
+  const kg450BaselineEssentialCost = Math.round(
+    benchmarkRemainderAfterFixed210And620 * KG450_BASELINE_ESSENTIAL_RATE
+  )
   const remainingBenchmarkPool =
     Math.max(
       0,
-      Math.round(input.benchmarkTotal)
-      - fixedBenchmarkIncluded
-      - fixedWardrobeBaselineBenchmarkIncluded
+      benchmarkRemainderAfterFixed210And620
+      - kg450BaselineEssentialCost
     )
   const rawShareTotal = rawShares.kg300 + rawShares.kg400 || 1
   const benchmarkBucket300 = Math.round(
@@ -67,9 +74,13 @@ export function calculateLevel1BenchmarkAllocation(input: Level1BenchmarkAllocat
 
   return {
     fixedBenchmarkIncluded,
+    benchmarkRemainderAfterFixed210,
     fixedWardrobeBaselineBenchmarkIncluded,
+    benchmarkRemainderAfterFixed210And620,
+    kg450BaselineEssentialRate: KG450_BASELINE_ESSENTIAL_RATE,
+    kg450BaselineEssentialCost,
     remainingBenchmarkPool,
-    benchmarkRemainderAfterFixed210And620: remainingBenchmarkPool,
+    benchmarkRemainderAfterFixed210And620And450: remainingBenchmarkPool,
     benchmarkBucket300,
     benchmarkBucket400,
   }
