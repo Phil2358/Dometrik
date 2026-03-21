@@ -40,7 +40,7 @@ export interface ScenarioConfig {
   name: string;
   locationId: string;
   qualityId: QualityId;
-  customCostPerSqm: number | null;
+  benchmarkOverridePerSqm: number | null;
   buildingArea?: number;
   vatPercent?: number;
   // Deprecated compatibility bridge for older saved scenarios. Live e-EFKA
@@ -101,6 +101,7 @@ export interface ScenarioConfig {
 type PersistedScenarioConfig = Omit<ScenarioConfig, 'qualityId'> & {
   qualityId?: CompatibleQualityId | string;
   effectiveArea?: number;
+  customCostPerSqm?: number | null;
   generalFurnitureBaseAmount?: number;
   generalFurnitureBaseAmountCustomized?: boolean;
   kitchenCountCustomized?: boolean;
@@ -172,6 +173,7 @@ function normalizeAutomationPackageLevel(
 function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
   const qualityId = normalizeQualityId(config.qualityId);
+  const benchmarkOverridePerSqm = config.benchmarkOverridePerSqm ?? config.customCostPerSqm ?? null;
   const persistedBuildingArea =
     config.buildingArea ??
     config.effectiveArea ??
@@ -287,6 +289,7 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
   return {
     ...config,
     qualityId,
+    benchmarkOverridePerSqm,
     buildingArea,
     vatPercent,
     efkaInsuranceManualCost,
@@ -357,7 +360,7 @@ function createDefaultConfig(name: string): ScenarioConfig {
     name,
     locationId: 'corfu',
     qualityId: DEFAULT_QUALITY_ID,
-    customCostPerSqm: null,
+    benchmarkOverridePerSqm: null,
     buildingArea: defaultBuildingArea,
     vatPercent: 24,
     efkaInsuranceManualCost: null,
@@ -468,7 +471,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const [locationId, setLocationId] = useState<string>('corfu');
   const [qualityId, setQualityId] = useState<QualityId>(DEFAULT_QUALITY_ID);
-  const [customCostPerSqm, setCustomCostPerSqm] = useState<number | null>(null);
+  const [benchmarkOverridePerSqm, setBenchmarkOverridePerSqm] = useState<number | null>(null);
   const [plotSize, setPlotSize] = useState<number>(4000);
   const [mainArea, setMainArea] = useState<number>(150);
   const [terraceArea, setTerraceArea] = useState<number>(30);
@@ -546,7 +549,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     return {
       locationId,
       qualityId,
-      customCostPerSqm,
+      benchmarkOverridePerSqm,
       buildingArea,
       plotSize,
       mainArea,
@@ -603,7 +606,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       siteAccessibilityId,
     };
   }, [
-    locationId, qualityId, customCostPerSqm, buildingArea, plotSize, mainArea, terraceArea, balconyArea,
+    locationId, qualityId, benchmarkOverridePerSqm, buildingArea, plotSize, mainArea, terraceArea, balconyArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, siteConditionId,
     landscapingArea, landValue, landAcquisitionCosts, landAcquisitionCostsMode,
@@ -618,7 +621,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     const normalizedConfig = normalizeScenarioConfig(config);
     setLocationId(normalizedConfig.locationId);
     setQualityId(normalizedConfig.qualityId);
-    setCustomCostPerSqm(normalizedConfig.customCostPerSqm);
+    setBenchmarkOverridePerSqm(normalizedConfig.benchmarkOverridePerSqm);
     setPlotSize(normalizedConfig.plotSize ?? 4000);
     setMainArea(normalizedConfig.mainArea);
     setTerraceArea(normalizedConfig.terraceArea);
@@ -727,7 +730,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   useEffect(() => {
     persistState();
   }, [
-    locationId, qualityId, customCostPerSqm, buildingArea, plotSize, mainArea, terraceArea, balconyArea,
+    locationId, qualityId, benchmarkOverridePerSqm, buildingArea, plotSize, mainArea, terraceArea, balconyArea,
     storageBasementArea, parkingBasementArea, habitableBasementArea, includePool, poolSizeId, poolCustomArea,
     poolCustomDepth, poolQualityId, poolTypeId, contractorPercent, vatPercent,
     efkaInsuranceManualCost, manualContingencyPercent, manualContingencyCost, siteConditionId,
@@ -958,12 +961,12 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     buildingArea,
     locationId,
     qualityId,
-    customCostPerSqm,
+    customCostPerSqm: benchmarkOverridePerSqm,
   }), [
     buildingArea,
     locationId,
     qualityId,
-    customCostPerSqm,
+    benchmarkOverridePerSqm,
   ]);
   const baseCostPerSqm = benchmarkBuildingCost.baseCostPerSqm;
   const costPerSqm = benchmarkBuildingCost.costPerSqm;
@@ -981,17 +984,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       return previews;
     }, {} as Record<QualityId, number>),
     [buildingArea, locationId],
-  );
-  const customBenchmarkPreviewPerSqm = useMemo(
-    () => (customCostPerSqm === null
-      ? null
-      : calculateRawBuildingCost({
-        buildingArea,
-        locationId,
-        qualityId,
-        customCostPerSqm,
-      }).correctedCostPerSqm),
-    [buildingArea, locationId, qualityId, customCostPerSqm],
   );
   const siteExcavationBaseCost = useMemo(
     () => Math.max(300, Math.round(Math.max(0, buildingArea) + Math.max(0, landscapingArea))),
@@ -1179,7 +1171,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     habitableBasementArea,
     locationId,
     qualityId,
-    customCostPerSqm,
+    benchmarkOverridePerSqm,
     siteConditionId,
     groundwaterConditionId,
     siteAccessibilityId,
@@ -1225,7 +1217,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     habitableBasementArea,
     locationId,
     qualityId,
-    customCostPerSqm,
+    benchmarkOverridePerSqm,
     siteConditionId,
     groundwaterConditionId,
     siteAccessibilityId,
@@ -1315,7 +1307,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
 
   const selectQuality = useCallback((id: QualityId) => {
     setQualityId(id);
-    setCustomCostPerSqm(null);
     setManualContingencyPercent(null);
     setManualContingencyCost(null);
   }, []);
@@ -1411,8 +1402,8 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     toggleHvacOption,
     hvacCosts,
     totalHvacCost,
-    customCostPerSqm,
-    setCustomCostPerSqm,
+    benchmarkOverridePerSqm,
+    setBenchmarkOverridePerSqm,
     plotSize,
     setPlotSize,
     mainArea,
@@ -1473,7 +1464,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     correctedCostPerSqm,
     finalCostPerSqm,
     benchmarkPreviewPerQuality,
-    customBenchmarkPreviewPerSqm,
     constructionCost,
     contractorCost,
     poolCost,
@@ -1576,7 +1566,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     automationManualQuote, setAutomationManualQuote,
     automationDefaultPackageCost, automationAppliedPackageCost, automationManualOverrideActive,
     hvacSelections, toggleHvacOption, hvacCosts, totalHvacCost,
-    customCostPerSqm, setCustomCostPerSqm, plotSize, setPlotSize,
+    benchmarkOverridePerSqm, setBenchmarkOverridePerSqm, plotSize, setPlotSize,
     mainArea, setMainArea, terraceArea, setTerraceArea,
     balconyArea, setBalconyArea,
     storageBasementArea, setStorageBasementArea,
@@ -1595,7 +1585,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     manualContingencyPercent, setManualContingencyPercent,
     manualContingencyCost, setManualContingencyCost, contingencyManualOverrideActive, appliedContingencyPercent,
     location, quality, buildingArea, baseCostPerSqm, costPerSqm,
-    sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm, benchmarkPreviewPerQuality, customBenchmarkPreviewPerSqm,
+    sizeCorrectionFactor, correctedCostPerSqm, finalCostPerSqm, benchmarkPreviewPerQuality,
     constructionCost, contractorCost, poolCost, permitDesignFee, totalCost, group100Total, projectTotalBeforeVat,
     utilityConnectionId, setUtilityConnectionId, customUtilityCost, setCustomUtilityCost, utilityConnectionCost, utilityGroup220Cost, utilityGroup230Cost,
     groundwaterConditionId, setGroundwaterConditionId, groundwaterCondition,

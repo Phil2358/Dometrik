@@ -17,7 +17,7 @@ export function runEngineStressTest(iterations: number = 100) {
       locationId: "athens",
       qualityId: "economy",
 
-      customCostPerSqm: null,
+      benchmarkOverridePerSqm: null,
 
       siteConditionId: "flat_normal",
       groundwaterConditionId: "normal",

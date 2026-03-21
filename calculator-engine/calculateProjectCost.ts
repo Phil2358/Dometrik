@@ -44,7 +44,7 @@ export interface ProjectCalculationInput {
 
   locationId: string
   qualityId: CompatibleQualityId | string
-  customCostPerSqm?: number | null
+  benchmarkOverridePerSqm?: number | null
 
   siteConditionId: string
   groundwaterConditionId: string
@@ -193,7 +193,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       buildingArea,
       locationId: input.locationId,
       qualityId,
-      customCostPerSqm: input.customCostPerSqm
+      customCostPerSqm: input.benchmarkOverridePerSqm
     })
   const baseBuildingAreaBenchmarkContribution = buildingCost.baseConstructionCost
   const coveredTerracesBenchmarkContribution = Math.round(

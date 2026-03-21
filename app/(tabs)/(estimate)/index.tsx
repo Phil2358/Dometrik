@@ -9,6 +9,7 @@ import {
   Switch,
   Platform,
   Linking,
+  useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ruler, Info, Mountain, TreePine, Bath, Flame, Waves, ExternalLink, Plug, Shield, Droplets, Truck, AlertTriangle, Home, Wrench, Settings, BookOpen, LandPlot, Sofa, ChevronDown, ChevronUp } from 'lucide-react-native';
@@ -161,6 +162,7 @@ function OverrideValueField({
   unit,
   helperText,
   onSetEditable,
+  automaticLabel = 'Automatic',
   editableLabel = 'Manual',
   inputTestID,
   actionTestID,
@@ -172,6 +174,7 @@ function OverrideValueField({
   unit: string;
   helperText: string;
   onSetEditable: (nextEditable: boolean) => void;
+  automaticLabel?: string;
   editableLabel?: string;
   inputTestID?: string;
   actionTestID?: string;
@@ -198,7 +201,7 @@ function OverrideValueField({
                 !editable ? styles.overrideModeOptionTextActive : styles.overrideModeOptionTextInactive,
               ]}
             >
-              Automatic
+              {automaticLabel}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -470,8 +473,8 @@ export default function EstimateScreen() {
     setLocationId,
     qualityId,
     selectQuality,
-    customCostPerSqm,
-    setCustomCostPerSqm,
+    benchmarkOverridePerSqm,
+    setBenchmarkOverridePerSqm,
     mainArea,
     setMainArea,
     terraceArea,
@@ -565,14 +568,11 @@ export default function EstimateScreen() {
     location,
     quality,
     buildingArea,
-    baseCostPerSqm,
     benchmarkPreviewPerQuality,
     plotSize,
     setPlotSize,
     sizeCorrectionFactor,
     correctedCostPerSqm,
-    customBenchmarkPreviewPerSqm,
-    finalCostPerSqm,
     contractorCost,
     poolCost,
     permitDesignFee,
@@ -596,6 +596,8 @@ export default function EstimateScreen() {
     suggestedGeneralFurniture,
     kitchenUnitCost,
   } = useEstimate();
+  const { width: windowWidth } = useWindowDimensions();
+  const benchmarkInputRef = React.useRef<TextInput | null>(null);
 
   const isLargeProject = permitDesignBuildingArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
   const sizeCorrectionLabel = formatSizeCorrectionFactorLabel(sizeCorrectionFactor);
@@ -609,37 +611,37 @@ export default function EstimateScreen() {
   const appliedGeneralFurniture = generalFurnitureCustomized
     ? generalFurniture
     : suggestedGeneralFurniture;
+  const benchmarkMode = benchmarkOverridePerSqm !== null ? 'manual' : 'default';
+  const hasBenchmarkOverride = benchmarkOverridePerSqm !== null;
+  const referenceBenchmarkPerSqm = benchmarkOverridePerSqm ?? quality.baseCostPerSqm;
+  const useStackedBenchmarkCardLayout = windowWidth < 560;
   const qualityBenchmarkOptions: Array<{
-    id: QualityId | 'custom';
+    id: QualityId;
     title: string;
     descriptor: string;
-    benchmarkLabel?: string;
+    benchmarkValue: number;
+    benchmarkLabel: string;
   }> = [
     {
       id: 'economy',
       title: 'Economy',
       descriptor: 'Cost-conscious residential benchmark',
+      benchmarkValue: benchmarkPreviewPerQuality.economy ?? 0,
       benchmarkLabel: `${formatCurrency(benchmarkPreviewPerQuality.economy ?? 0)} /${SQUARE_METER_UNIT}`,
     },
     {
       id: 'midRange',
       title: 'Mid-Range',
       descriptor: 'Balanced residential benchmark',
+      benchmarkValue: benchmarkPreviewPerQuality.midRange ?? 0,
       benchmarkLabel: `${formatCurrency(benchmarkPreviewPerQuality.midRange ?? 0)} /${SQUARE_METER_UNIT}`,
     },
     {
       id: 'luxury',
       title: 'Luxury',
       descriptor: 'High-spec residential benchmark',
+      benchmarkValue: benchmarkPreviewPerQuality.luxury ?? 0,
       benchmarkLabel: `${formatCurrency(benchmarkPreviewPerQuality.luxury ?? 0)} /${SQUARE_METER_UNIT}`,
-    },
-    {
-      id: 'custom',
-      title: 'Custom',
-      descriptor: 'Enter your own benchmark',
-      benchmarkLabel: customBenchmarkPreviewPerSqm === null
-        ? undefined
-        : `${formatCurrency(customBenchmarkPreviewPerSqm)} /${SQUARE_METER_UNIT}`,
     },
   ];
 
@@ -662,6 +664,18 @@ export default function EstimateScreen() {
     },
     [selectQuality],
   );
+
+  const activateManualBenchmarkOverride = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    if (!hasBenchmarkOverride) {
+      setBenchmarkOverridePerSqm(quality.baseCostPerSqm);
+    }
+    requestAnimationFrame(() => {
+      benchmarkInputRef.current?.focus();
+    });
+  }, [hasBenchmarkOverride, quality.baseCostPerSqm, setBenchmarkOverridePerSqm]);
 
   const handleSiteConditionSelect = useCallback(
     (id: string) => {
@@ -1753,93 +1767,155 @@ export default function EstimateScreen() {
         <View style={[styles.card, styles.cardCompactTop]}>
           <View style={styles.qualityRow}>
             {qualityBenchmarkOptions.map((option, index) => {
-              const isSelected = option.id === 'custom'
-                ? customCostPerSqm !== null
-                : customCostPerSqm === null && qualityId === option.id;
+              const isSelected = qualityId === option.id;
               return (
                 <React.Fragment key={option.id}>
                   {index > 0 && <View style={styles.divider} />}
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    style={[styles.qualityCard, isSelected && styles.qualityCardSelected]}
-                    onPress={() => {
-                      if (option.id === 'custom') {
-                        setCustomCostPerSqm(customCostPerSqm ?? quality.baseCostPerSqm);
-                        return;
-                      }
-                      handleQualitySelect(option.id);
-                    }}
-                    testID={`quality-${option.id}`}
-                  >
-                    <View style={styles.qualityCardText}>
-                      <Text style={[styles.qualityName, isSelected && styles.qualityNameSelected]}>
-                        {option.title}
-                      </Text>
-                      <Text style={styles.qualityDescriptor}>{option.descriptor}</Text>
-                    </View>
-                    <View style={styles.qualityCardValue}>
-                      {option.id === 'custom' ? (
-                        <View style={styles.qualityCustomBlock}>
-                          <TouchableOpacity
-                            activeOpacity={0.85}
+                  {isSelected ? (
+                    <View
+                      style={[
+                        styles.qualityCard,
+                        styles.qualityCardSelected,
+                        useStackedBenchmarkCardLayout && styles.qualityCardStacked,
+                      ]}
+                      testID={`quality-${option.id}`}
+                    >
+                      <View style={styles.qualityCardText}>
+                        <Text style={[styles.qualityName, styles.qualityNameSelected]}>
+                          {option.title}
+                        </Text>
+                        <Text style={styles.qualityDescriptor}>{option.descriptor}</Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.qualityCardValue,
+                          styles.qualityCardValueSelected,
+                          useStackedBenchmarkCardLayout && styles.qualityCardValueStacked,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.qualityInlineValueRow,
+                            useStackedBenchmarkCardLayout && styles.qualityInlineValueRowStacked,
+                          ]}
+                        >
+                          <View
                             style={[
-                              styles.qualityCustomInputShell,
-                              isSelected && styles.qualityCustomInputShellSelected,
+                              styles.qualityModeInline,
+                              useStackedBenchmarkCardLayout && styles.qualityModeInlineStacked,
                             ]}
-                            onPress={() => {
-                              if (customCostPerSqm === null) {
-                                setCustomCostPerSqm(quality.baseCostPerSqm);
-                              }
-                            }}
-                            testID="quality-custom-input-shell"
+                            testID="benchmark-reference-toggle"
+                          >
+                            <TouchableOpacity
+                              activeOpacity={0.7}
+                              onPress={() => {
+                                if (Platform.OS !== 'web') {
+                                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                }
+                                setBenchmarkOverridePerSqm(null);
+                              }}
+                              style={[
+                                styles.qualityModeInlineOption,
+                                benchmarkMode === 'default'
+                                  ? styles.qualityModeInlineOptionActive
+                                  : styles.qualityModeInlineOptionInactive,
+                              ]}
+                              testID="benchmark-reference-default"
+                            >
+                              <Text
+                                style={[
+                                  styles.qualityModeInlineText,
+                                  benchmarkMode === 'default'
+                                    ? styles.qualityModeInlineTextActive
+                                    : styles.qualityModeInlineTextInactive,
+                                ]}
+                              >
+                                Default
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              activeOpacity={0.7}
+                              onPress={activateManualBenchmarkOverride}
+                              style={[
+                                styles.qualityModeInlineOption,
+                                benchmarkMode === 'manual'
+                                  ? styles.qualityModeInlineOptionActive
+                                  : styles.qualityModeInlineOptionInactive,
+                              ]}
+                              testID="benchmark-reference-manual"
+                            >
+                              <Text
+                                style={[
+                                  styles.qualityModeInlineText,
+                                  benchmarkMode === 'manual'
+                                    ? styles.qualityModeInlineTextActive
+                                    : styles.qualityModeInlineTextInactive,
+                                ]}
+                              >
+                                Manual
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                          <View
+                            style={[
+                              styles.qualityInlineInputWrap,
+                              benchmarkMode === 'default' && styles.qualityInlineInputWrapReadonly,
+                              useStackedBenchmarkCardLayout && styles.qualityInlineInputWrapStacked,
+                            ]}
                           >
                             <TextInput
+                              ref={benchmarkInputRef}
                               style={[
-                                styles.qualityCustomInput,
-                                !isSelected && styles.qualityCustomInputDisabled,
+                                styles.qualityInlineInput,
+                                benchmarkMode === 'default' && styles.qualityInlineInputReadonly,
                               ]}
-                              value={customCostPerSqm !== null ? formatNumber(customCostPerSqm) : ''}
-                              onFocus={() => {
-                                if (customCostPerSqm === null) {
-                                  setCustomCostPerSqm(quality.baseCostPerSqm);
-                                }
-                              }}
+                              value={formatNumber(
+                                benchmarkMode === 'manual' ? referenceBenchmarkPerSqm : option.benchmarkValue,
+                              )}
                               onChangeText={(text) => {
                                 const cleaned = text.replace(/[^0-9]/g, '');
                                 if (!cleaned) return;
-                                setCustomCostPerSqm(parseInt(cleaned, 10) || quality.baseCostPerSqm);
+                                setBenchmarkOverridePerSqm(parseInt(cleaned, 10) || quality.baseCostPerSqm);
                               }}
-                              editable={isSelected}
                               keyboardType="numeric"
+                              editable={benchmarkMode === 'manual'}
+                              selectTextOnFocus={benchmarkMode === 'manual'}
                               placeholder="0"
                               placeholderTextColor={Colors.textTertiary}
-                              testID="quality-custom-input"
+                              testID="benchmark-reference-input"
                             />
-                            <Text style={[
-                              styles.qualityCustomInputUnit,
-                              !isSelected && styles.qualityCustomInputUnitDisabled,
-                            ]}>
+                            <Text
+                              style={[
+                                styles.qualityInlineInputUnit,
+                                benchmarkMode === 'default' && styles.qualityInlineInputUnitReadonly,
+                              ]}
+                            >
                               {`${EURO_SYMBOL}/${SQUARE_METER_UNIT}`}
                             </Text>
-                          </TouchableOpacity>
-                          {option.benchmarkLabel ? (
-                            <View style={styles.qualityLivePriceRow}>
-                              <Text style={[styles.qualityLivePrice, isSelected && styles.qualityLivePriceSelected]}>
-                                added location factor:{' '}
-                              </Text>
-                              <Text style={[styles.qualityLivePrice, isSelected && styles.qualityLivePriceSelected]}>
-                                {option.benchmarkLabel}
-                              </Text>
-                            </View>
-                          ) : null}
+                          </View>
                         </View>
-                      ) : (
-                        <Text style={[styles.qualityPrice, isSelected && styles.qualityPriceSelected]}>
-                          {option.benchmarkLabel}
-                        </Text>
-                      )}
+                      </View>
                     </View>
-                  </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={styles.qualityCard}
+                      onPress={() => {
+                        handleQualitySelect(option.id);
+                      }}
+                      testID={`quality-${option.id}`}
+                    >
+                      <View style={styles.qualityCardText}>
+                        <Text style={styles.qualityName}>
+                          {option.title}
+                        </Text>
+                        <Text style={styles.qualityDescriptor}>{option.descriptor}</Text>
+                      </View>
+                      <View style={styles.qualityCardValue}>
+                        <Text style={styles.qualityPrice}>{option.benchmarkLabel}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
                 </React.Fragment>
               );
             })}
@@ -2254,6 +2330,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
   },
+  qualityCardStacked: {
+    alignItems: 'stretch' as const,
+  },
   qualityCardText: {
     flex: 1,
     paddingRight: 12,
@@ -2263,47 +2342,110 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 120,
   },
-  qualityCustomBlock: {
-    alignItems: 'flex-end' as const,
-    gap: 6,
+  qualityCardValueSelected: {
+    minWidth: 0,
+    flexShrink: 0,
   },
-  qualityCustomInputShell: {
+  qualityCardValueStacked: {
+    width: '100%' as const,
+    marginTop: 10,
+    alignItems: 'flex-start' as const,
+  },
+  qualityInlineValueRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'flex-end' as const,
+    gap: 8,
+    flexWrap: 'nowrap' as const,
     minHeight: 40,
-    minWidth: 140,
-    borderRadius: 10,
+  },
+  qualityInlineValueRowStacked: {
+    width: '100%' as const,
+    justifyContent: 'space-between' as const,
+  },
+  qualityModeInline: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: Colors.card,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: Colors.border,
-    backgroundColor: Colors.inputBg,
-    paddingHorizontal: 10,
-    gap: 4,
+    padding: 2,
+    gap: 2,
+    flexShrink: 0,
   },
-  qualityCustomInputShellSelected: {
-    borderColor: Colors.accent,
+  qualityModeInlineStacked: {
+    marginRight: 8,
+  },
+  qualityModeInlineOption: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  qualityModeInlineOptionActive: {
+    borderColor: Colors.textTertiary,
+  },
+  qualityModeInlineOptionInactive: {
+    backgroundColor: 'transparent',
+  },
+  qualityModeInlineText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  qualityModeInlineTextActive: {
+    color: Colors.text,
+    fontWeight: '700' as const,
+  },
+  qualityModeInlineTextInactive: {
+    color: Colors.textSecondary,
+    fontWeight: '500' as const,
+  },
+  qualityInlineInputWrap: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     backgroundColor: Colors.card,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    width: 140,
+    justifyContent: 'flex-end' as const,
+    flexShrink: 0,
+    overflow: 'hidden' as const,
   },
-  qualityCustomInput: {
-    minWidth: 64,
-    flexShrink: 1,
+  qualityInlineInputWrapStacked: {
+    width: 140,
+  },
+  qualityInlineInputWrapReadonly: {
+    borderColor: Colors.border,
+  },
+  qualityInlineInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    margin: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
     textAlign: 'right' as const,
     fontSize: 14,
     fontWeight: '700' as const,
-    color: Colors.text,
-    paddingVertical: 0,
-    paddingHorizontal: 0,
+    color: Colors.accent,
   },
-  qualityCustomInputDisabled: {
-    color: Colors.textTertiary,
+  qualityInlineInputReadonly: {
+    color: Colors.accent,
   },
-  qualityCustomInputUnit: {
+  qualityInlineInputUnit: {
+    marginLeft: 4,
     fontSize: 12,
     fontWeight: '600' as const,
-    color: Colors.textSecondary,
+    color: Colors.accent,
   },
-  qualityCustomInputUnitDisabled: {
-    color: Colors.textTertiary,
+  qualityInlineInputUnitReadonly: {
+    color: Colors.accent,
   },
   qualityName: {
     fontSize: 14,
@@ -2332,19 +2474,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   qualityUnitSelected: {
-    color: Colors.accent,
-  },
-  qualityLivePrice: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  qualityLivePriceRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'baseline' as const,
-    justifyContent: 'flex-end' as const,
-  },
-  qualityLivePriceSelected: {
     color: Colors.accent,
   },
   card: {

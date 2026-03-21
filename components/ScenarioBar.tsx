@@ -17,20 +17,18 @@ import type { QualityId } from '@/constants/construction';
 import { useEstimate } from '@/contexts/EstimateContext';
 import { formatNumber } from '@/utils/format';
 
-function getScenarioQualityMeta(scenario: { qualityId: QualityId; customCostPerSqm: number | null }) {
-  if (scenario.customCostPerSqm !== null) {
-    return { label: 'Custom', tone: Colors.accent };
-  }
+function getScenarioQualityMeta(scenario: { qualityId: QualityId; benchmarkOverridePerSqm: number | null }) {
+  const manualSuffix = scenario.benchmarkOverridePerSqm !== null ? ' · Manual' : '';
 
   switch (scenario.qualityId) {
     case 'economy':
-      return { label: 'Economy', tone: Colors.success };
+      return { label: `Economy${manualSuffix}`, tone: scenario.benchmarkOverridePerSqm !== null ? Colors.accent : Colors.success };
     case 'midRange':
-      return { label: 'Mid-Range', tone: Colors.accent };
+      return { label: `Mid-Range${manualSuffix}`, tone: Colors.accent };
     case 'luxury':
-      return { label: 'Luxury', tone: Colors.warning };
+      return { label: `Luxury${manualSuffix}`, tone: scenario.benchmarkOverridePerSqm !== null ? Colors.accent : Colors.warning };
     default:
-      return { label: 'Benchmark', tone: Colors.textTertiary };
+      return { label: `Benchmark${manualSuffix}`, tone: Colors.textTertiary };
   }
 }
 

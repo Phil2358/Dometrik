@@ -1,5 +1,5 @@
 import { calculateProjectCost } from "../calculator-engine/calculateProjectCost"
-import { BASEMENT_TYPE_NAMES } from "../constants/construction"
+import { BASEMENT_TYPE_NAMES, DEFAULT_QUALITY_ID, QUALITY_LEVELS, normalizeQualityId } from "../constants/construction"
 import { formatNumber } from "./format"
 
 export interface ComputedScenarioCosts {
@@ -89,6 +89,11 @@ export function computeScenarioCosts(config: any): ComputedScenarioCosts {
       : (config.basementArea ?? 0)
 
   const result = calculateProjectCost(config)
+  const resolvedQualityId = normalizeQualityId(config.qualityId);
+  const resolvedQualityName =
+    QUALITY_LEVELS.find((entry) => entry.id === resolvedQualityId)?.name
+    ?? QUALITY_LEVELS.find((entry) => entry.id === DEFAULT_QUALITY_ID)?.name
+    ?? '';
 
   return {
     name: config.name ?? "Scenario",
@@ -101,7 +106,7 @@ export function computeScenarioCosts(config: any): ComputedScenarioCosts {
     nonDinAdditionsSubtotal: result.nonDinAdditionsSubtotal ?? 0,
 
     locationName: config.locationName ?? "",
-    qualityName: config.qualityName ?? "",
+    qualityName: resolvedQualityName,
 
     buildingArea: result.buildingArea ?? config.buildingArea ?? config.mainArea ?? 0,
     mainArea: config.mainArea ?? 0,
