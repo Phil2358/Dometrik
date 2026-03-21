@@ -34,6 +34,26 @@ interface BuildProjectCostBreakdownInput {
     subgroup380Cost: number
     subgroup390Cost: number
   }
+  bathroomRoomCountAddons: {
+    kg340Cost: number
+    kg350Cost: number
+    kg400CategoryCostsById: {
+      plumbing: number
+      heating: number
+      ventilation_cooling: number
+      electrical: number
+    }
+  }
+  wcRoomCountAddons: {
+    kg340Cost: number
+    kg350Cost: number
+    kg400CategoryCostsById: {
+      plumbing: number
+      heating: number
+      ventilation_cooling: number
+      electrical: number
+    }
+  }
   kg400Total: number
   kg400CategoryCostsById: Record<string, number>
   kg500Subgroups: ProjectBreakdownSubgroup[]
@@ -56,6 +76,22 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
     input.kg500Subgroups.reduce((sum, subgroup) => sum + subgroup.cost, 0)
   const kg700Total =
     input.kg700Subgroups.reduce((sum, subgroup) => sum + subgroup.cost, 0)
+  const subgroup340RoomCountAddons =
+    input.bathroomRoomCountAddons.kg340Cost + input.wcRoomCountAddons.kg340Cost
+  const subgroup350RoomCountAddons =
+    input.bathroomRoomCountAddons.kg350Cost + input.wcRoomCountAddons.kg350Cost
+  const subgroup410RoomCountAddons =
+    input.bathroomRoomCountAddons.kg400CategoryCostsById.plumbing
+    + input.wcRoomCountAddons.kg400CategoryCostsById.plumbing
+  const subgroup420RoomCountAddons =
+    input.bathroomRoomCountAddons.kg400CategoryCostsById.heating
+    + input.wcRoomCountAddons.kg400CategoryCostsById.heating
+  const subgroup430RoomCountAddons =
+    input.bathroomRoomCountAddons.kg400CategoryCostsById.ventilation_cooling
+    + input.wcRoomCountAddons.kg400CategoryCostsById.ventilation_cooling
+  const subgroup440RoomCountAddons =
+    input.bathroomRoomCountAddons.kg400CategoryCostsById.electrical
+    + input.wcRoomCountAddons.kg400CategoryCostsById.electrical
 
   return [
     {
@@ -96,8 +132,28 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
         { code: "310", cost: input.kg300SubgroupCosts.subgroup310Cost, visible: true },
         { code: "320", cost: input.kg300SubgroupCosts.subgroup320Cost, visible: true },
         { code: "330", cost: input.kg300SubgroupCosts.subgroup330Cost, visible: true },
-        { code: "340", cost: input.kg300SubgroupCosts.subgroup340Cost, visible: true },
-        { code: "350", cost: input.kg300SubgroupCosts.subgroup350Cost, visible: true },
+        {
+          code: "340",
+          cost: input.kg300SubgroupCosts.subgroup340Cost,
+          visible: true,
+          meta: {
+            baseBeforeRoomCountAddons: input.kg300SubgroupCosts.subgroup340Cost - subgroup340RoomCountAddons,
+            bathroomRoomCountAddonCost: input.bathroomRoomCountAddons.kg340Cost,
+            wcRoomCountAddonCost: input.wcRoomCountAddons.kg340Cost,
+            roomCountAddonCost: subgroup340RoomCountAddons,
+          },
+        },
+        {
+          code: "350",
+          cost: input.kg300SubgroupCosts.subgroup350Cost,
+          visible: true,
+          meta: {
+            baseBeforeRoomCountAddons: input.kg300SubgroupCosts.subgroup350Cost - subgroup350RoomCountAddons,
+            bathroomRoomCountAddonCost: input.bathroomRoomCountAddons.kg350Cost,
+            wcRoomCountAddonCost: input.wcRoomCountAddons.kg350Cost,
+            roomCountAddonCost: subgroup350RoomCountAddons,
+          },
+        },
         { code: "360", cost: input.kg300SubgroupCosts.subgroup360Cost, visible: true },
         { code: "370", cost: input.kg300SubgroupCosts.subgroup370Cost, visible: input.kg300SubgroupCosts.subgroup370Cost > 0 },
         { code: "380", cost: input.kg300SubgroupCosts.subgroup380Cost, visible: input.kg300SubgroupCosts.subgroup380Cost > 0 },
@@ -109,22 +165,52 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
       subtotal: input.kg400Total,
       percentOfTotal: input.investmentTotal > 0 ? (input.kg400Total / input.investmentTotal) * 100 : 0,
       subgroups: [
-        { code: "410", cost: input.kg400CategoryCostsById.plumbing ?? 0, visible: true },
+        {
+          code: "410",
+          cost: input.kg400CategoryCostsById.plumbing ?? 0,
+          visible: true,
+          meta: {
+            baseBeforeRoomCountAddons: (input.kg400CategoryCostsById.plumbing ?? 0) - subgroup410RoomCountAddons,
+            bathroomRoomCountAddonCost: input.bathroomRoomCountAddons.kg400CategoryCostsById.plumbing,
+            wcRoomCountAddonCost: input.wcRoomCountAddons.kg400CategoryCostsById.plumbing,
+            roomCountAddonCost: subgroup410RoomCountAddons,
+          },
+        },
         {
           code: "420",
           cost: input.kg400CategoryCostsById.heating ?? 0,
           visible: true,
           meta: {
+            baseBeforeRoomCountAddons: (input.kg400CategoryCostsById.heating ?? 0) - subgroup420RoomCountAddons,
+            bathroomRoomCountAddonCost: input.bathroomRoomCountAddons.kg400CategoryCostsById.heating,
+            wcRoomCountAddonCost: input.wcRoomCountAddons.kg400CategoryCostsById.heating,
+            roomCountAddonCost: subgroup420RoomCountAddons,
             underfloorHeating: input.hvacSelections.underfloor_heating ?? false,
             solarThermal: input.hvacSelections.solar_thermal ?? false,
           },
         },
-        { code: "430", cost: input.kg400CategoryCostsById.ventilation_cooling ?? 0, visible: true },
+        {
+          code: "430",
+          cost: input.kg400CategoryCostsById.ventilation_cooling ?? 0,
+          visible: true,
+          meta: {
+            baseBeforeRoomCountAddons: (input.kg400CategoryCostsById.ventilation_cooling ?? 0) - subgroup430RoomCountAddons,
+            bathroomRoomCountAddonCost: input.bathroomRoomCountAddons.kg400CategoryCostsById.ventilation_cooling,
+            wcRoomCountAddonCost: input.wcRoomCountAddons.kg400CategoryCostsById.ventilation_cooling,
+            roomCountAddonCost: subgroup430RoomCountAddons,
+          },
+        },
         {
           code: "440",
           cost: input.kg400CategoryCostsById.electrical ?? 0,
           visible: true,
-          meta: { photovoltaic: input.hvacSelections.photovoltaic ?? false },
+          meta: {
+            baseBeforeRoomCountAddons: (input.kg400CategoryCostsById.electrical ?? 0) - subgroup440RoomCountAddons,
+            bathroomRoomCountAddonCost: input.bathroomRoomCountAddons.kg400CategoryCostsById.electrical,
+            wcRoomCountAddonCost: input.wcRoomCountAddons.kg400CategoryCostsById.electrical,
+            roomCountAddonCost: subgroup440RoomCountAddons,
+            photovoltaic: input.hvacSelections.photovoltaic ?? false,
+          },
         },
         { code: "450", cost: input.kg400CategoryCostsById.data_security ?? 0, visible: true },
         { code: "480", cost: input.kg400CategoryCostsById.automation ?? 0, visible: true },

@@ -21,6 +21,7 @@ import { calculateKg300Modifiers } from "./modules/kg300Modifiers"
 import { calculateBasementKg300Modifiers } from "./modules/basementKg300Modifiers"
 import { calculateKg500Subgroups } from "./modules/kg500Subgroups"
 import { calculateKg700Subgroups } from "./modules/kg700Subgroups"
+import { calculateRoomCountAddons } from "./modules/roomCountAddons"
 import { buildProjectCostBreakdown, type ProjectBreakdownGroup } from "./buildProjectCostBreakdown"
 import {
   type AutomationPackageLevel,
@@ -165,8 +166,19 @@ export interface ProjectCostResult {
   parkingBasementCost: number
   habitableBasementCost: number
   basementCostItems: ReturnType<typeof calculateBasementBaseCosts>["breakdownItems"]
+  bathroomRoomCountAddons: ReturnType<typeof calculateRoomCountAddons>["bathroomRoomCountAddons"]
+  wcRoomCountAddons: ReturnType<typeof calculateRoomCountAddons>["wcRoomCountAddons"]
+  kg340BathroomDelta: number
+  kg350BathroomDelta: number
+  kg400BathroomDelta: number
+  kg340WcDelta: number
+  kg350WcDelta: number
+  kg400WcDelta: number
+  kg300RoomCountAddons: ReturnType<typeof calculateRoomCountAddons>["kg300SubgroupAddons"]
+  kg400CategoryRoomCountAddonsById: ReturnType<typeof calculateRoomCountAddons>["kg400CategoryAddonsById"]
   kg300SubgroupCosts: ReturnType<typeof calculateKg300Modifiers>["kg300SubgroupCosts"]
   kg300ModifierDetails: ReturnType<typeof calculateKg300Modifiers>["modifierDetails"]
+  kg400CategoryCostsById: Record<string, number>
   kg600SubgroupCosts: ReturnType<typeof calculateKg600Costs>["kg600SubgroupCosts"]
   kg500Subgroups: ReturnType<typeof calculateKg500Subgroups>["kg500Subgroups"]
   kg700Subgroups: ReturnType<typeof calculateKg700Subgroups>["kg700Subgroups"]
@@ -313,8 +325,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
   const wcs = input.wcs ?? residentialProgramBaseline.wcs
   const recommendedKitchens = 1
   const kitchenCount = input.kitchenCount ?? recommendedKitchens
-  const bathroomDelta = bathrooms - residentialProgramBaseline.bathrooms
-  const wcDelta = wcs - residentialProgramBaseline.wcs
+  const bathroomDelta = Math.max(0, bathrooms - residentialProgramBaseline.bathrooms)
+  const wcDelta = Math.max(0, wcs - residentialProgramBaseline.wcs)
   const bedroomDelta = bedroomCount - residentialProgramBaseline.bedrooms
   const resolvedAccessibilityId =
     input.siteAccessibilityId ??
@@ -391,8 +403,6 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       mainArea: input.mainArea,
       qualityId,
       bedroomDelta,
-      bathroomDelta,
-      wcDelta,
       dataSecurityPackageLevel: input.dataSecurityPackageLevel,
       dataSecurityPackageSelection: input.dataSecurityPackageSelection,
       dataSecurityManualQuote: input.dataSecurityManualQuote,
@@ -418,13 +428,32 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       groundwaterConditionId: input.groundwaterConditionId,
       siteAccessibilityFactor,
     })
-  const kg300Total = kg300ModifierResult.kg300Total
-  const kg300SubgroupCosts = kg300ModifierResult.kg300SubgroupCosts
+  const roomCountAddons =
+    calculateRoomCountAddons({
+      qualityId,
+      bathroomDelta,
+      wcDelta,
+    })
+  const kg300SubgroupCosts = {
+    ...kg300ModifierResult.kg300SubgroupCosts,
+    subgroup340Cost:
+      kg300ModifierResult.kg300SubgroupCosts.subgroup340Cost
+      + roomCountAddons.kg300SubgroupAddons.subgroup340Cost,
+    subgroup350Cost:
+      kg300ModifierResult.kg300SubgroupCosts.subgroup350Cost
+      + roomCountAddons.kg300SubgroupAddons.subgroup350Cost,
+  }
+  const kg300Total =
+    kg300ModifierResult.kg300Total
+    + roomCountAddons.kg300SubgroupAddons.subgroup340Cost
+    + roomCountAddons.kg300SubgroupAddons.subgroup350Cost
   const mergedKg300SubgroupCosts =
     addKg300SubgroupCosts(kg300SubgroupCosts, basementKg300ModifierResult.kg300SubgroupCosts)
   const mergedKg300Total = kg300Total + basementKg300Total
+  const mainKg400CategoryCostsById =
+    addCostsById(kg400Costs.categoryCostsById, roomCountAddons.kg400CategoryAddonsById)
   const mergedKg400CategoryCostsById =
-    addCostsById(kg400Costs.categoryCostsById, basementBaseCosts.basementKg400CategoryCostsById)
+    addCostsById(mainKg400CategoryCostsById, basementBaseCosts.basementKg400CategoryCostsById)
   const mergedKg400Total =
     Object.values(mergedKg400CategoryCostsById).reduce((sum, cost) => sum + cost, 0)
 
@@ -554,6 +583,8 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       utilityGroup230Cost: kg200Costs.group230Cost,
       kg300Total: mergedKg300Total,
       kg300SubgroupCosts: mergedKg300SubgroupCosts,
+      bathroomRoomCountAddons: roomCountAddons.bathroomRoomCountAddons,
+      wcRoomCountAddons: roomCountAddons.wcRoomCountAddons,
       kg400Total: mergedKg400Total,
       kg400CategoryCostsById: mergedKg400CategoryCostsById,
       kg500Subgroups: kg500SubgroupResult.kg500Subgroups,
@@ -649,8 +680,19 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
     parkingBasementCost: basementBaseCosts.parkingBasementCost,
     habitableBasementCost: basementBaseCosts.habitableBasementCost,
     basementCostItems: basementBaseCosts.breakdownItems,
+    bathroomRoomCountAddons: roomCountAddons.bathroomRoomCountAddons,
+    wcRoomCountAddons: roomCountAddons.wcRoomCountAddons,
+    kg340BathroomDelta: roomCountAddons.kg340BathroomDelta,
+    kg350BathroomDelta: roomCountAddons.kg350BathroomDelta,
+    kg400BathroomDelta: roomCountAddons.kg400BathroomDelta,
+    kg340WcDelta: roomCountAddons.kg340WcDelta,
+    kg350WcDelta: roomCountAddons.kg350WcDelta,
+    kg400WcDelta: roomCountAddons.kg400WcDelta,
+    kg300RoomCountAddons: roomCountAddons.kg300SubgroupAddons,
+    kg400CategoryRoomCountAddonsById: roomCountAddons.kg400CategoryAddonsById,
     kg300SubgroupCosts: mergedKg300SubgroupCosts,
     kg300ModifierDetails: kg300ModifierResult.modifierDetails,
+    kg400CategoryCostsById: mergedKg400CategoryCostsById,
     kg600SubgroupCosts: kg600Costs.kg600SubgroupCosts,
     kg500Subgroups: kg500SubgroupResult.kg500Subgroups,
     kg700Subgroups: kg700SubgroupResult.kg700Subgroups,

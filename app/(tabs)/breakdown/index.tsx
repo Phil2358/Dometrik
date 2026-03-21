@@ -147,6 +147,23 @@ function getSubgroupSublabel(
     enabledHvacIds: Set<string>;
   },
 ): string | undefined {
+  const baseBeforeRoomCountAddons = Number(subgroup.meta?.baseBeforeRoomCountAddons);
+  const bathroomRoomCountAddonCost = Number(subgroup.meta?.bathroomRoomCountAddonCost ?? 0);
+  const wcRoomCountAddonCost = Number(subgroup.meta?.wcRoomCountAddonCost ?? 0);
+  const roomCountAddonCost = Number(subgroup.meta?.roomCountAddonCost ?? 0);
+  const roomCountAddonTrace =
+    Number.isFinite(baseBeforeRoomCountAddons) && roomCountAddonCost > 0
+      ? [
+        `Base before room-count add-ons ${formatCurrency(baseBeforeRoomCountAddons)}`,
+        bathroomRoomCountAddonCost > 0
+          ? `bathroom add-ons ${formatCurrency(bathroomRoomCountAddonCost)}`
+          : null,
+        wcRoomCountAddonCost > 0
+          ? `WC add-ons ${formatCurrency(wcRoomCountAddonCost)}`
+          : null,
+      ].filter(Boolean).join(` ${MIDDLE_DOT} `)
+      : undefined;
+
   switch (subgroup.code) {
     case '120':
       return subgroup.meta?.mode === 'auto'
@@ -168,9 +185,13 @@ function getSubgroupSublabel(
     case '330':
       return 'External walls, windows, exterior doors';
     case '340':
-      return 'Internal walls and interior doors';
+      return roomCountAddonTrace
+        ? `Internal walls and interior doors ${MIDDLE_DOT} ${roomCountAddonTrace}`
+        : 'Internal walls and interior doors';
     case '350':
-      return 'Slabs and horizontal structural elements';
+      return roomCountAddonTrace
+        ? `Slabs and horizontal structural elements ${MIDDLE_DOT} ${roomCountAddonTrace}`
+        : 'Slabs and horizontal structural elements';
     case '360':
       return 'Roof structure, tiles/membrane, waterproofing, gutters';
     case '370':
@@ -180,17 +201,29 @@ function getSubgroupSublabel(
     case '390':
       return 'Other building construction works';
     case '410':
-      return 'Water supply, drainage, bathroom fittings';
+      return roomCountAddonTrace
+        ? `Water supply, drainage, bathroom fittings ${MIDDLE_DOT} ${roomCountAddonTrace}`
+        : 'Water supply, drainage, bathroom fittings';
     case '420':
-      return context.enabledHvacIds.has('underfloor_heating') || context.enabledHvacIds.has('solar_thermal')
-        ? 'Heat pump, underfloor heating, solar thermal'
-        : 'Heat pump + fan-coils or VRV';
+      return roomCountAddonTrace
+        ? `${context.enabledHvacIds.has('underfloor_heating') || context.enabledHvacIds.has('solar_thermal')
+          ? 'Heat pump, underfloor heating, solar thermal'
+          : 'Heat pump + fan-coils or VRV'} ${MIDDLE_DOT} ${roomCountAddonTrace}`
+        : context.enabledHvacIds.has('underfloor_heating') || context.enabledHvacIds.has('solar_thermal')
+          ? 'Heat pump, underfloor heating, solar thermal'
+          : 'Heat pump + fan-coils or VRV';
     case '430':
-      return 'Ventilation, cooling, ducts, fan-coils';
+      return roomCountAddonTrace
+        ? `Ventilation, cooling, ducts, fan-coils ${MIDDLE_DOT} ${roomCountAddonTrace}`
+        : 'Ventilation, cooling, ducts, fan-coils';
     case '440':
-      return context.enabledHvacIds.has('photovoltaic')
-        ? 'Wiring, panels, lighting, PV-ready systems'
-        : 'Wiring, panels, sockets, lighting';
+      return roomCountAddonTrace
+        ? `${context.enabledHvacIds.has('photovoltaic')
+          ? 'Wiring, panels, lighting, PV-ready systems'
+          : 'Wiring, panels, sockets, lighting'} ${MIDDLE_DOT} ${roomCountAddonTrace}`
+        : context.enabledHvacIds.has('photovoltaic')
+          ? 'Wiring, panels, lighting, PV-ready systems'
+          : 'Wiring, panels, sockets, lighting';
     case '450':
       return 'Data cabling, networking, alarm, access control';
     case '480':

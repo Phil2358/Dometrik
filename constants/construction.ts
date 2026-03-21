@@ -177,8 +177,38 @@ export const KG400_BEDROOM_DELTA_BASE_COSTS: Record<QualityId, number> = {
   midRange: 1150,
   luxury: 1350,
 };
-export const KG400_BATHROOM_DELTA_BASE_COST = 4500;
-export const KG400_WC_DELTA_BASE_COST = 2500;
+export const BATHROOM_ROOM_COUNT_ADDON_TOTAL_COSTS: Record<QualityId, number> = {
+  economy: 8000,
+  midRange: 9000,
+  luxury: 10000,
+};
+export const WC_ROOM_COUNT_ADDON_TOTAL_COSTS: Record<QualityId, number> = {
+  economy: 4000,
+  midRange: 4500,
+  luxury: 5000,
+};
+export const BATHROOM_ROOM_COUNT_ADDON_SPLITS = {
+  kg340: 0.18,
+  kg350: 0.27,
+  kg400: 0.55,
+} as const;
+export const WC_ROOM_COUNT_ADDON_SPLITS = {
+  kg340: 0.20,
+  kg350: 0.20,
+  kg400: 0.60,
+} as const;
+export const BATHROOM_ROOM_COUNT_ADDON_KG400_CATEGORY_SPLITS = {
+  plumbing: 0.65,
+  heating: 0.10,
+  ventilation_cooling: 0.05,
+  electrical: 0.20,
+} as const;
+export const WC_ROOM_COUNT_ADDON_KG400_CATEGORY_SPLITS = {
+  plumbing: 0.75,
+  heating: 0.05,
+  ventilation_cooling: 0.05,
+  electrical: 0.15,
+} as const;
 export const KG400_DATA_SECURITY_BASELINE_COST_PER_SQM = 6;
 export type SmartSystemsPackageLevel = 'none' | 'connected' | 'integrated' | 'custom';
 export type DataSecurityPackageLevel = 'essential' | 'connected' | 'integrated' | 'custom';
