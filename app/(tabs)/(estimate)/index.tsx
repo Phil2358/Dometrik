@@ -574,6 +574,7 @@ export default function EstimateScreen() {
     setPlotSize,
     sizeCorrectionFactor,
     correctedCostPerSqm,
+    finalCostPerSqm,
     contractorCost,
     poolCost,
     permitDesignFee,
@@ -612,7 +613,7 @@ export default function EstimateScreen() {
     : suggestedGeneralFurniture;
   const benchmarkMode = benchmarkOverridePerSqm !== null ? 'manual' : 'default';
   const hasBenchmarkOverride = benchmarkOverridePerSqm !== null;
-  const referenceBenchmarkPerSqm = benchmarkOverridePerSqm ?? quality.baseCostPerSqm;
+  const referenceBenchmarkPerSqm = finalCostPerSqm;
   const useStackedBenchmarkCardLayout = windowWidth < 560;
   const qualityBenchmarkOptions: Array<{
     id: QualityId;
@@ -667,12 +668,12 @@ export default function EstimateScreen() {
     [benchmarkMode, selectQuality, setBenchmarkOverridePerSqm],
   );
 
-  const activateManualBenchmarkOverride = useCallback((defaultBenchmarkValue: number) => {
+  const activateManualBenchmarkOverride = useCallback((benchmarkValue: number) => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     if (!hasBenchmarkOverride) {
-      setBenchmarkOverridePerSqm(defaultBenchmarkValue);
+      setBenchmarkOverridePerSqm(benchmarkValue);
     }
     requestAnimationFrame(() => {
       benchmarkInputRef.current?.focus();
@@ -1875,12 +1876,12 @@ export default function EstimateScreen() {
                                 benchmarkMode === 'default' && styles.qualityInlineInputReadonly,
                               ]}
                               value={formatNumber(
-                                benchmarkMode === 'manual' ? referenceBenchmarkPerSqm : option.benchmarkValue,
+                                referenceBenchmarkPerSqm,
                               )}
                               onChangeText={(text) => {
                                 const cleaned = text.replace(/[^0-9]/g, '');
                                 if (!cleaned) return;
-                                setBenchmarkOverridePerSqm(parseInt(cleaned, 10) || quality.baseCostPerSqm);
+                                setBenchmarkOverridePerSqm(parseInt(cleaned, 10) || option.benchmarkValue);
                               }}
                               keyboardType="numeric"
                               editable={benchmarkMode === 'manual'}
@@ -2350,6 +2351,7 @@ const styles = StyleSheet.create({
   qualityCardValueSelected: {
     minWidth: 0,
     flexShrink: 0,
+    alignItems: 'flex-end' as const,
   },
   qualityCardValueStacked: {
     width: '100%' as const,

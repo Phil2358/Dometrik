@@ -70,36 +70,37 @@ export function calculateKg400BenchmarkCategoryCostsById(
   benchmarkBucket400: number
 ): Record<string, number> {
   const resolvedBenchmarkBucket400 = Math.max(0, benchmarkBucket400)
+  const plumbing = Math.max(
+    0,
+    Math.round(
+      resolvedBenchmarkBucket400
+      * (getKg400CategoryPercentage("plumbing") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
+    )
+  )
+  const heating = Math.max(
+    0,
+    Math.round(
+      resolvedBenchmarkBucket400
+      * (getKg400CategoryPercentage("heating") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
+    )
+  )
+  const ventilation_cooling = Math.max(
+    0,
+    Math.round(
+      resolvedBenchmarkBucket400
+      * (getKg400CategoryPercentage("ventilation_cooling") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
+    )
+  )
+  const electrical = Math.max(
+    0,
+    resolvedBenchmarkBucket400 - plumbing - heating - ventilation_cooling
+  )
 
   return {
-    plumbing: Math.max(
-      0,
-      Math.round(
-        resolvedBenchmarkBucket400
-        * (getKg400CategoryPercentage("plumbing") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
-      )
-    ),
-    heating: Math.max(
-      0,
-      Math.round(
-        resolvedBenchmarkBucket400
-        * (getKg400CategoryPercentage("heating") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
-      )
-    ),
-    ventilation_cooling: Math.max(
-      0,
-      Math.round(
-        resolvedBenchmarkBucket400
-        * (getKg400CategoryPercentage("ventilation_cooling") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
-      )
-    ),
-    electrical: Math.max(
-      0,
-      Math.round(
-        resolvedBenchmarkBucket400
-        * (getKg400CategoryPercentage("electrical") / KG400_CATEGORY_PERCENTAGE_DENOMINATOR)
-      )
-    ),
+    plumbing,
+    heating,
+    ventilation_cooling,
+    electrical,
     data_security: 0,
     automation: 0,
   }
@@ -119,13 +120,15 @@ export function calculateKg400Costs(input: Kg400CostsInput): Kg400CostsResult {
     Math.round(input.wcDelta * KG400_WC_DELTA_BASE_COST * qualityPackageMultiplier)
 
   const kg400BedroomVentilationAdjustment = Math.round(kg400BedroomDeltaCost * 0.45)
-  const kg400BedroomElectricalAdjustment = Math.round(kg400BedroomDeltaCost * 0.35)
+  const kg400BedroomElectricalAdjustment =
+    kg400BedroomDeltaCost - kg400BedroomVentilationAdjustment
   const kg400BathroomPlumbingAdjustment = Math.round(kg400BathroomDeltaCost * 0.75)
   const kg400BathroomHeatingAdjustment = Math.round(kg400BathroomDeltaCost * 0.15)
   const kg400BathroomElectricalAdjustment =
     kg400BathroomDeltaCost - kg400BathroomPlumbingAdjustment - kg400BathroomHeatingAdjustment
-  const kg400WcPlumbingAdjustment = Math.round(kg400WcDeltaCost * 0.70)
-  const kg400WcElectricalAdjustment = Math.round(kg400WcDeltaCost * 0.20)
+  const kg400WcPlumbingAdjustment = Math.round(kg400WcDeltaCost * 0.80)
+  const kg400WcElectricalAdjustment =
+    kg400WcDeltaCost - kg400WcPlumbingAdjustment
 
   const hvacCosts =
     calculateHvacExtras({

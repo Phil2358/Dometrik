@@ -24,10 +24,12 @@ import {
   type QualityId,
   getResidentialProgramBaseline,
   getSuggestedGeneralFurniture,
+  getSizeCorrectionFactor,
   normalizeQualityId,
 } from '@/constants/construction';
 
 type ProgramCountMode = 'auto' | 'manual';
+type BenchmarkOverrideMode = 'final_corrected' | 'raw_base';
 
 export interface ScenarioConfig {
   id: string;
@@ -35,6 +37,7 @@ export interface ScenarioConfig {
   locationId: string;
   qualityId: QualityId;
   benchmarkOverridePerSqm: number | null;
+  benchmarkOverrideMode?: BenchmarkOverrideMode;
   vatPercent?: number;
   // Deprecated compatibility bridge for older saved scenarios. Live e-EFKA
   // calculations now use efkaInsuranceManualCost plus engine defaults.
@@ -94,6 +97,7 @@ type PersistedScenarioConfig = Omit<ScenarioConfig, 'qualityId'> & {
   buildingArea?: number;
   effectiveArea?: number;
   customCostPerSqm?: number | null;
+  benchmarkOverrideMode?: BenchmarkOverrideMode;
   generalFurnitureBaseAmount?: number;
   generalFurnitureBaseAmountCustomized?: boolean;
   kitchenCountCustomized?: boolean;
@@ -161,7 +165,6 @@ function normalizeAutomationPackageLevel(
 function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfig {
   const landValue = config.landValue ?? 0;
   const qualityId = normalizeQualityId(config.qualityId);
-  const benchmarkOverridePerSqm = config.benchmarkOverridePerSqm ?? config.customCostPerSqm ?? null;
   const persistedBuildingArea =
     config.buildingArea ??
     config.effectiveArea ??
@@ -174,6 +177,21 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
     parkingBasementArea: config.parkingBasementArea ?? 0,
     habitableBasementArea: config.habitableBasementArea ?? 0,
   });
+  const locationMultiplier =
+    LOCATIONS.find((entry) => entry.id === config.locationId)?.multiplier
+    ?? LOCATIONS[0]?.multiplier
+    ?? 1;
+  const rawLegacyBenchmarkOverridePerSqm =
+    config.benchmarkOverrideMode === 'final_corrected'
+      ? null
+      : (config.customCostPerSqm ?? config.benchmarkOverridePerSqm ?? null);
+  const benchmarkOverridePerSqm = rawLegacyBenchmarkOverridePerSqm !== null
+    ? Math.round(
+      Math.max(0, rawLegacyBenchmarkOverridePerSqm)
+      * getSizeCorrectionFactor(buildingArea)
+      * locationMultiplier
+    )
+    : (config.benchmarkOverridePerSqm ?? null);
   const plotSize = config.plotSize ?? 4000;
   const legacyBasementArea = config.basementArea ?? 0;
   const legacyBasementTypeId = config.basementTypeId ?? 'storage';
@@ -272,6 +290,7 @@ function normalizeScenarioConfig(config: PersistedScenarioConfig): ScenarioConfi
     ...config,
     qualityId,
     benchmarkOverridePerSqm,
+    benchmarkOverrideMode: benchmarkOverridePerSqm !== null ? 'final_corrected' : undefined,
     vatPercent,
     efkaInsuranceManualCost,
     manualContingencyPercent,
@@ -503,6 +522,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
       locationId,
       qualityId,
       benchmarkOverridePerSqm,
+      benchmarkOverrideMode: benchmarkOverridePerSqm !== null ? 'final_corrected' : undefined,
       plotSize,
       mainArea,
       terraceArea,
@@ -919,7 +939,6 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     [poolTypeId],
   );
 
-  const poolArea = poolSizeId === 'custom' ? poolCustomArea : poolSizeOption.area;
   const poolDepth = poolSizeId === 'custom' ? poolCustomDepth : DEFAULT_POOL_DEPTH;
 
   const toggleHvacOption = useCallback((id: string) => {
@@ -956,7 +975,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     wcs: manualWcs,
     kitchenCount: manualKitchenCount,
     customKitchenUnitCost,
-    generalFurniture,
+    generalFurniture: generalFurnitureCustomized ? generalFurniture : undefined,
     dataSecurityPackageLevel,
     dataSecurityManualQuote,
     automationPackageLevel,
@@ -1057,25 +1076,14 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const bathroomWcFurnishingSliceCost = projectRollupResult.bathroomWcFurnishingSliceCost;
   const includedWardrobes = projectRollupResult.includedWardrobes;
   const totalWardrobeCount = projectRollupResult.totalWardrobeCount;
+  const poolArea = projectRollupResult.poolArea;
   const poolCost = projectRollupResult.poolCost;
   const landAcquisitionAmount = projectRollupResult.landAcquisitionAmount;
   const permitDesignBuildingArea = buildingArea;
 
-  useEffect(() => {
-    if (!generalFurnitureCustomized && generalFurniture !== suggestedGeneralFurniture) {
-      setGeneralFurnitureState(suggestedGeneralFurniture);
-    }
-  }, [
-    generalFurniture,
-    generalFurnitureCustomized,
-    suggestedGeneralFurniture,
-  ]);
-
   const setGeneralFurnitureMode = useCallback((isManual: boolean) => {
+    setGeneralFurnitureState(suggestedGeneralFurniture);
     setGeneralFurnitureCustomized(isManual);
-    if (!isManual) {
-      setGeneralFurnitureState(suggestedGeneralFurniture);
-    }
   }, [suggestedGeneralFurniture]);
 
   const breakdownGroups = projectRollupResult.breakdownGroups;

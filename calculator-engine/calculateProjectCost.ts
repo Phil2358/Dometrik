@@ -225,7 +225,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
       buildingArea,
       locationId: input.locationId,
       qualityId,
-      customCostPerSqm: input.benchmarkOverridePerSqm
+      correctedBenchmarkOverridePerSqm: input.benchmarkOverridePerSqm
     })
   const benchmarkPreviewPerQuality =
     QUALITY_LEVELS.reduce<Record<QualityId, number>>((previews, entry) => {

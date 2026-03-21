@@ -12,7 +12,7 @@ interface RawBuildingCostInput {
   buildingArea: number
   locationId: string
   qualityId: QualityId
-  customCostPerSqm?: number | null
+  correctedBenchmarkOverridePerSqm?: number | null
 }
 
 export function calculateRawBuildingCost(input: RawBuildingCostInput) {
@@ -29,20 +29,35 @@ export function calculateRawBuildingCost(input: RawBuildingCostInput) {
     qualities.find((q: any) => q.id === DEFAULT_QUALITY_ID) ??
     qualities[0]
 
-  const baseCostPerSqm =
-    input.customCostPerSqm ?? quality.baseCostPerSqm
+  const defaultBaseCostPerSqm = quality.baseCostPerSqm
 
   const sizeCorrectionFactor =
     getSizeCorrectionFactor(input.buildingArea)
 
+  const defaultSizeAdjustedCostPerSqm =
+    Math.round(defaultBaseCostPerSqm * sizeCorrectionFactor)
+
+  const defaultLocationAdjustedBaseCostPerSqm =
+    Math.round(defaultBaseCostPerSqm * location.multiplier)
+
+  const defaultCorrectedCostPerSqm =
+    Math.round(defaultSizeAdjustedCostPerSqm * location.multiplier)
+  const correctedBenchmarkOverridePerSqm =
+    input.correctedBenchmarkOverridePerSqm === null || input.correctedBenchmarkOverridePerSqm === undefined
+      ? null
+      : Math.max(0, Math.round(input.correctedBenchmarkOverridePerSqm))
+
+  const baseCostPerSqm =
+    correctedBenchmarkOverridePerSqm ?? defaultBaseCostPerSqm
+
   const sizeAdjustedCostPerSqm =
-    Math.round(baseCostPerSqm * sizeCorrectionFactor)
+    correctedBenchmarkOverridePerSqm ?? defaultSizeAdjustedCostPerSqm
 
   const costPerSqm =
-    Math.round(baseCostPerSqm * location.multiplier)
+    correctedBenchmarkOverridePerSqm ?? defaultLocationAdjustedBaseCostPerSqm
 
   const correctedCostPerSqm =
-    Math.round(sizeAdjustedCostPerSqm * location.multiplier)
+    correctedBenchmarkOverridePerSqm ?? defaultCorrectedCostPerSqm
 
   const rawBuildingCost =
     Math.round(input.buildingArea * correctedCostPerSqm)

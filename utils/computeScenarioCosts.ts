@@ -110,9 +110,6 @@ export function computeScenarioCosts(config: CompareScenarioInput): ComputedScen
   const poolSizeOption =
     POOL_SIZE_OPTIONS.find((option) => option.id === config.poolSizeId)
     ?? POOL_SIZE_OPTIONS[0]
-  const poolArea = config.poolSizeId === "custom"
-    ? Math.max(0, config.poolCustomArea ?? 0)
-    : poolSizeOption.area
 
   const result = calculateProjectCost(config)
   const resolvedQualityId = normalizeQualityId(config.qualityId)
@@ -159,7 +156,7 @@ export function computeScenarioCosts(config: CompareScenarioInput): ComputedScen
     parkingBasementArea,
     habitableBasementArea,
     includePool: config.includePool,
-    poolArea,
+    poolArea: result.poolArea,
     poolSizeName: config.poolSizeId === "custom" ? "Custom" : poolSizeOption.name,
     landscapingArea: config.landscapingArea,
     hvacNames,
