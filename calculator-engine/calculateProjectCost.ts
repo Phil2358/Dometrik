@@ -388,7 +388,7 @@ export function calculateProjectCost(input: ProjectCalculationInput): ProjectCos
 
   const permitCosts =
     calculatePermitCosts({
-      buildingArea,
+      benchmarkEffectiveArea,
       qualityId
     })
 

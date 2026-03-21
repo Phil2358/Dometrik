@@ -586,7 +586,7 @@ export default function EstimateScreen() {
     utilityConnectionCost,
     contingencyPercent,
     recommendedContingencyCost,
-    permitDesignBuildingArea,
+    permitDesignBenchmarkArea,
     groundwaterConditionId,
     setGroundwaterConditionId,
     siteAccessibilityId,
@@ -601,7 +601,7 @@ export default function EstimateScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const benchmarkInputRef = React.useRef<TextInput | null>(null);
 
-  const isLargeProject = permitDesignBuildingArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
+  const isLargeProject = permitDesignBenchmarkArea > PERMIT_DESIGN_BASELINE_AREA_MAX;
   const sizeCorrectionLabel = formatSizeCorrectionFactorLabel(sizeCorrectionFactor);
   const displaySizeCorrectionLabel = sizeCorrectionLabel.toLowerCase() === 'base'
     ? '0%'
@@ -1963,7 +1963,7 @@ export default function EstimateScreen() {
           </TouchableOpacity>
         </View>
         <Text style={styles.groupSectionSubtitle}>
-          {`Based on ${feesQualityLabel} quality ${MIDDLE_DOT} ${formatNumber(permitDesignBuildingArea)} ${SQUARE_METER_UNIT} building area`}
+          {`Based on ${feesQualityLabel} quality ${MIDDLE_DOT} ${formatDecimal(permitDesignBenchmarkArea, 2)} ${SQUARE_METER_UNIT} benchmark effective area`}
         </Text>
         {showPermitDesignInfo && (
           <View style={styles.tooltipCard}>

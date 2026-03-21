@@ -7,7 +7,7 @@ import {
 } from "../../constants/construction"
 
 interface PermitCostsInput {
-  buildingArea: number
+  benchmarkEffectiveArea: number
   qualityId: QualityId
 }
 
@@ -15,10 +15,10 @@ export function calculatePermitCosts(input: PermitCostsInput) {
 
   let permitFee = PERMIT_DESIGN_BASELINE_FEE
 
-  if (input.buildingArea > PERMIT_DESIGN_BASELINE_AREA_MAX) {
+  if (input.benchmarkEffectiveArea > PERMIT_DESIGN_BASELINE_AREA_MAX) {
 
     const extraArea =
-      input.buildingArea - PERMIT_DESIGN_BASELINE_AREA_MAX
+      input.benchmarkEffectiveArea - PERMIT_DESIGN_BASELINE_AREA_MAX
 
     permitFee += extraArea * 20
 

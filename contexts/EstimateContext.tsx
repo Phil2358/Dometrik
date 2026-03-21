@@ -1100,7 +1100,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
   const poolCost = projectRollupResult.poolCost;
   const landAcquisitionAmount = projectRollupResult.landAcquisitionAmount;
   const landAcquisitionRatePercent = projectRollupResult.landAcquisitionRatePercent;
-  const permitDesignBuildingArea = buildingArea;
+  const permitDesignBenchmarkArea = benchmarkEffectiveArea;
 
   const setGeneralFurnitureMode = useCallback((isManual: boolean) => {
     setGeneralFurnitureState(suggestedGeneralFurniture);
@@ -1400,7 +1400,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     contingencyPercent,
     recommendedContingencyCost,
     contingencyCost,
-    permitDesignBuildingArea,
+    permitDesignBenchmarkArea,
     basementTotalCost,
     siteExcavationCost,
     breakdownGroups,
@@ -1464,7 +1464,7 @@ export const [EstimateProvider, useEstimate] = createContextHook(() => {
     bathroomWcFurnishingSliceCost, includedWardrobes, totalWardrobeCount,
     constructionSubtotal, basementBenchmarkRate, storageTechnicalBasementCost, parkingBasementCost, habitableBasementCost, basementBaseCost,
     basementBucket300, basementBucket400, basementKg300Total, basementKg300ModifierCost, basementKg300CategoryCostsById, basementKg400CategoryCostsById, basementKg300BaseSubgroupCosts, basementKg300SubgroupCosts, basementKg300ModifierDetails,
-    contingencyPercent, recommendedContingencyCost, contingencyCost, permitDesignBuildingArea,
+    contingencyPercent, recommendedContingencyCost, contingencyCost, permitDesignBenchmarkArea,
     basementTotalCost, siteExcavationCost, breakdownGroups,
     scenarios, activeScenarioIndex, switchScenario, cloneScenario, duplicateScenario, renameScenario, deleteScenario, canCloneScenario,
     scenarioBenchmarkEffectiveAreas, getAllScenarioConfigs, resetAllData,
