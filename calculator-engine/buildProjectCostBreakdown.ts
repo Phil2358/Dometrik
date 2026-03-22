@@ -112,6 +112,48 @@ function createHiddenKg300ThirdLevelChildren(parentCode: string): ProjectBreakdo
   }
 }
 
+function createHiddenKg400ThirdLevelChildren(parentCode: string): ProjectBreakdownSubgroup[] | undefined {
+  switch (parentCode) {
+    case "410":
+      return [
+        { code: "411", cost: 0, visible: false },
+        { code: "412", cost: 0, visible: false },
+      ]
+    case "420":
+      return [
+        { code: "421", cost: 0, visible: false },
+        { code: "422", cost: 0, visible: false },
+        { code: "423", cost: 0, visible: false },
+      ]
+    case "430":
+      return [
+        { code: "433", cost: 0, visible: false },
+      ]
+    case "440":
+      return [
+        { code: "442", cost: 0, visible: false },
+        { code: "444", cost: 0, visible: false },
+      ]
+    case "450":
+      return [
+        { code: "451", cost: 0, visible: false },
+        { code: "455", cost: 0, visible: false },
+        { code: "456", cost: 0, visible: false },
+        { code: "457", cost: 0, visible: false },
+      ]
+    case "480":
+      return [
+        { code: "481", cost: 0, visible: false },
+        { code: "482", cost: 0, visible: false },
+        { code: "483", cost: 0, visible: false },
+        { code: "484", cost: 0, visible: false },
+        { code: "485", cost: 0, visible: false },
+      ]
+    default:
+      return undefined
+  }
+}
+
 export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput): ProjectBreakdownGroup[] {
   const kg500Total =
     input.kg500Subgroups.reduce((sum, subgroup) => sum + subgroup.cost, 0)
@@ -232,6 +274,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             wcRoomCountAddonCost: input.wcRoomCountAddons.kg400CategoryCostsById.plumbing,
             roomCountAddonCost: subgroup410RoomCountAddons,
           },
+          // TODO: Replace hidden placeholders with real 410 -> 411/412 allocation outputs.
+          children: createHiddenKg400ThirdLevelChildren("410"),
         },
         {
           code: "420",
@@ -245,6 +289,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             underfloorHeating: input.hvacSelections.underfloor_heating ?? false,
             solarThermal: input.hvacSelections.solar_thermal ?? false,
           },
+          // TODO: Replace hidden placeholders with real 420 -> 421/422/423 allocation outputs.
+          children: createHiddenKg400ThirdLevelChildren("420"),
         },
         {
           code: "430",
@@ -256,6 +302,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             wcRoomCountAddonCost: input.wcRoomCountAddons.kg400CategoryCostsById.ventilation_cooling,
             roomCountAddonCost: subgroup430RoomCountAddons,
           },
+          // TODO: Replace hidden placeholders with real 430 -> 433 allocation outputs.
+          children: createHiddenKg400ThirdLevelChildren("430"),
         },
         {
           code: "440",
@@ -268,6 +316,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             roomCountAddonCost: subgroup440RoomCountAddons,
             photovoltaic: input.hvacSelections.photovoltaic ?? false,
           },
+          // TODO: Replace hidden placeholders with real 440 -> 442/444 allocation outputs.
+          children: createHiddenKg400ThirdLevelChildren("440"),
         },
         {
           code: "450",
@@ -277,8 +327,16 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             kg450BaselineEssentialCost: input.kg450BaselineEssentialCost,
             kg450UpgradeCost: input.kg450UpgradeCost,
           },
+          // TODO: Replace hidden placeholders with real 450 -> 451/455/456/457 allocation outputs.
+          children: createHiddenKg400ThirdLevelChildren("450"),
         },
-        { code: "480", cost: input.kg400CategoryCostsById.automation ?? 0, visible: true },
+        {
+          code: "480",
+          cost: input.kg400CategoryCostsById.automation ?? 0,
+          visible: true,
+          // TODO: Replace hidden placeholders with real 480 -> 481/482/483/484/485 allocation outputs.
+          children: createHiddenKg400ThirdLevelChildren("480"),
+        },
       ],
     },
     {

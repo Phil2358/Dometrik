@@ -152,16 +152,138 @@ export const DIN276_GROUPS: Din276Group[] = [
   },
   {
     code: '400',
-    label: 'Technical Systems',
+    label: 'Building - Technical Systems',
+    description: 'Construction works and supplied systems required to create the building’s technical installations. Includes cross-system measures associated with technical systems. The individual technical systems include associated supports, fixings, valves, thermal and cold insulation, acoustic and fire protection provisions, covers, enclosures, coatings, markings, and factory-integrated measuring, control, and regulating components.',
     children: [
-      { code: '410', label: 'Sanitary / Plumbing' },
-      { code: '420', label: 'Heating' },
-      { code: '430', label: 'Ventilation / Cooling' },
-      { code: '440', label: 'Electrical' },
-      { code: '450', label: 'Data / Security' },
+      {
+        code: '410',
+        label: 'Wastewater, Water, and Gas Systems',
+        description: 'Technical systems for wastewater, water, and gas services, primarily sanitary engineering installations.',
+        children: [
+          {
+            code: '411',
+            label: 'Wastewater Systems',
+            description: 'Drains, wastewater pipes, wastewater collection systems, wastewater treatment systems, and lifting units.',
+          },
+          {
+            code: '412',
+            label: 'Water Systems',
+            description: 'Water extraction, treatment, and pressure-boosting systems, piping, decentralized water heaters, and sanitary fixtures.',
+          },
+        ],
+      },
+      {
+        code: '420',
+        label: 'Heat Supply Systems',
+        description: 'Systems for heat generation, heat distribution, and heat emission within the building.',
+        children: [
+          {
+            code: '421',
+            label: 'Heat Generation Systems',
+            description: 'Fuel supply, heat transfer stations, heat generation based on fuels or renewable/inexhaustible energy sources, including chimney connections and central water-heating systems.',
+          },
+          {
+            code: '422',
+            label: 'Heat Distribution Networks',
+            description: 'Pumps, manifolds, and piping for heating surfaces, ventilation systems, and other heat consumers.',
+          },
+          {
+            code: '423',
+            label: 'Room Heating Surfaces',
+            description: 'Radiators and surface heating systems.',
+          },
+        ],
+      },
+      {
+        code: '430',
+        label: 'Ventilation and Air-Handling Systems',
+        description: 'Ventilation and air-handling systems, with or without ventilation functions depending on the specific subgroup.',
+        children: [
+          {
+            code: '433',
+            label: 'Air-Conditioning Systems',
+            description: 'Systems with four thermodynamic air-treatment functions.',
+          },
+        ],
+      },
+      {
+        code: '440',
+        label: 'Electrical Systems',
+        description: 'Electrical power installations including fire-protection penetrations where not included in other cost groups, but excluding the systems assigned to KG 450.',
+        children: [
+          {
+            code: '442',
+            label: 'Self-Generated Power Supply Systems',
+            description: 'Power-generation units including cooling, exhaust systems, fuel supply, central battery systems, uninterruptible power supply systems, and photovoltaic systems.',
+          },
+          {
+            code: '444',
+            label: 'Low-Voltage Installation Systems',
+            description: 'Cables, lines, sub-distribution boards, installation systems, and electrical installation devices.',
+          },
+        ],
+      },
+      {
+        code: '450',
+        label: 'Communication, Security, and Information Technology Systems',
+        description: 'Communication, safety, and information technology systems including associated distribution boards, cables, lines, and fire-protection penetrations.',
+        children: [
+          {
+            code: '451',
+            label: 'Telecommunications Systems',
+            description: 'Systems for data transmission of voice, text, and image, where not included in KG 630.',
+          },
+          {
+            code: '455',
+            label: 'Audiovisual Media and Antenna Systems',
+            description: 'Audiovisual media systems, where not included in other cost groups, including transmitting and receiving antenna systems and converters.',
+          },
+          {
+            code: '456',
+            label: 'Hazard Detection and Alarm Systems',
+            description: 'Fire alarm, intrusion alarm, hold-up alarm, guard control, access control, and surveillance systems in private and public areas.',
+          },
+          {
+            code: '457',
+            label: 'Data Transmission Networks',
+            description: 'Networks for transmitting voice, text, and image data, where not included in other cost groups, including installation systems where not included in KG 444.',
+          },
+        ],
+      },
       { code: '460', label: 'Conveying Systems' },
       { code: '470', label: 'Kitchen Installation' },
-      { code: '480', label: 'Automation / Smart Home' },
+      {
+        code: '480',
+        label: 'Building and System Automation',
+        description: 'Monitoring, control, regulation, and optimization facilities for the automatic execution of technical functional processes.',
+        children: [
+          {
+            code: '481',
+            label: 'Automation Devices',
+            description: 'Automation stations, operating/display/output devices, hardware and software, licenses, functions, interfaces, field devices, and programming equipment.',
+          },
+          {
+            code: '482',
+            label: 'Control Cabinets and Automation Centers',
+            description: 'Control cabinets for housing automation devices, power assemblies, control assemblies, and protection assemblies.',
+          },
+          {
+            code: '483',
+            label: 'Automation Management',
+            description: 'Higher-level automation and management systems including operating/display/output devices, hardware and software, licenses, functions, and interfaces.',
+          },
+          {
+            code: '484',
+            label: 'Cables, Lines, and Installation Systems',
+            description: 'Cables, lines, and installation systems where not included in other cost groups.',
+          },
+          {
+            code: '485',
+            label: 'Data Transmission Networks',
+            description: 'Data transmission networks where not included in other cost groups.',
+          },
+        ],
+      },
       { code: '490', label: 'Other Technical Systems' },
     ],
   },
