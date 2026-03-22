@@ -3,6 +3,7 @@ export interface Kg500Subgroup {
   cost: number
   visible: boolean
   meta?: Record<string, string | number | boolean>
+  children?: Kg500Subgroup[]
 }
 
 const LANDSCAPING_ALLOCATION_SHARES = {
@@ -40,6 +41,34 @@ function getPoolAllocationShares(input: Pick<Kg500SubgroupsInput, "poolQualityId
   }
 
   return { subgroup548Share: 0.80, subgroup550Share: 0.20 }
+}
+
+function createHiddenKg500ThirdLevelChildren(parentCode: string): Kg500Subgroup[] | undefined {
+  switch (parentCode) {
+    case "530":
+      return [
+        { code: "533", cost: 0, visible: false },
+        { code: "534", cost: 0, visible: false },
+      ]
+    case "540":
+      return [
+        { code: "541", cost: 0, visible: false },
+        { code: "543", cost: 0, visible: false },
+        { code: "544", cost: 0, visible: false },
+        { code: "545", cost: 0, visible: false },
+      ]
+    case "560":
+      return [
+        { code: "561", cost: 0, visible: false },
+      ]
+    case "570":
+      return [
+        { code: "573", cost: 0, visible: false },
+        { code: "574", cost: 0, visible: false },
+      ]
+    default:
+      return undefined
+  }
 }
 
 export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
@@ -96,6 +125,15 @@ export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
         allocationShare: LANDSCAPING_ALLOCATION_SHARES.surface,
         costSource: "allocated",
       },
+      // TODO: Replace hidden placeholders with real 530 -> 533/534 allocation outputs.
+      children: createHiddenKg500ThirdLevelChildren("530"),
+    },
+    {
+      code: "540",
+      cost: 0,
+      visible: false,
+      // TODO: Replace hidden placeholders with real 540 -> 541/543/544/545 allocation outputs when explicit KG 540 logic exists.
+      children: createHiddenKg500ThirdLevelChildren("540"),
     },
     {
       code: "560",
@@ -111,6 +149,8 @@ export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
         allocationShare: LANDSCAPING_ALLOCATION_SHARES.builtIn,
         costSource: "allocated",
       },
+      // TODO: Replace hidden placeholders with real 560 -> 561 allocation outputs.
+      children: createHiddenKg500ThirdLevelChildren("560"),
     },
     {
       code: "570",
@@ -130,6 +170,8 @@ export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
           - LANDSCAPING_ALLOCATION_SHARES.builtIn,
         costSource: "allocated",
       },
+      // TODO: Replace hidden placeholders with real 570 -> 573/574 allocation outputs.
+      children: createHiddenKg500ThirdLevelChildren("570"),
     },
     {
       code: "548",

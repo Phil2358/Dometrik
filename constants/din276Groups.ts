@@ -289,16 +289,86 @@ export const DIN276_GROUPS: Din276Group[] = [
   },
   {
     code: '500',
-    label: 'External Works and Open Spaces',
+    label: 'Outdoor Facilities and Open Spaces',
+    description: 'Outdoor facilities and open-space works on the property, including surfaces, external constructions, technical systems, fittings, and planting. Excludes independent buildings that belong in KG 300.',
     children: [
       { code: '510', label: 'Earthworks' },
       { code: '520', label: 'Foundations and Substructure' },
-      { code: '530', label: 'Base Courses and Surface Layers' },
-      { code: '540', label: 'Structural Works' },
+      {
+        code: '530',
+        label: 'Surface Construction, Paving, and Surfacing',
+        description: 'Upper construction layers and finished surface build-ups for open-space areas, including circulation areas, terraces, and parking-related surfaces.',
+        children: [
+          {
+            code: '533',
+            label: 'Squares, Courtyards, Terraces',
+            description: 'Upper construction and surface layers for squares, courtyards, terraces, and seating areas.',
+          },
+          {
+            code: '534',
+            label: 'Parking Spaces',
+            description: 'Upper construction and surface layers for areas intended for parked vehicles.',
+          },
+        ],
+      },
+      {
+        code: '540',
+        label: 'External Constructions',
+        description: 'Building constructions in outdoor facilities and open spaces that are independent and not part of a building. Earthworks belong to KG 510, and foundations/substructure belong to KG 520. Independent standalone buildings belong in KG 300.',
+        children: [
+          {
+            code: '541',
+            label: 'Enclosures / Fences',
+            description: 'Fences, walls, doors, gates, protective grilles, barrier systems, and similar enclosure elements.',
+          },
+          {
+            code: '543',
+            label: 'Wall Constructions',
+            description: 'Retaining walls, gravity walls, and segmented or panelized wall constructions, including claddings, infill components, and waterproofing.',
+          },
+          {
+            code: '544',
+            label: 'Ramps, Stairs, Terraces / Tiers',
+            description: 'Ramps, stairs, and stepped or tiered structures, including railings, handrails, and fall-protection elements.',
+          },
+          {
+            code: '545',
+            label: 'Canopies / Shelters',
+            description: 'Canopies, shelters, weather-protection structures, and pergolas, including their supporting structures.',
+          },
+        ],
+      },
       { code: '548', label: 'Pool Basin / Structural Pool Works' },
       { code: '550', label: 'Technical Systems' },
-      { code: '560', label: 'Built-In Elements in External Works and Open Spaces' },
-      { code: '570', label: 'Green Areas' },
+      {
+        code: '560',
+        label: 'General Outdoor Installations',
+        description: 'General built-in outdoor elements and fittings that support use of the open space.',
+        children: [
+          {
+            code: '561',
+            label: 'General Fixtures / Installations',
+            description: 'Site furnishings and utility items such as benches, bicycle stands, planters, waste bins, flagpoles, bollards, and impact protection elements.',
+          },
+        ],
+      },
+      {
+        code: '570',
+        label: 'Planting and Vegetation Areas',
+        description: 'Planting areas and vegetated landscape works, including establishment-related scope.',
+        children: [
+          {
+            code: '573',
+            label: 'Planting Areas',
+            description: 'Planting of trees, shrubs, and perennials, including fine grading and establishment care.',
+          },
+          {
+            code: '574',
+            label: 'Lawn and Seeded Areas',
+            description: 'Seeding and lawn installation, including turf and ready-made grass, together with fine grading and establishment care.',
+          },
+        ],
+      },
       { code: '580', label: 'Water Features' },
       { code: '590', label: 'Other External Works' },
     ],
