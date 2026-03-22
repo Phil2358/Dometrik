@@ -3,6 +3,7 @@ export interface ProjectBreakdownSubgroup {
   cost: number
   visible: boolean
   meta?: Record<string, string | number | boolean>
+  children?: ProjectBreakdownSubgroup[]
 }
 
 export interface ProjectBreakdownGroup {
@@ -76,6 +77,41 @@ interface BuildProjectCostBreakdownInput {
   kg700Subgroups: ProjectBreakdownSubgroup[]
 }
 
+function createHiddenKg300ThirdLevelChildren(parentCode: string): ProjectBreakdownSubgroup[] | undefined {
+  switch (parentCode) {
+    case "330":
+      return [
+        { code: "331", cost: 0, visible: false },
+        { code: "332", cost: 0, visible: false },
+        { code: "333", cost: 0, visible: false },
+        { code: "334", cost: 0, visible: false },
+        { code: "335", cost: 0, visible: false },
+        { code: "336", cost: 0, visible: false },
+      ]
+    case "340":
+      return [
+        { code: "341", cost: 0, visible: false },
+        { code: "342", cost: 0, visible: false },
+        { code: "343", cost: 0, visible: false },
+        { code: "344", cost: 0, visible: false },
+        { code: "345", cost: 0, visible: false },
+      ]
+    case "350":
+      return [
+        { code: "351", cost: 0, visible: false },
+        { code: "353", cost: 0, visible: false },
+        { code: "354", cost: 0, visible: false },
+      ]
+    case "360":
+      return [
+        { code: "361", cost: 0, visible: false },
+        { code: "363", cost: 0, visible: false },
+      ]
+    default:
+      return undefined
+  }
+}
+
 export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput): ProjectBreakdownGroup[] {
   const kg500Total =
     input.kg500Subgroups.reduce((sum, subgroup) => sum + subgroup.cost, 0)
@@ -136,7 +172,13 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
       subgroups: [
         { code: "310", cost: input.kg300SubgroupCosts.subgroup310Cost, visible: true },
         { code: "320", cost: input.kg300SubgroupCosts.subgroup320Cost, visible: true },
-        { code: "330", cost: input.kg300SubgroupCosts.subgroup330Cost, visible: true },
+        {
+          code: "330",
+          cost: input.kg300SubgroupCosts.subgroup330Cost,
+          visible: true,
+          // TODO: Replace hidden placeholders with real 330 -> 331/332/333/334/335/336 allocation outputs.
+          children: createHiddenKg300ThirdLevelChildren("330"),
+        },
         {
           code: "340",
           cost: input.kg300SubgroupCosts.subgroup340Cost,
@@ -147,6 +189,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             wcRoomCountAddonCost: input.wcRoomCountAddons.kg340Cost,
             roomCountAddonCost: subgroup340RoomCountAddons,
           },
+          // TODO: Replace hidden placeholders with real 340 -> 341/342/343/344/345 allocation outputs.
+          children: createHiddenKg300ThirdLevelChildren("340"),
         },
         {
           code: "350",
@@ -158,8 +202,16 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             wcRoomCountAddonCost: input.wcRoomCountAddons.kg350Cost,
             roomCountAddonCost: subgroup350RoomCountAddons,
           },
+          // TODO: Replace hidden placeholders with real 350 -> 351/353/354 allocation outputs.
+          children: createHiddenKg300ThirdLevelChildren("350"),
         },
-        { code: "360", cost: input.kg300SubgroupCosts.subgroup360Cost, visible: true },
+        {
+          code: "360",
+          cost: input.kg300SubgroupCosts.subgroup360Cost,
+          visible: true,
+          // TODO: Replace hidden placeholders with real 360 -> 361/363 allocation outputs.
+          children: createHiddenKg300ThirdLevelChildren("360"),
+        },
         { code: "370", cost: input.kg300SubgroupCosts.subgroup370Cost, visible: input.kg300SubgroupCosts.subgroup370Cost > 0 },
         { code: "380", cost: input.kg300SubgroupCosts.subgroup380Cost, visible: input.kg300SubgroupCosts.subgroup380Cost > 0 },
         { code: "390", cost: input.kg300SubgroupCosts.subgroup390Cost, visible: true },

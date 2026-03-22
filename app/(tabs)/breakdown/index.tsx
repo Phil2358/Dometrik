@@ -75,6 +75,7 @@ interface SubgroupItem {
   icon: React.ComponentType<{ size?: number; color?: string }>;
   sublabel?: string;
   visible: boolean;
+  children?: SubgroupItem[];
 }
 
 interface DinGroup {
@@ -332,6 +333,28 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
   );
 }
 
+function mapBreakdownSubgroup(
+  subgroup: ProjectBreakdownSubgroup,
+  context: {
+    siteConditionName: string;
+    landscapingArea: number;
+    poolArea: number;
+    poolQualityName: string;
+    poolTypeName: string;
+    enabledHvacIds: Set<string>;
+  },
+): SubgroupItem {
+  return {
+    code: subgroup.code,
+    name: getDin276Subgroup(subgroup.code)?.label ?? subgroup.code,
+    cost: subgroup.cost,
+    icon: SUBGROUP_ICONS[subgroup.code] ?? Hammer,
+    sublabel: getSubgroupSublabel(subgroup, context),
+    visible: subgroup.visible,
+    children: subgroup.children?.map((child) => mapBreakdownSubgroup(child, context)),
+  };
+}
+
 function getReportTitle(mode: UserMode | null): string {
   switch (mode) {
     case 'private':
@@ -575,20 +598,13 @@ export default function BreakdownScreen() {
       subtotal: group.subtotal,
       percentOfTotal: group.percentOfTotal,
       accentColor: GROUP_ACCENT_COLORS[group.code] ?? Colors.accent,
-      subgroups: group.subgroups.map((subgroup: ProjectBreakdownSubgroup) => ({
-        code: subgroup.code,
-        name: getDin276Subgroup(subgroup.code)?.label ?? subgroup.code,
-        cost: subgroup.cost,
-        icon: SUBGROUP_ICONS[subgroup.code] ?? Hammer,
-        sublabel: getSubgroupSublabel(subgroup, {
-          siteConditionName: siteCondition.name,
-          landscapingArea,
-          poolArea,
-          poolQualityName: poolQualityOption.name,
-          poolTypeName: poolTypeOption.name,
-          enabledHvacIds,
-        }),
-        visible: subgroup.visible,
+      subgroups: group.subgroups.map((subgroup: ProjectBreakdownSubgroup) => mapBreakdownSubgroup(subgroup, {
+        siteConditionName: siteCondition.name,
+        landscapingArea,
+        poolArea,
+        poolQualityName: poolQualityOption.name,
+        poolTypeName: poolTypeOption.name,
+        enabledHvacIds,
       })),
     }));
   }, [
