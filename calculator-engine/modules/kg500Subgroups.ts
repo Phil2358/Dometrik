@@ -9,6 +9,7 @@ export interface Kg500Subgroup {
 const LANDSCAPING_ALLOCATION_SHARES = {
   earthworks: 0.25,
   surface: 0.35,
+  externalConstructions: 0.12,
   builtIn: 0.10,
 } as const
 
@@ -71,6 +72,95 @@ function createHiddenKg500ThirdLevelChildren(parentCode: string): Kg500Subgroup[
   }
 }
 
+function createKg500SurfaceAllocationChildren(subgroup530Cost: number): Kg500Subgroup[] {
+  const squaresCourtyardsTerracesCost = Math.round(subgroup530Cost * 0.72)
+  const parkingSpacesCost = subgroup530Cost - squaresCourtyardsTerracesCost
+
+  return [
+    {
+      code: "533",
+      cost: squaresCourtyardsTerracesCost,
+      visible: subgroup530Cost > 0,
+      meta: { allocationShare: 0.72, costSource: "allocated" },
+    },
+    {
+      code: "534",
+      cost: parkingSpacesCost,
+      visible: subgroup530Cost > 0,
+      meta: { allocationShare: 0.28, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg500ExternalConstructionAllocationChildren(subgroup540Cost: number): Kg500Subgroup[] {
+  const enclosuresFencesCost = Math.round(subgroup540Cost * 0.32)
+  const wallConstructionsCost = Math.round(subgroup540Cost * 0.36)
+  const rampsStairsTerracesTiersCost = Math.round(subgroup540Cost * 0.22)
+  const canopiesSheltersCost =
+    subgroup540Cost
+    - enclosuresFencesCost
+    - wallConstructionsCost
+    - rampsStairsTerracesTiersCost
+
+  return [
+    {
+      code: "541",
+      cost: enclosuresFencesCost,
+      visible: subgroup540Cost > 0,
+      meta: { allocationShare: 0.32, costSource: "allocated" },
+    },
+    {
+      code: "543",
+      cost: wallConstructionsCost,
+      visible: subgroup540Cost > 0,
+      meta: { allocationShare: 0.36, costSource: "allocated" },
+    },
+    {
+      code: "544",
+      cost: rampsStairsTerracesTiersCost,
+      visible: subgroup540Cost > 0,
+      meta: { allocationShare: 0.22, costSource: "allocated" },
+    },
+    {
+      code: "545",
+      cost: canopiesSheltersCost,
+      visible: subgroup540Cost > 0,
+      meta: { allocationShare: 0.10, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg500GeneralOutdoorInstallationAllocationChildren(subgroup560Cost: number): Kg500Subgroup[] {
+  return [
+    {
+      code: "561",
+      cost: subgroup560Cost,
+      visible: subgroup560Cost > 0,
+      meta: { allocationShare: 1, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg500PlantingAllocationChildren(subgroup570Cost: number): Kg500Subgroup[] {
+  const plantingAreasCost = Math.round(subgroup570Cost * 0.58)
+  const lawnAndSeededAreasCost = subgroup570Cost - plantingAreasCost
+
+  return [
+    {
+      code: "573",
+      cost: plantingAreasCost,
+      visible: subgroup570Cost > 0,
+      meta: { allocationShare: 0.58, costSource: "allocated" },
+    },
+    {
+      code: "574",
+      cost: lawnAndSeededAreasCost,
+      visible: subgroup570Cost > 0,
+      meta: { allocationShare: 0.42, costSource: "allocated" },
+    },
+  ]
+}
+
 export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
   const landscapingEarthworksCost =
     input.landscapingCost > 0
@@ -84,9 +174,17 @@ export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
     input.landscapingCost > 0
       ? Math.round(input.landscapingCost * LANDSCAPING_ALLOCATION_SHARES.builtIn)
       : 0
+  const landscapingExternalConstructionsCost =
+    input.landscapingCost > 0
+      ? Math.round(input.landscapingCost * LANDSCAPING_ALLOCATION_SHARES.externalConstructions)
+      : 0
   const landscapingGreenCost =
     input.landscapingCost > 0
-      ? input.landscapingCost - landscapingEarthworksCost - landscapingSurfaceCost - landscapingBuiltInCost
+      ? input.landscapingCost
+        - landscapingEarthworksCost
+        - landscapingSurfaceCost
+        - landscapingExternalConstructionsCost
+        - landscapingBuiltInCost
       : 0
   const { subgroup548Share, subgroup550Share } = getPoolAllocationShares(input)
   const poolStructuralCost =
@@ -125,15 +223,25 @@ export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
         allocationShare: LANDSCAPING_ALLOCATION_SHARES.surface,
         costSource: "allocated",
       },
-      // TODO: Replace hidden placeholders with real 530 -> 533/534 allocation outputs.
-      children: createHiddenKg500ThirdLevelChildren("530"),
+      // TODO: Current default residential baseline; later rebalance via site typology, slope, and landscape style presets.
+      children: createKg500SurfaceAllocationChildren(landscapingSurfaceCost),
     },
     {
       code: "540",
-      cost: 0,
-      visible: false,
-      // TODO: Replace hidden placeholders with real 540 -> 541/543/544/545 allocation outputs when explicit KG 540 logic exists.
-      children: createHiddenKg500ThirdLevelChildren("540"),
+      cost: landscapingExternalConstructionsCost,
+      visible: input.landscapingCost > 0,
+      meta: {
+        landscapingArea: input.landscapingArea,
+        landscapingBaseRatePerSqm: input.landscapingBaseRatePerSqm,
+        landscapingBaseCost: input.landscapingBaseCost,
+        landscapingSiteConditionMultiplier: input.landscapingSiteConditionMultiplier,
+        landscapingSiteConditionAdjustment: input.landscapingSiteConditionAdjustment,
+        landscapingTotal: input.landscapingCost,
+        allocationShare: LANDSCAPING_ALLOCATION_SHARES.externalConstructions,
+        costSource: "allocated",
+      },
+      // TODO: Current default residential baseline; later rebalance via site typology, slope, and landscape style presets.
+      children: createKg500ExternalConstructionAllocationChildren(landscapingExternalConstructionsCost),
     },
     {
       code: "560",
@@ -149,8 +257,8 @@ export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
         allocationShare: LANDSCAPING_ALLOCATION_SHARES.builtIn,
         costSource: "allocated",
       },
-      // TODO: Replace hidden placeholders with real 560 -> 561 allocation outputs.
-      children: createHiddenKg500ThirdLevelChildren("560"),
+      // TODO: Current default residential baseline; later rebalance via site typology, slope, and landscape style presets.
+      children: createKg500GeneralOutdoorInstallationAllocationChildren(landscapingBuiltInCost),
     },
     {
       code: "570",
@@ -167,11 +275,12 @@ export function calculateKg500Subgroups(input: Kg500SubgroupsInput) {
           1
           - LANDSCAPING_ALLOCATION_SHARES.earthworks
           - LANDSCAPING_ALLOCATION_SHARES.surface
+          - LANDSCAPING_ALLOCATION_SHARES.externalConstructions
           - LANDSCAPING_ALLOCATION_SHARES.builtIn,
         costSource: "allocated",
       },
-      // TODO: Replace hidden placeholders with real 570 -> 573/574 allocation outputs.
-      children: createHiddenKg500ThirdLevelChildren("570"),
+      // TODO: Current default residential baseline; later rebalance via site typology, slope, and landscape style presets.
+      children: createKg500PlantingAllocationChildren(landscapingGreenCost),
     },
     {
       code: "548",

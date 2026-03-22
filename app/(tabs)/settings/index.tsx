@@ -10,28 +10,27 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { Home, Ruler, MessageCircle, ChevronRight, RotateCcw } from 'lucide-react-native';
+import { Home, HardHat, LineChart, ChevronRight, RotateCcw } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useUserMode, UserMode } from '@/contexts/UserModeContext';
 import { useEstimate } from '@/contexts/EstimateContext';
+import { USER_MODE_CONFIGS, USER_MODE_ORDER } from '@/constants/userModes';
 
 
 const MODE_LABELS: Record<UserMode, { title: string; icon: React.ReactNode }> = {
   private: {
-    title: 'Private User',
+    title: USER_MODE_CONFIGS.private.label,
     icon: <Home size={20} color={Colors.primary} strokeWidth={1.8} />,
   },
-  professional: {
-    title: 'Architect / Professional',
-    icon: <Ruler size={20} color={Colors.terracotta} strokeWidth={1.8} />,
+  pro: {
+    title: USER_MODE_CONFIGS.pro.label,
+    icon: <HardHat size={20} color={Colors.terracotta} strokeWidth={1.8} />,
   },
-  guided: {
-    title: 'Guided Estimate',
-    icon: <MessageCircle size={20} color={Colors.olive} strokeWidth={1.8} />,
+  developer: {
+    title: USER_MODE_CONFIGS.developer.label,
+    icon: <LineChart size={20} color={Colors.olive} strokeWidth={1.8} />,
   },
 };
-
-const ALL_MODES: UserMode[] = ['private', 'professional', 'guided'];
 
 export default function SettingsScreen() {
   const { userMode, selectMode, clearMode } = useUserMode();
@@ -65,7 +64,7 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>USER MODE</Text>
         <View style={styles.card}>
-          {ALL_MODES.map((mode, index) => {
+          {USER_MODE_ORDER.map((mode, index) => {
             const isActive = userMode === mode;
             const label = MODE_LABELS[mode];
             return (
@@ -73,7 +72,7 @@ export default function SettingsScreen() {
                 key={mode}
                 style={[
                   styles.modeRow,
-                  index < ALL_MODES.length - 1 && styles.modeRowBorder,
+                  index < USER_MODE_ORDER.length - 1 && styles.modeRowBorder,
                 ]}
                 activeOpacity={0.6}
                 onPress={() => handleModeChange(mode)}

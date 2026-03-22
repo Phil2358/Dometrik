@@ -20,6 +20,8 @@ import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Circle, Line, G } from 'react-native-svg';
 import Colors from '@/constants/colors';
 import { useEstimate } from '@/contexts/EstimateContext';
+import { useUserMode } from '@/contexts/UserModeContext';
+import { USER_MODE_CONFIGS } from '@/constants/userModes';
 import {
   LOCATIONS,
   QUALITY_LEVELS,
@@ -468,6 +470,7 @@ function HighlightSummaryRow({
 
 export default function EstimateScreen() {
   const router = useRouter();
+  const { userMode } = useUserMode();
   const {
     locationId,
     setLocationId,
@@ -705,6 +708,8 @@ export default function EstimateScreen() {
   const [showOutdoorAdditionsGroup, setShowOutdoorAdditionsGroup] = React.useState<boolean>(true);
   const [showSystemsUpgradesGroup, setShowSystemsUpgradesGroup] = React.useState<boolean>(true);
   const [showFeesMarginsGroup, setShowFeesMarginsGroup] = React.useState<boolean>(true);
+  const showLandPlotModule =
+    userMode === null ? true : USER_MODE_CONFIGS[userMode].showLandPlotModule;
 
   const renderLandPlotGroup = () => (
     <CollapsibleGroup
@@ -2085,7 +2090,7 @@ export default function EstimateScreen() {
         keyboardShouldPersistTaps="handled"
       >
 
-      {renderLandPlotGroup()}
+      {showLandPlotModule ? renderLandPlotGroup() : null}
       {renderConstructionBenchmarkGroup()}
       {renderBuildingDefinitionGroup()}
       {renderOutdoorAdditionsGroup()}

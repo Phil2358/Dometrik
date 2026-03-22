@@ -112,6 +112,308 @@ function createHiddenKg300ThirdLevelChildren(parentCode: string): ProjectBreakdo
   }
 }
 
+function createKg300ExternalWallAllocationChildren(subgroup330Cost: number): ProjectBreakdownSubgroup[] {
+  const loadBearingExternalWallsCost = Math.round(subgroup330Cost * 0.14)
+  const nonLoadBearingExternalWallsCost = Math.round(subgroup330Cost * 0.08)
+  const externalColumnsCost = Math.round(subgroup330Cost * 0.04)
+  const externalWallOpeningsCost = Math.round(subgroup330Cost * 0.42)
+  const externalWallCladdingsExternalSideCost = Math.round(subgroup330Cost * 0.20)
+  const externalWallCladdingsInternalSideCost =
+    subgroup330Cost
+    - loadBearingExternalWallsCost
+    - nonLoadBearingExternalWallsCost
+    - externalColumnsCost
+    - externalWallOpeningsCost
+    - externalWallCladdingsExternalSideCost
+
+  return [
+    {
+      code: "331",
+      cost: loadBearingExternalWallsCost,
+      visible: true,
+      meta: { allocationShare: 0.14, costSource: "allocated" },
+    },
+    {
+      code: "332",
+      cost: nonLoadBearingExternalWallsCost,
+      visible: true,
+      meta: { allocationShare: 0.08, costSource: "allocated" },
+    },
+    {
+      code: "333",
+      cost: externalColumnsCost,
+      visible: true,
+      meta: { allocationShare: 0.04, costSource: "allocated" },
+    },
+    {
+      code: "334",
+      cost: externalWallOpeningsCost,
+      visible: true,
+      meta: { allocationShare: 0.42, costSource: "allocated" },
+    },
+    {
+      code: "335",
+      cost: externalWallCladdingsExternalSideCost,
+      visible: true,
+      meta: { allocationShare: 0.20, costSource: "allocated" },
+    },
+    {
+      code: "336",
+      cost: externalWallCladdingsInternalSideCost,
+      visible: true,
+      meta: { allocationShare: 0.12, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg300InternalWallAllocationChildren(subgroup340Cost: number): ProjectBreakdownSubgroup[] {
+  const loadBearingInternalWallsCost = Math.round(subgroup340Cost * 0.18)
+  const nonLoadBearingInternalWallsCost = Math.round(subgroup340Cost * 0.22)
+  const internalColumnsCost = Math.round(subgroup340Cost * 0.06)
+  const internalWallOpeningsCost = Math.round(subgroup340Cost * 0.14)
+  const internalWallCladdingsCost =
+    subgroup340Cost
+    - loadBearingInternalWallsCost
+    - nonLoadBearingInternalWallsCost
+    - internalColumnsCost
+    - internalWallOpeningsCost
+
+  return [
+    {
+      code: "341",
+      cost: loadBearingInternalWallsCost,
+      visible: true,
+      meta: { allocationShare: 0.18, costSource: "allocated" },
+    },
+    {
+      code: "342",
+      cost: nonLoadBearingInternalWallsCost,
+      visible: true,
+      meta: { allocationShare: 0.22, costSource: "allocated" },
+    },
+    {
+      code: "343",
+      cost: internalColumnsCost,
+      visible: true,
+      meta: { allocationShare: 0.06, costSource: "allocated" },
+    },
+    {
+      code: "344",
+      cost: internalWallOpeningsCost,
+      visible: true,
+      meta: { allocationShare: 0.14, costSource: "allocated" },
+    },
+    {
+      code: "345",
+      cost: internalWallCladdingsCost,
+      visible: true,
+      meta: { allocationShare: 0.40, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg300FloorAllocationChildren(subgroup350Cost: number): ProjectBreakdownSubgroup[] {
+  const slabFloorStructuresCost = Math.round(subgroup350Cost * 0.58)
+  const floorFinishesCost = Math.round(subgroup350Cost * 0.27)
+  const ceilingFinishesCost =
+    subgroup350Cost
+    - slabFloorStructuresCost
+    - floorFinishesCost
+
+  return [
+    {
+      code: "351",
+      cost: slabFloorStructuresCost,
+      visible: true,
+      meta: { allocationShare: 0.58, costSource: "allocated" },
+    },
+    {
+      code: "353",
+      cost: floorFinishesCost,
+      visible: true,
+      meta: { allocationShare: 0.27, costSource: "allocated" },
+    },
+    {
+      code: "354",
+      cost: ceilingFinishesCost,
+      visible: true,
+      meta: { allocationShare: 0.15, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg300RoofAllocationChildren(subgroup360Cost: number): ProjectBreakdownSubgroup[] {
+  const roofStructuresCost = Math.round(subgroup360Cost * 0.46)
+  const roofCoveringsCost = subgroup360Cost - roofStructuresCost
+
+  return [
+    {
+      code: "361",
+      cost: roofStructuresCost,
+      visible: true,
+      meta: { allocationShare: 0.46, costSource: "allocated" },
+    },
+    {
+      code: "363",
+      cost: roofCoveringsCost,
+      visible: true,
+      meta: { allocationShare: 0.54, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg400WastewaterWaterAllocationChildren(subgroup410Cost: number): ProjectBreakdownSubgroup[] {
+  const wastewaterSystemsCost = Math.round(subgroup410Cost * 0.34)
+  const waterSystemsCost = subgroup410Cost - wastewaterSystemsCost
+
+  return [
+    {
+      code: "411",
+      cost: wastewaterSystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.34, costSource: "allocated" },
+    },
+    {
+      code: "412",
+      cost: waterSystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.66, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg400HeatSupplyAllocationChildren(subgroup420Cost: number): ProjectBreakdownSubgroup[] {
+  const heatGenerationSystemsCost = Math.round(subgroup420Cost * 0.33)
+  const heatDistributionNetworksCost = Math.round(subgroup420Cost * 0.22)
+  const roomHeatingSurfacesCost =
+    subgroup420Cost - heatGenerationSystemsCost - heatDistributionNetworksCost
+
+  return [
+    {
+      code: "421",
+      cost: heatGenerationSystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.33, costSource: "allocated" },
+    },
+    {
+      code: "422",
+      cost: heatDistributionNetworksCost,
+      visible: true,
+      meta: { allocationShare: 0.22, costSource: "allocated" },
+    },
+    {
+      code: "423",
+      cost: roomHeatingSurfacesCost,
+      visible: true,
+      meta: { allocationShare: 0.45, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg400ElectricalAllocationChildren(subgroup440Cost: number): ProjectBreakdownSubgroup[] {
+  const selfGeneratedPowerSupplySystemsCost = Math.round(subgroup440Cost * 0.08)
+  const lowVoltageInstallationSystemsCost = subgroup440Cost - selfGeneratedPowerSupplySystemsCost
+
+  return [
+    {
+      code: "442",
+      cost: selfGeneratedPowerSupplySystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.08, costSource: "allocated" },
+    },
+    {
+      code: "444",
+      cost: lowVoltageInstallationSystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.92, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg400CommunicationAllocationChildren(subgroup450Cost: number): ProjectBreakdownSubgroup[] {
+  const telecommunicationsSystemsCost = Math.round(subgroup450Cost * 0.20)
+  const audiovisualMediaAndAntennaSystemsCost = Math.round(subgroup450Cost * 0.10)
+  const hazardDetectionAndAlarmSystemsCost = Math.round(subgroup450Cost * 0.28)
+  const dataTransmissionNetworksCost =
+    subgroup450Cost
+    - telecommunicationsSystemsCost
+    - audiovisualMediaAndAntennaSystemsCost
+    - hazardDetectionAndAlarmSystemsCost
+
+  return [
+    {
+      code: "451",
+      cost: telecommunicationsSystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.20, costSource: "allocated" },
+    },
+    {
+      code: "455",
+      cost: audiovisualMediaAndAntennaSystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.10, costSource: "allocated" },
+    },
+    {
+      code: "456",
+      cost: hazardDetectionAndAlarmSystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.28, costSource: "allocated" },
+    },
+    {
+      code: "457",
+      cost: dataTransmissionNetworksCost,
+      visible: true,
+      meta: { allocationShare: 0.42, costSource: "allocated" },
+    },
+  ]
+}
+
+function createKg400AutomationAllocationChildren(subgroup480Cost: number): ProjectBreakdownSubgroup[] {
+  const automationDevicesCost = Math.round(subgroup480Cost * 0.30)
+  const controlCabinetsAndAutomationCentersCost = Math.round(subgroup480Cost * 0.14)
+  const automationManagementCost = Math.round(subgroup480Cost * 0.12)
+  const cablesLinesAndInstallationSystemsCost = Math.round(subgroup480Cost * 0.28)
+  const dataTransmissionNetworksCost =
+    subgroup480Cost
+    - automationDevicesCost
+    - controlCabinetsAndAutomationCentersCost
+    - automationManagementCost
+    - cablesLinesAndInstallationSystemsCost
+
+  return [
+    {
+      code: "481",
+      cost: automationDevicesCost,
+      visible: true,
+      meta: { allocationShare: 0.30, costSource: "allocated" },
+    },
+    {
+      code: "482",
+      cost: controlCabinetsAndAutomationCentersCost,
+      visible: true,
+      meta: { allocationShare: 0.14, costSource: "allocated" },
+    },
+    {
+      code: "483",
+      cost: automationManagementCost,
+      visible: true,
+      meta: { allocationShare: 0.12, costSource: "allocated" },
+    },
+    {
+      code: "484",
+      cost: cablesLinesAndInstallationSystemsCost,
+      visible: true,
+      meta: { allocationShare: 0.28, costSource: "allocated" },
+    },
+    {
+      code: "485",
+      cost: dataTransmissionNetworksCost,
+      visible: true,
+      meta: { allocationShare: 0.16, costSource: "allocated" },
+    },
+  ]
+}
+
 function createHiddenKg400ThirdLevelChildren(parentCode: string): ProjectBreakdownSubgroup[] | undefined {
   switch (parentCode) {
     case "410":
@@ -218,8 +520,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
           code: "330",
           cost: input.kg300SubgroupCosts.subgroup330Cost,
           visible: true,
-          // TODO: Replace hidden placeholders with real 330 -> 331/332/333/334/335/336 allocation outputs.
-          children: createHiddenKg300ThirdLevelChildren("330"),
+          // TODO: Current default residential baseline; later rebalance via facade/structural system presets.
+          children: createKg300ExternalWallAllocationChildren(input.kg300SubgroupCosts.subgroup330Cost),
         },
         {
           code: "340",
@@ -231,8 +533,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             wcRoomCountAddonCost: input.wcRoomCountAddons.kg340Cost,
             roomCountAddonCost: subgroup340RoomCountAddons,
           },
-          // TODO: Replace hidden placeholders with real 340 -> 341/342/343/344/345 allocation outputs.
-          children: createHiddenKg300ThirdLevelChildren("340"),
+          // TODO: Current default residential baseline; later rebalance via structural system, roof type, and finish complexity presets.
+          children: createKg300InternalWallAllocationChildren(input.kg300SubgroupCosts.subgroup340Cost),
         },
         {
           code: "350",
@@ -244,15 +546,15 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             wcRoomCountAddonCost: input.wcRoomCountAddons.kg350Cost,
             roomCountAddonCost: subgroup350RoomCountAddons,
           },
-          // TODO: Replace hidden placeholders with real 350 -> 351/353/354 allocation outputs.
-          children: createHiddenKg300ThirdLevelChildren("350"),
+          // TODO: Current default residential baseline; later rebalance via structural system, roof type, and finish complexity presets.
+          children: createKg300FloorAllocationChildren(input.kg300SubgroupCosts.subgroup350Cost),
         },
         {
           code: "360",
           cost: input.kg300SubgroupCosts.subgroup360Cost,
           visible: true,
-          // TODO: Replace hidden placeholders with real 360 -> 361/363 allocation outputs.
-          children: createHiddenKg300ThirdLevelChildren("360"),
+          // TODO: Current default residential baseline; later rebalance via structural system, roof type, and finish complexity presets.
+          children: createKg300RoofAllocationChildren(input.kg300SubgroupCosts.subgroup360Cost),
         },
         { code: "370", cost: input.kg300SubgroupCosts.subgroup370Cost, visible: input.kg300SubgroupCosts.subgroup370Cost > 0 },
         { code: "380", cost: input.kg300SubgroupCosts.subgroup380Cost, visible: input.kg300SubgroupCosts.subgroup380Cost > 0 },
@@ -274,8 +576,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             wcRoomCountAddonCost: input.wcRoomCountAddons.kg400CategoryCostsById.plumbing,
             roomCountAddonCost: subgroup410RoomCountAddons,
           },
-          // TODO: Replace hidden placeholders with real 410 -> 411/412 allocation outputs.
-          children: createHiddenKg400ThirdLevelChildren("410"),
+          // TODO: Current default residential baseline; later rebalance via system presets such as heat pump vs boiler, basic electrical vs PV/battery, and basic networking vs smart-home/security-heavy projects. Keep this split aligned with canonical parent costs to avoid double counting explicit extras and future system add-ons.
+          children: createKg400WastewaterWaterAllocationChildren(input.kg400CategoryCostsById.plumbing ?? 0),
         },
         {
           code: "420",
@@ -289,8 +591,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             underfloorHeating: input.hvacSelections.underfloor_heating ?? false,
             solarThermal: input.hvacSelections.solar_thermal ?? false,
           },
-          // TODO: Replace hidden placeholders with real 420 -> 421/422/423 allocation outputs.
-          children: createHiddenKg400ThirdLevelChildren("420"),
+          // TODO: Current default residential baseline; later rebalance via system presets such as heat pump vs boiler, basic electrical vs PV/battery, and basic networking vs smart-home/security-heavy projects. Keep this split aligned with canonical parent costs to avoid double counting explicit extras and future system add-ons.
+          children: createKg400HeatSupplyAllocationChildren(input.kg400CategoryCostsById.heating ?? 0),
         },
         {
           code: "430",
@@ -316,8 +618,8 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             roomCountAddonCost: subgroup440RoomCountAddons,
             photovoltaic: input.hvacSelections.photovoltaic ?? false,
           },
-          // TODO: Replace hidden placeholders with real 440 -> 442/444 allocation outputs.
-          children: createHiddenKg400ThirdLevelChildren("440"),
+          // TODO: Current default residential baseline; later rebalance via system presets such as heat pump vs boiler, basic electrical vs PV/battery, and basic networking vs smart-home/security-heavy projects. Keep this split aligned with canonical parent costs to avoid double counting explicit extras and future system add-ons.
+          children: createKg400ElectricalAllocationChildren(input.kg400CategoryCostsById.electrical ?? 0),
         },
         {
           code: "450",
@@ -327,15 +629,15 @@ export function buildProjectCostBreakdown(input: BuildProjectCostBreakdownInput)
             kg450BaselineEssentialCost: input.kg450BaselineEssentialCost,
             kg450UpgradeCost: input.kg450UpgradeCost,
           },
-          // TODO: Replace hidden placeholders with real 450 -> 451/455/456/457 allocation outputs.
-          children: createHiddenKg400ThirdLevelChildren("450"),
+          // TODO: Current default residential baseline; later rebalance via system presets such as heat pump vs boiler, basic electrical vs PV/battery, and basic networking vs smart-home/security-heavy projects. Keep this split aligned with canonical parent costs to avoid double counting explicit extras and future system add-ons.
+          children: createKg400CommunicationAllocationChildren(input.kg400CategoryCostsById.data_security ?? 0),
         },
         {
           code: "480",
           cost: input.kg400CategoryCostsById.automation ?? 0,
           visible: true,
-          // TODO: Replace hidden placeholders with real 480 -> 481/482/483/484/485 allocation outputs.
-          children: createHiddenKg400ThirdLevelChildren("480"),
+          // TODO: Current default residential baseline; later rebalance via system presets such as heat pump vs boiler, basic electrical vs PV/battery, and basic networking vs smart-home/security-heavy projects. Keep this split aligned with canonical parent costs to avoid double counting explicit extras and future system add-ons.
+          children: createKg400AutomationAllocationChildren(input.kg400CategoryCostsById.automation ?? 0),
         },
       ],
     },

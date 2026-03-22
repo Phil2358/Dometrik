@@ -1,8 +1,9 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { migrateLegacyUserMode, type UserMode } from '@/constants/userModes';
 
-export type UserMode = 'private' | 'professional' | 'guided';
+export type { UserMode } from '@/constants/userModes';
 
 const STORAGE_KEY_USER_MODE = '@user_mode';
 const STORAGE_KEY_HAS_SEEN_INTRO = '@has_seen_intro';
@@ -17,9 +18,13 @@ export const [UserModeProvider, useUserMode] = createContextHook(() => {
       AsyncStorage.getItem(STORAGE_KEY_USER_MODE),
       AsyncStorage.getItem(STORAGE_KEY_HAS_SEEN_INTRO),
     ]).then(([storedMode, storedIntro]) => {
-      if (storedMode === 'private' || storedMode === 'professional' || storedMode === 'guided') {
-        setUserMode(storedMode);
-        console.log('[UserMode] Loaded mode:', storedMode);
+      const resolvedMode = migrateLegacyUserMode(storedMode);
+      if (resolvedMode) {
+        setUserMode(resolvedMode);
+        console.log('[UserMode] Loaded mode:', resolvedMode);
+        if (resolvedMode !== storedMode) {
+          void AsyncStorage.setItem(STORAGE_KEY_USER_MODE, resolvedMode);
+        }
       } else {
         console.log('[UserMode] No stored mode found');
       }

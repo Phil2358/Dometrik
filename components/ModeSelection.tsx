@@ -7,10 +7,11 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import { Home, Ruler, MessageCircle } from 'lucide-react-native';
+import { Home, HardHat, LineChart } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
-import { UserMode } from '@/contexts/UserModeContext';
+import type { UserMode } from '@/contexts/UserModeContext';
+import { USER_MODE_CONFIGS } from '@/constants/userModes';
 
 interface ModeOption {
   id: UserMode;
@@ -24,28 +25,25 @@ interface ModeOption {
 const MODE_OPTIONS: ModeOption[] = [
   {
     id: 'private',
-    title: 'Private User',
-    description:
-      'Estimate the construction cost of your future home and explore different building scenarios.',
+    title: USER_MODE_CONFIGS.private.label,
+    description: USER_MODE_CONFIGS.private.description,
     icon: <Home size={28} color={Colors.primary} strokeWidth={1.8} />,
     accentColor: Colors.primary,
     bgTint: 'rgba(31, 78, 99, 0.08)',
   },
   {
-    id: 'professional',
-    title: 'Architect / Professional',
-    description:
-      'Use the estimator as a professional planning tool and generate cost reports for clients.',
-    icon: <Ruler size={28} color={Colors.terracotta} strokeWidth={1.8} />,
+    id: 'pro',
+    title: USER_MODE_CONFIGS.pro.label,
+    description: USER_MODE_CONFIGS.pro.description,
+    icon: <HardHat size={28} color={Colors.terracotta} strokeWidth={1.8} />,
     accentColor: Colors.terracotta,
     bgTint: 'rgba(198, 122, 66, 0.08)',
   },
   {
-    id: 'guided',
-    title: 'Guided Estimate',
-    description:
-      'Follow a guided process to evaluate your project and receive a clearer cost estimate.',
-    icon: <MessageCircle size={28} color={Colors.olive} strokeWidth={1.8} />,
+    id: 'developer',
+    title: USER_MODE_CONFIGS.developer.label,
+    description: USER_MODE_CONFIGS.developer.description,
+    icon: <LineChart size={28} color={Colors.olive} strokeWidth={1.8} />,
     accentColor: Colors.olive,
     bgTint: 'rgba(107, 122, 74, 0.06)',
   },

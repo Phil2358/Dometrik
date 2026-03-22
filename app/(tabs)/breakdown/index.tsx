@@ -51,13 +51,15 @@ import Colors from '@/constants/colors';
 import { useEstimate } from '@/contexts/EstimateContext';
 import { useUserMode } from '@/contexts/UserModeContext';
 import type { UserMode } from '@/contexts/UserModeContext';
+import { USER_MODE_CONFIGS } from '@/constants/userModes';
 
 import {
   DISCLAIMER_TEXT,
   CONSTRUCTION_SUBTOTAL_DISCLAIMER,
   formatSizeCorrectionFactorLabel,
 } from '@/constants/construction';
-import { getDin276Group, getDin276Subgroup } from '@/constants/din276Groups';
+import { DIN276_GROUPS, getDin276Group, getDin276Subgroup } from '@/constants/din276Groups';
+import type { Din276Node } from '@/constants/din276Groups';
 import type { ProjectBreakdownGroup, ProjectBreakdownSubgroup } from '@/calculator-engine/buildProjectCostBreakdown';
 import { generateClientReportHtml } from '@/utils/generateClientReportHtml';
 import type { ClientReportData } from '@/utils/generateClientReportHtml';
@@ -71,10 +73,14 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 interface SubgroupItem {
   code: string;
   name: string;
+  description?: string;
   cost: number;
   icon: React.ComponentType<{ size?: number; color?: string }>;
   sublabel?: string;
   visible: boolean;
+  level: number;
+  parentCode?: string;
+  isExpandable: boolean;
   children?: SubgroupItem[];
 }
 
@@ -85,6 +91,65 @@ interface DinGroup {
   percentOfTotal: number;
   subgroups: SubgroupItem[];
   accentColor: string;
+}
+
+interface PrivateBreakdownChildItem {
+  id: string;
+  label: string;
+  cost: number;
+}
+
+interface PrivateBreakdownItem {
+  id: string;
+  label: string;
+  totalCost: number;
+  sourceCodes: string[];
+  children: PrivateBreakdownChildItem[];
+  isExpandable: boolean;
+}
+
+interface ProBreakdownDinChildItem {
+  id: string;
+  label: string;
+  code: string;
+  cost: number;
+}
+
+interface ProBreakdownChildItem {
+  id: string;
+  label: string;
+  code?: string;
+  cost: number;
+  sourceCodes: string[];
+  dinChildren: ProBreakdownDinChildItem[];
+  isExpandable: boolean;
+}
+
+interface ProBreakdownItem {
+  id: string;
+  label: string;
+  totalCost: number;
+  sourceCodes: string[];
+  children: ProBreakdownChildItem[];
+  isExpandable: boolean;
+}
+
+type DeveloperInvestmentTag = 'entry-cost' | 'core' | 'value-add' | 'soft-cost' | 'risk-sensitive-core';
+type DeveloperVisibilityTag = 'hidden' | 'partly-visible' | 'visible' | 'highly-visible';
+type DeveloperRiskTag = 'low' | 'medium' | 'high';
+
+interface DeveloperSummaryMetrics {
+  hardCostTotal: number;
+  softCostTotal: number;
+  riskSensitiveShare: number;
+  visibleShare: number;
+  valueAddShare: number;
+}
+
+interface DeveloperBreakdownItem extends ProBreakdownItem {
+  investmentTag: DeveloperInvestmentTag;
+  visibilityTag: DeveloperVisibilityTag;
+  riskTag: DeveloperRiskTag;
 }
 
 const MULTIPLY_SYMBOL = '\u00D7';
@@ -272,6 +337,7 @@ function getSubgroupSublabel(
 
 function CollapsibleGroup({ group }: { group: DinGroup }) {
   const [expanded, setExpanded] = useState<boolean>(true);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const toggle = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -279,6 +345,11 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
   }, []);
 
   const visibleSubgroups = group.subgroups.filter((s) => s.visible);
+
+  const toggleRow = useCallback((code: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedRows((prev) => ({ ...prev, [code]: !prev[code] }));
+  }, []);
 
   return (
     <View style={styles.groupContainer}>
@@ -311,21 +382,13 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
       {expanded && visibleSubgroups.length > 0 && (
         <View style={styles.subgroupList}>
           {visibleSubgroups.map((item) => (
-            <View key={item.code} style={styles.subgroupRow}>
-              <View style={styles.subgroupIconWrap}>
-                <item.icon size={15} color={group.accentColor} />
-              </View>
-              <View style={styles.subgroupInfo}>
-                <View style={styles.subgroupNameRow}>
-                  <Text style={styles.subgroupCode}>{item.code}</Text>
-                  <Text style={styles.subgroupName}>{item.name}</Text>
-                </View>
-                {item.sublabel ? (
-                  <Text style={styles.subgroupSublabel}>{item.sublabel}</Text>
-                ) : null}
-              </View>
-              <Text style={styles.subgroupCost}>{formatCurrency(item.cost)}</Text>
-            </View>
+            <BreakdownTreeRow
+              key={item.code}
+              item={item}
+              accentColor={group.accentColor}
+              expandedRows={expandedRows}
+              onToggle={toggleRow}
+            />
           ))}
         </View>
       )}
@@ -333,8 +396,145 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
   );
 }
 
+function BreakdownTreeRow({
+  item,
+  accentColor,
+  expandedRows,
+  onToggle,
+}: {
+  item: SubgroupItem;
+  accentColor: string;
+  expandedRows: Record<string, boolean>;
+  onToggle: (code: string) => void;
+}) {
+  const visibleChildren = item.children?.filter((child) => child.visible) ?? [];
+  const isExpanded = item.level === 2 ? expandedRows[item.code] ?? false : false;
+  const canExpand = item.isExpandable && visibleChildren.length > 0;
+  const handleToggle = useCallback(() => {
+    if (!canExpand) return;
+    onToggle(item.code);
+  }, [canExpand, item.code, onToggle]);
+
+  return (
+    <View>
+      <TouchableOpacity
+        style={[
+          styles.subgroupRow,
+          item.level === 3 ? styles.subgroupRowLevel3 : null,
+        ]}
+        onPress={handleToggle}
+        activeOpacity={canExpand ? 0.7 : 1}
+        disabled={!canExpand}
+        testID={`subgroup-row-${item.code}`}
+      >
+        <View style={[styles.subgroupLeading, item.level === 3 ? styles.subgroupLeadingLevel3 : null]}>
+          {canExpand ? (
+            <View style={styles.subgroupChevronWrap}>
+              {isExpanded ? (
+                <ChevronDown size={16} color={Colors.textTertiary} />
+              ) : (
+                <ChevronRight size={16} color={Colors.textTertiary} />
+              )}
+            </View>
+          ) : (
+            <View style={styles.subgroupChevronPlaceholder} />
+          )}
+          <View
+            style={[
+              styles.subgroupIconWrap,
+              item.level === 3 ? styles.subgroupIconWrapLevel3 : null,
+            ]}
+          >
+            <item.icon size={item.level === 3 ? 14 : 15} color={accentColor} />
+          </View>
+        </View>
+        <View style={styles.subgroupInfo}>
+          <View style={styles.subgroupNameRow}>
+            <Text style={[styles.subgroupCode, item.level === 3 ? styles.subgroupCodeLevel3 : null]}>{item.code}</Text>
+            <Text style={[styles.subgroupName, item.level === 3 ? styles.subgroupNameLevel3 : null]}>{item.name}</Text>
+          </View>
+          {item.sublabel ? (
+            <Text style={styles.subgroupSublabel}>{item.sublabel}</Text>
+          ) : item.description && item.level === 3 ? (
+            <Text style={styles.subgroupSublabel}>{item.description}</Text>
+          ) : null}
+        </View>
+        <Text style={styles.subgroupCost}>{formatCurrency(item.cost)}</Text>
+      </TouchableOpacity>
+
+      {canExpand && isExpanded ? (
+        <View style={styles.subgroupChildren}>
+          {visibleChildren.map((child) => (
+            <BreakdownTreeRow
+              key={child.code}
+              item={child}
+              accentColor={accentColor}
+              expandedRows={expandedRows}
+              onToggle={onToggle}
+            />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function PrivateBreakdownCategory({
+  item,
+}: {
+  item: PrivateBreakdownItem;
+}) {
+  const [expanded, setExpanded] = useState<boolean>(false);
+
+  const toggle = useCallback(() => {
+    if (!item.isExpandable) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((prev) => !prev);
+  }, [item.isExpandable]);
+
+  return (
+    <View style={styles.privateCategoryContainer}>
+      <TouchableOpacity
+        style={styles.privateCategoryHeader}
+        onPress={toggle}
+        activeOpacity={item.isExpandable ? 0.7 : 1}
+        disabled={!item.isExpandable}
+        testID={`private-category-${item.id}`}
+      >
+        <View style={styles.privateCategoryInfo}>
+          <View style={styles.privateCategoryTitleRow}>
+            {item.isExpandable ? (
+              expanded ? (
+                <ChevronDown size={16} color={Colors.textTertiary} />
+              ) : (
+                <ChevronRight size={16} color={Colors.textTertiary} />
+              )
+            ) : (
+              <View style={styles.privateCategoryChevronPlaceholder} />
+            )}
+            <Text style={styles.privateCategoryTitle}>{item.label}</Text>
+          </View>
+        </View>
+        <Text style={styles.privateCategoryCost}>{formatCurrency(item.totalCost)}</Text>
+      </TouchableOpacity>
+
+      {item.isExpandable && expanded ? (
+        <View style={styles.privateCategoryChildren}>
+          {item.children.map((child) => (
+            <View key={child.id} style={styles.privateCategoryChildRow}>
+              <Text style={styles.privateCategoryChildLabel}>{child.label}</Text>
+              <Text style={styles.privateCategoryChildCost}>{formatCurrency(child.cost)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function mapBreakdownSubgroup(
   subgroup: ProjectBreakdownSubgroup,
+  hierarchyNode: Din276Node | undefined,
   context: {
     siteConditionName: string;
     landscapingArea: number;
@@ -343,26 +543,727 @@ function mapBreakdownSubgroup(
     poolTypeName: string;
     enabledHvacIds: Set<string>;
   },
-): SubgroupItem {
+  options: {
+  level: number;
+  parentCode?: string;
+}): SubgroupItem {
+  const visibleChildren =
+    subgroup.children
+      ?.map((child) => mapBreakdownSubgroup(child, hierarchyNode?.children?.find((node) => node.code === child.code), context, {
+        level: options.level + 1,
+        parentCode: subgroup.code,
+      }))
+      .filter((child) => child.visible) ?? [];
+
   return {
     code: subgroup.code,
-    name: getDin276Subgroup(subgroup.code)?.label ?? subgroup.code,
+    name: hierarchyNode?.label ?? getDin276Subgroup(subgroup.code)?.label ?? subgroup.code,
+    description: hierarchyNode?.description ?? getDin276Subgroup(subgroup.code)?.description,
     cost: subgroup.cost,
     icon: SUBGROUP_ICONS[subgroup.code] ?? Hammer,
     sublabel: getSubgroupSublabel(subgroup, context),
-    visible: subgroup.visible,
-    children: subgroup.children?.map((child) => mapBreakdownSubgroup(child, context)),
+    visible: subgroup.visible || visibleChildren.length > 0,
+    level: options.level,
+    parentCode: options.parentCode,
+    isExpandable: visibleChildren.length > 0,
+    children: visibleChildren,
   };
+}
+
+function buildGroupSubgroupTree(
+  groupCode: string,
+  subgroups: ProjectBreakdownSubgroup[],
+  context: {
+    siteConditionName: string;
+    landscapingArea: number;
+    poolArea: number;
+    poolQualityName: string;
+    poolTypeName: string;
+    enabledHvacIds: Set<string>;
+  },
+): SubgroupItem[] {
+  const hierarchyGroup = DIN276_GROUPS.find((group) => group.code === groupCode);
+  const subgroupMap = new Map(subgroups.map((subgroup) => [subgroup.code, subgroup]));
+  const orderedCodes = hierarchyGroup?.children?.map((node) => node.code) ?? subgroups.map((subgroup) => subgroup.code);
+  const fallbackSubgroups = subgroups.filter((subgroup) => !orderedCodes.includes(subgroup.code));
+
+  return [...orderedCodes.map((code) => subgroupMap.get(code)).filter(Boolean), ...fallbackSubgroups]
+    .map((subgroup) => mapBreakdownSubgroup(
+      subgroup as ProjectBreakdownSubgroup,
+      hierarchyGroup?.children?.find((node) => node.code === subgroup?.code),
+      context,
+      {
+        level: 2,
+      },
+    ))
+    .filter((subgroup) => subgroup.visible);
+}
+
+function getBreakdownMaps(breakdownGroups: ProjectBreakdownGroup[]) {
+  const groupMap = new Map(breakdownGroups.map((group) => [group.code, group]));
+  const subgroupMap = new Map<string, ProjectBreakdownSubgroup>();
+
+  for (const group of breakdownGroups) {
+    for (const subgroup of group.subgroups) {
+      subgroupMap.set(subgroup.code, subgroup);
+    }
+  }
+
+  return { groupMap, subgroupMap };
+}
+
+const PRIVATE_BREAKDOWN_CATEGORY_DEFINITIONS: Array<{ id: string; label: string; sourceCodes: string[] }> = [
+  { id: 'site-preparation', label: 'Site & Preparation', sourceCodes: ['100', '200'] },
+  { id: 'earthworks-ground', label: 'Earthworks & Ground Preparation', sourceCodes: ['310', '510'] },
+  { id: 'structure-shell', label: 'Building Structure & Shell', sourceCodes: ['320', '330', '360', '548'] },
+  { id: 'interior-finishes', label: 'Interior Build & Finishes', sourceCodes: ['340', '350'] },
+  { id: 'bath-kitchen-equipment', label: 'Bathrooms, Kitchen & Home Equipment', sourceCodes: ['410', '470'] },
+  { id: 'heating-cooling-electrical', label: 'Heating, Cooling & Electrical', sourceCodes: ['420', '430', '440'] },
+  { id: 'smart-security-connectivity', label: 'Smart Home, Security & Connectivity', sourceCodes: ['450', '480'] },
+  { id: 'outdoor-landscaping', label: 'Outdoor Works & Landscaping', sourceCodes: ['520', '530', '540', '560', '570'] },
+  { id: 'pool-equipment-extras', label: 'Pool Equipment & Outdoor Extras', sourceCodes: ['550'] },
+  { id: 'fees-permits', label: 'Fees & Permits', sourceCodes: ['700'] },
+];
+
+function mapBreakdownForPrivateUser(breakdownGroups: ProjectBreakdownGroup[]): PrivateBreakdownItem[] {
+  const { groupMap, subgroupMap } = getBreakdownMaps(breakdownGroups);
+
+  const getSourceItem = (code: string): PrivateBreakdownChildItem | null => {
+    const group = groupMap.get(code);
+    if (group) {
+      if (group.subtotal <= 0) return null;
+      return {
+        id: code,
+        label: getDin276Group(code)?.label ?? `KG ${code}`,
+        cost: group.subtotal,
+      };
+    }
+
+    const subgroup = subgroupMap.get(code);
+    if (!subgroup || subgroup.cost <= 0) return null;
+
+    return {
+      id: code,
+      label: getDin276Subgroup(code)?.label ?? code,
+      cost: subgroup.cost,
+    };
+  };
+
+  return PRIVATE_BREAKDOWN_CATEGORY_DEFINITIONS
+    .map((category) => {
+      const children = category.sourceCodes
+        .map((code) => getSourceItem(code))
+        .filter((item): item is PrivateBreakdownChildItem => item !== null);
+      const totalCost = children.reduce((sum, child) => sum + child.cost, 0);
+
+      return {
+        id: category.id,
+        label: category.label,
+        totalCost,
+        sourceCodes: category.sourceCodes,
+        children,
+        isExpandable: children.length > 0,
+      };
+    })
+    .filter((category) => category.totalCost > 0);
+}
+
+function mapBreakdownForProUser(breakdownGroups: ProjectBreakdownGroup[]): ProBreakdownItem[] {
+  const { groupMap, subgroupMap } = getBreakdownMaps(breakdownGroups);
+
+  const practicalLabelsByCode: Record<string, string> = {
+    '100': 'Land / acquisition-related cost',
+    '200': 'Preparatory measures / setup / utility preparation',
+    '310': 'Building excavation and ground works',
+    '510': 'Outdoor earthworks',
+    '320': 'Foundations & substructure',
+    '330': 'External walls & facade',
+    '360': 'Roof structure & roof build-up',
+    '390': 'Other structural works',
+    '548': 'Pool shell / structural pool works',
+    '340': 'Internal walls & partitions',
+    '350': 'Floors, slabs & ceilings',
+    '410': 'Plumbing & sanitary systems',
+    '470': 'Kitchen installation',
+    '420': 'Heat generation, distribution & emitters',
+    '430': 'Ventilation / air-conditioning',
+    '440': 'Electrical installation',
+    '450': 'Communication / security systems',
+    '480': 'Automation / smart systems',
+    '520': 'Outdoor foundations / substructure',
+    '530': 'Paving / terraces / parking',
+    '540': 'Fences / walls / stairs / canopies',
+    '560': 'Outdoor fixtures',
+    '570': 'Planting / lawn',
+    '550': 'Pool technical systems',
+    '700': 'Fees & permits',
+  };
+
+  const proCategoryDefinitions: Array<{
+    id: string;
+    label: string;
+    items: Array<{ code: string; label?: string }>;
+  }> = [
+    {
+      id: 'site-preparation',
+      label: 'Site & Preparation',
+      items: [{ code: '100' }, { code: '200' }],
+    },
+    {
+      id: 'earthworks-ground',
+      label: 'Earthworks & Ground Preparation',
+      items: [{ code: '310' }, { code: '510' }],
+    },
+    {
+      id: 'structure-shell',
+      label: 'Building Structure & Shell',
+      items: [{ code: '320' }, { code: '330' }, { code: '360' }, { code: '548' }],
+    },
+    {
+      id: 'interior-finishes',
+      label: 'Interior Build & Finishes',
+      items: [{ code: '340' }, { code: '350' }],
+    },
+    {
+      id: 'bath-kitchen-equipment',
+      label: 'Bathrooms, Kitchen & Home Equipment',
+      items: [{ code: '410' }, { code: '470' }],
+    },
+    {
+      id: 'heating-cooling-electrical',
+      label: 'Heating, Cooling & Electrical',
+      items: [{ code: '420' }, { code: '430' }, { code: '440' }],
+    },
+    {
+      id: 'smart-security-connectivity',
+      label: 'Smart Home, Security & Connectivity',
+      items: [{ code: '450' }, { code: '480' }],
+    },
+    {
+      id: 'outdoor-landscaping',
+      label: 'Outdoor Works & Landscaping',
+      items: [{ code: '520' }, { code: '530' }, { code: '540' }, { code: '560' }, { code: '570' }],
+    },
+    {
+      id: 'pool-equipment-extras',
+      label: 'Pool Equipment & Outdoor Extras',
+      items: [{ code: '550' }],
+    },
+    {
+      id: 'fees-permits',
+      label: 'Fees & Permits',
+      items: [{ code: '700' }],
+    },
+  ];
+
+  const getChildItem = (code: string): ProBreakdownChildItem | null => {
+    const group = groupMap.get(code);
+    if (group) {
+      if (group.subtotal <= 0) return null;
+      return {
+        id: code,
+        label: practicalLabelsByCode[code] ?? getDin276Group(code)?.label ?? `KG ${code}`,
+        code,
+        cost: group.subtotal,
+        sourceCodes: [code],
+        dinChildren: [],
+        isExpandable: false,
+      };
+    }
+
+    const subgroup = subgroupMap.get(code);
+    if (!subgroup || subgroup.cost <= 0) return null;
+
+    const dinChildren =
+      subgroup.children
+        ?.filter((child) => child.visible && child.cost > 0)
+        .map((child) => ({
+          id: child.code,
+          label: getDin276Subgroup(child.code)?.label ?? child.code,
+          code: child.code,
+          cost: child.cost,
+        })) ?? [];
+
+    return {
+      id: code,
+      label: practicalLabelsByCode[code] ?? getDin276Subgroup(code)?.label ?? code,
+      code,
+      cost: subgroup.cost,
+      sourceCodes: [code],
+      dinChildren,
+      isExpandable: dinChildren.length > 0,
+    };
+  };
+
+  return proCategoryDefinitions
+    .map((category) => {
+      const children = category.items
+        .map((item) => getChildItem(item.code))
+        .filter((item): item is ProBreakdownChildItem => item !== null);
+      const totalCost = children.reduce((sum, child) => sum + child.cost, 0);
+
+      return {
+        id: category.id,
+        label: category.label,
+        totalCost,
+        sourceCodes: category.items.map((item) => item.code),
+        children,
+        isExpandable: children.length > 0,
+      };
+    })
+    .filter((category) => category.totalCost > 0);
+}
+
+function mapBreakdownForDeveloperUser(breakdownGroups: ProjectBreakdownGroup[]) {
+  const { groupMap, subgroupMap } = getBreakdownMaps(breakdownGroups);
+
+  const practicalLabelsByCode: Record<string, string> = {
+    '100': 'Land / acquisition-related cost',
+    '200': 'Preparatory measures / setup / utility preparation',
+    '310': 'Building excavation and ground works',
+    '320': 'Foundations & substructure',
+    '510': 'Outdoor earthworks',
+    '520': 'Outdoor foundations / substructure',
+    '548': 'Pool shell / structural pool works',
+    '330': 'External walls & facade',
+    '360': 'Roof structure & roof build-up',
+    '390': 'Other shell-related works',
+    '340': 'Internal walls & partitions',
+    '350': 'Floors, slabs & ceilings',
+    '410': 'Plumbing & sanitary systems',
+    '420': 'Heat generation, distribution & emitters',
+    '430': 'Ventilation / air-conditioning',
+    '440': 'Electrical installation',
+    '450': 'Communication / security systems',
+    '470': 'Kitchen installation',
+    '480': 'Automation / smart systems',
+    '550': 'Pool technical systems',
+    '530': 'Paving / terraces / parking',
+    '540': 'Fences / walls / stairs / canopies',
+    '560': 'Outdoor fixtures',
+    '570': 'Planting / lawn',
+    '580': 'Water features / outdoor extras',
+    '700': 'Soft costs, fees & approvals',
+  };
+
+  const categoryDefinitions: Array<{
+    id: string;
+    label: string;
+    investmentTag: DeveloperInvestmentTag;
+    visibilityTag: DeveloperVisibilityTag;
+    riskTag: DeveloperRiskTag;
+    items: string[];
+  }> = [
+    {
+      id: 'land-acquisition-setup',
+      label: 'Land, Acquisition & Setup',
+      investmentTag: 'entry-cost',
+      visibilityTag: 'hidden',
+      riskTag: 'medium',
+      items: ['100', '200'],
+    },
+    {
+      id: 'ground-structural-base',
+      label: 'Ground & Structural Base',
+      investmentTag: 'risk-sensitive-core',
+      visibilityTag: 'hidden',
+      riskTag: 'high',
+      items: ['310', '320', '510', '520', '548'],
+    },
+    {
+      id: 'envelope-core-shell',
+      label: 'Building Envelope & Core Shell',
+      investmentTag: 'core',
+      visibilityTag: 'partly-visible',
+      riskTag: 'medium',
+      items: ['330', '360'],
+    },
+    {
+      id: 'interior-base-build',
+      label: 'Interior Base Build',
+      investmentTag: 'core',
+      visibilityTag: 'visible',
+      riskTag: 'medium',
+      items: ['340', '350'],
+    },
+    {
+      id: 'mep-core-systems',
+      label: 'MEP Core Systems',
+      investmentTag: 'core',
+      visibilityTag: 'hidden',
+      riskTag: 'medium',
+      items: ['410', '420', '430', '440'],
+    },
+    {
+      id: 'marketable-premium-features',
+      label: 'Marketable Premium Features',
+      investmentTag: 'value-add',
+      visibilityTag: 'highly-visible',
+      riskTag: 'low',
+      items: ['450', '470', '480', '550'],
+    },
+    {
+      id: 'external-value-drivers',
+      label: 'External Value Drivers',
+      investmentTag: 'value-add',
+      visibilityTag: 'highly-visible',
+      riskTag: 'medium',
+      items: ['530', '540', '560', '570', '580'],
+    },
+    {
+      id: 'soft-costs-fees-approvals',
+      label: 'Soft Costs, Fees & Approvals',
+      investmentTag: 'soft-cost',
+      visibilityTag: 'hidden',
+      riskTag: 'low',
+      items: ['700'],
+    },
+  ];
+
+  const getChildItem = (code: string): ProBreakdownChildItem | null => {
+    const group = groupMap.get(code);
+    if (group) {
+      if (group.subtotal <= 0) return null;
+      return {
+        id: code,
+        label: practicalLabelsByCode[code] ?? getDin276Group(code)?.label ?? `KG ${code}`,
+        code,
+        cost: group.subtotal,
+        sourceCodes: [code],
+        dinChildren: [],
+        isExpandable: false,
+      };
+    }
+
+    const subgroup = subgroupMap.get(code);
+    if (!subgroup || subgroup.cost <= 0) return null;
+    const dinChildren =
+      subgroup.children
+        ?.filter((child) => child.visible && child.cost > 0)
+        .map((child) => ({
+          id: child.code,
+          label: getDin276Subgroup(child.code)?.label ?? child.code,
+          code: child.code,
+          cost: child.cost,
+        })) ?? [];
+
+    return {
+      id: code,
+      label: practicalLabelsByCode[code] ?? getDin276Subgroup(code)?.label ?? code,
+      code,
+      cost: subgroup.cost,
+      sourceCodes: [code],
+      dinChildren,
+      isExpandable: dinChildren.length > 0,
+    };
+  };
+
+  const items: DeveloperBreakdownItem[] = categoryDefinitions
+    .map((category) => {
+      const children = category.items
+        .map((code) => getChildItem(code))
+        .filter((item): item is ProBreakdownChildItem => item !== null);
+      const totalCost = children.reduce((sum, child) => sum + child.cost, 0);
+
+      return {
+        id: category.id,
+        label: category.label,
+        totalCost,
+        sourceCodes: category.items,
+        children,
+        isExpandable: children.length > 0,
+        investmentTag: category.investmentTag,
+        visibilityTag: category.visibilityTag,
+        riskTag: category.riskTag,
+      };
+    })
+    .filter((category) => category.totalCost > 0);
+
+  const totalCostBasis = items.reduce((sum, item) => sum + item.totalCost, 0);
+  const hardCostTotal = items
+    .filter((item) => item.id !== 'land-acquisition-setup' && item.id !== 'soft-costs-fees-approvals')
+    .reduce((sum, item) => sum + item.totalCost, 0);
+  const softCostTotal = items
+    .filter((item) => item.investmentTag === 'soft-cost')
+    .reduce((sum, item) => sum + item.totalCost, 0);
+  const riskSensitiveTotal = items
+    .filter((item) => item.investmentTag === 'risk-sensitive-core' || item.riskTag === 'high')
+    .reduce((sum, item) => sum + item.totalCost, 0);
+  const visibleTotal = items
+    .filter((item) => item.visibilityTag === 'visible' || item.visibilityTag === 'highly-visible')
+    .reduce((sum, item) => sum + item.totalCost, 0);
+  const valueAddTotal = items
+    .filter((item) => item.investmentTag === 'value-add')
+    .reduce((sum, item) => sum + item.totalCost, 0);
+
+  const summary: DeveloperSummaryMetrics = {
+    hardCostTotal,
+    softCostTotal,
+    riskSensitiveShare: totalCostBasis > 0 ? (riskSensitiveTotal / totalCostBasis) * 100 : 0,
+    visibleShare: totalCostBasis > 0 ? (visibleTotal / totalCostBasis) * 100 : 0,
+    valueAddShare: totalCostBasis > 0 ? (valueAddTotal / totalCostBasis) * 100 : 0,
+  };
+
+  return { items, summary };
+}
+
+function ProBreakdownCategory({
+  item,
+  showDinCodes,
+  showDinStructure,
+}: {
+  item: ProBreakdownItem;
+  showDinCodes: boolean;
+  showDinStructure: boolean;
+}) {
+  const [expanded, setExpanded] = useState<boolean>(false);
+  const [expandedChildren, setExpandedChildren] = useState<Record<string, boolean>>({});
+
+  const toggle = useCallback(() => {
+    if (!item.isExpandable) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((prev) => !prev);
+  }, [item.isExpandable]);
+
+  const toggleChild = useCallback((code: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedChildren((prev) => ({ ...prev, [code]: !prev[code] }));
+  }, []);
+
+  return (
+    <View style={styles.privateCategoryContainer}>
+      <TouchableOpacity
+        style={styles.privateCategoryHeader}
+        onPress={toggle}
+        activeOpacity={item.isExpandable ? 0.7 : 1}
+        disabled={!item.isExpandable}
+        testID={`pro-category-${item.id}`}
+      >
+        <View style={styles.privateCategoryInfo}>
+          <View style={styles.privateCategoryTitleRow}>
+            {item.isExpandable ? (
+              expanded ? (
+                <ChevronDown size={16} color={Colors.textTertiary} />
+              ) : (
+                <ChevronRight size={16} color={Colors.textTertiary} />
+              )
+            ) : (
+              <View style={styles.privateCategoryChevronPlaceholder} />
+            )}
+            <Text style={styles.privateCategoryTitle}>{item.label}</Text>
+          </View>
+        </View>
+        <Text style={styles.privateCategoryCost}>{formatCurrency(item.totalCost)}</Text>
+      </TouchableOpacity>
+
+      {item.isExpandable && expanded ? (
+        <View style={styles.privateCategoryChildren}>
+          {item.children.map((child) => {
+            const canExpandDin = showDinStructure && child.isExpandable;
+            const childExpanded = expandedChildren[child.id] ?? false;
+
+            return (
+              <View key={child.id}>
+                <TouchableOpacity
+                  style={styles.proChildRow}
+                  onPress={() => {
+                    if (canExpandDin) toggleChild(child.id);
+                  }}
+                  activeOpacity={canExpandDin ? 0.7 : 1}
+                  disabled={!canExpandDin}
+                  testID={`pro-child-${child.id}`}
+                >
+                  <View style={styles.proChildInfo}>
+                    <View style={styles.privateCategoryTitleRow}>
+                      {canExpandDin ? (
+                        childExpanded ? (
+                          <ChevronDown size={15} color={Colors.textTertiary} />
+                        ) : (
+                          <ChevronRight size={15} color={Colors.textTertiary} />
+                        )
+                      ) : (
+                        <View style={styles.privateCategoryChevronPlaceholder} />
+                      )}
+                      <Text style={styles.proChildLabel}>
+                        {showDinCodes && child.code ? `${child.code} ` : ''}
+                        {child.label}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.privateCategoryChildCost}>{formatCurrency(child.cost)}</Text>
+                </TouchableOpacity>
+
+                {canExpandDin && childExpanded ? (
+                  <View style={styles.proDinChildren}>
+                    {child.dinChildren.map((dinChild) => (
+                      <View key={dinChild.id} style={styles.proDinChildRow}>
+                        <Text style={styles.proDinChildLabel}>
+                          {showDinCodes ? `${dinChild.code} ` : ''}
+                          {dinChild.label}
+                        </Text>
+                        <Text style={styles.privateCategoryChildCost}>{formatCurrency(dinChild.cost)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function DeveloperSummaryCard({
+  metrics,
+}: {
+  metrics: DeveloperSummaryMetrics;
+}) {
+  const summaryItems = [
+    { id: 'hard-cost', label: 'Hard Cost Total', value: formatCurrency(metrics.hardCostTotal) },
+    { id: 'soft-cost', label: 'Soft Cost Total', value: formatCurrency(metrics.softCostTotal) },
+    { id: 'risk-share', label: 'Risk-Sensitive Share', value: formatPercent(metrics.riskSensitiveShare, 1) },
+    { id: 'visible-share', label: 'Buyer-Visible Share', value: formatPercent(metrics.visibleShare, 1) },
+    { id: 'value-add-share', label: 'Value-Add Share', value: formatPercent(metrics.valueAddShare, 1) },
+  ];
+
+  return (
+    <View style={styles.developerSummaryCard}>
+      <Text style={styles.developerSummaryTitle}>Feasibility Snapshot</Text>
+      <View style={styles.developerSummaryGrid}>
+        {summaryItems.map((item) => (
+          <View key={item.id} style={styles.developerSummaryItem}>
+            <Text style={styles.developerSummaryLabel}>{item.label}</Text>
+            <Text style={styles.developerSummaryValue}>{item.value}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function DeveloperBreakdownCategory({
+  item,
+  showDinCodes,
+  showDinStructure,
+}: {
+  item: DeveloperBreakdownItem;
+  showDinCodes: boolean;
+  showDinStructure: boolean;
+}) {
+  const [expanded, setExpanded] = useState<boolean>(false);
+  const [expandedChildren, setExpandedChildren] = useState<Record<string, boolean>>({});
+
+  const toggle = useCallback(() => {
+    if (!item.isExpandable) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((prev) => !prev);
+  }, [item.isExpandable]);
+
+  const toggleChild = useCallback((code: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedChildren((prev) => ({ ...prev, [code]: !prev[code] }));
+  }, []);
+
+  return (
+    <View style={styles.privateCategoryContainer}>
+      <TouchableOpacity
+        style={styles.privateCategoryHeader}
+        onPress={toggle}
+        activeOpacity={item.isExpandable ? 0.7 : 1}
+        disabled={!item.isExpandable}
+        testID={`developer-category-${item.id}`}
+      >
+        <View style={styles.privateCategoryInfo}>
+          <View style={styles.privateCategoryTitleRow}>
+            {item.isExpandable ? (
+              expanded ? (
+                <ChevronDown size={16} color={Colors.textTertiary} />
+              ) : (
+                <ChevronRight size={16} color={Colors.textTertiary} />
+              )
+            ) : (
+              <View style={styles.privateCategoryChevronPlaceholder} />
+            )}
+            <Text style={styles.privateCategoryTitle}>{item.label}</Text>
+          </View>
+          <View style={styles.developerTagsRow}>
+            <Text style={styles.developerTag}>{item.investmentTag}</Text>
+            <Text style={styles.developerTag}>{item.visibilityTag}</Text>
+            <Text style={styles.developerTag}>{item.riskTag} risk</Text>
+          </View>
+        </View>
+        <Text style={styles.privateCategoryCost}>{formatCurrency(item.totalCost)}</Text>
+      </TouchableOpacity>
+
+      {item.isExpandable && expanded ? (
+        <View style={styles.privateCategoryChildren}>
+          {item.children.map((child) => {
+            const canExpandDin = showDinStructure && child.isExpandable;
+            const childExpanded = expandedChildren[child.id] ?? false;
+
+            return (
+              <View key={child.id}>
+                <TouchableOpacity
+                  style={styles.proChildRow}
+                  onPress={() => {
+                    if (canExpandDin) toggleChild(child.id);
+                  }}
+                  activeOpacity={canExpandDin ? 0.7 : 1}
+                  disabled={!canExpandDin}
+                  testID={`developer-child-${child.id}`}
+                >
+                  <View style={styles.proChildInfo}>
+                    <View style={styles.privateCategoryTitleRow}>
+                      {canExpandDin ? (
+                        childExpanded ? (
+                          <ChevronDown size={15} color={Colors.textTertiary} />
+                        ) : (
+                          <ChevronRight size={15} color={Colors.textTertiary} />
+                        )
+                      ) : (
+                        <View style={styles.privateCategoryChevronPlaceholder} />
+                      )}
+                      <Text style={styles.proChildLabel}>
+                        {showDinCodes && child.code ? `${child.code} ` : ''}
+                        {child.label}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.privateCategoryChildCost}>{formatCurrency(child.cost)}</Text>
+                </TouchableOpacity>
+
+                {canExpandDin && childExpanded ? (
+                  <View style={styles.proDinChildren}>
+                    {child.dinChildren.map((dinChild) => (
+                      <View key={dinChild.id} style={styles.proDinChildRow}>
+                        <Text style={styles.proDinChildLabel}>
+                          {showDinCodes ? `${dinChild.code} ` : ''}
+                          {dinChild.label}
+                        </Text>
+                        <Text style={styles.privateCategoryChildCost}>{formatCurrency(dinChild.cost)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 function getReportTitle(mode: UserMode | null): string {
   switch (mode) {
     case 'private':
       return 'Project Cost Overview';
-    case 'professional':
-      return 'Client Cost Report';
-    case 'guided':
-      return 'Guided Project Cost Report';
+    case 'pro':
+      return 'Pro Cost Report';
+    case 'developer':
+      return 'Developer Feasibility Report';
     default:
       return 'Project Cost Estimate';
   }
@@ -534,6 +1435,11 @@ function GenerateReportButton() {
 }
 
 export default function BreakdownScreen() {
+  const { userMode } = useUserMode();
+  const [showProDinCodes, setShowProDinCodes] = useState<boolean>(false);
+  const [showProDinStructure, setShowProDinStructure] = useState<boolean>(false);
+  const [showDeveloperDinCodes, setShowDeveloperDinCodes] = useState<boolean>(false);
+  const [showDeveloperDinStructure, setShowDeveloperDinStructure] = useState<boolean>(false);
   const {
     location,
     quality,
@@ -588,6 +1494,8 @@ export default function BreakdownScreen() {
     habitableBasementArea,
   );
   const investmentTotal = projectTotalBeforeVat;
+  const modeConfig = userMode ? USER_MODE_CONFIGS[userMode] : null;
+  const breakdownDisplayType = modeConfig?.breakdownDisplayType ?? 'private';
 
   const dinGroups = useMemo<DinGroup[]>(() => {
     const enabledHvacIds = new Set(enabledHvac.map((item) => item.option.id));
@@ -598,14 +1506,14 @@ export default function BreakdownScreen() {
       subtotal: group.subtotal,
       percentOfTotal: group.percentOfTotal,
       accentColor: GROUP_ACCENT_COLORS[group.code] ?? Colors.accent,
-      subgroups: group.subgroups.map((subgroup: ProjectBreakdownSubgroup) => mapBreakdownSubgroup(subgroup, {
+      subgroups: buildGroupSubgroupTree(group.code, group.subgroups, {
         siteConditionName: siteCondition.name,
         landscapingArea,
         poolArea,
         poolQualityName: poolQualityOption.name,
         poolTypeName: poolTypeOption.name,
         enabledHvacIds,
-      })),
+      }),
     }));
   }, [
     breakdownGroups,
@@ -616,6 +1524,21 @@ export default function BreakdownScreen() {
     poolTypeOption,
     siteCondition,
   ]);
+
+  const privateBreakdownItems = useMemo<PrivateBreakdownItem[]>(
+    () => mapBreakdownForPrivateUser(breakdownGroups),
+    [breakdownGroups],
+  );
+
+  const proBreakdownItems = useMemo<ProBreakdownItem[]>(
+    () => mapBreakdownForProUser(breakdownGroups),
+    [breakdownGroups],
+  );
+
+  const developerBreakdown = useMemo(
+    () => mapBreakdownForDeveloperUser(breakdownGroups),
+    [breakdownGroups],
+  );
 
   return (
     <View style={styles.outerContainer}>
@@ -712,13 +1635,94 @@ export default function BreakdownScreen() {
       </View>
 
       <View style={styles.dinSectionTitle}>
-        <Text style={styles.dinSectionTitleText}>DIN 276 Cost Breakdown</Text>
-        <Text style={styles.dinBadge}>DIN 276</Text>
+        <Text style={styles.dinSectionTitleText}>
+          {breakdownDisplayType === 'private'
+            ? 'Project Cost Breakdown'
+            : breakdownDisplayType === 'pro'
+              ? 'Pro / Contractor Breakdown'
+              : 'Developer / Investor Breakdown'}
+        </Text>
+        <Text style={styles.dinBadge}>
+          {breakdownDisplayType === 'private'
+            ? 'Overview'
+            : breakdownDisplayType === 'pro'
+              ? 'Pro'
+              : 'Investor'}
+        </Text>
       </View>
 
-      {dinGroups.map((group) => (
-        <CollapsibleGroup key={group.code} group={group} />
-      ))}
+      {modeConfig?.supportsDinCodes && breakdownDisplayType === 'pro' ? (
+        <View style={styles.proControlsCard}>
+          <TouchableOpacity
+            style={[styles.proControlChip, showProDinCodes ? styles.proControlChipActive : null]}
+            onPress={() => setShowProDinCodes((prev) => !prev)}
+            activeOpacity={0.8}
+            testID="toggle-pro-din-codes"
+          >
+            <Text style={[styles.proControlChipText, showProDinCodes ? styles.proControlChipTextActive : null]}>
+              Show DIN codes
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.proControlChip, showProDinStructure ? styles.proControlChipActive : null]}
+            onPress={() => setShowProDinStructure((prev) => !prev)}
+            activeOpacity={0.8}
+            testID="toggle-pro-din-structure"
+          >
+            <Text style={[styles.proControlChipText, showProDinStructure ? styles.proControlChipTextActive : null]}>
+              Show DIN structure
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : modeConfig?.supportsDeveloperSummary && breakdownDisplayType === 'developer' ? (
+        <>
+          <DeveloperSummaryCard metrics={developerBreakdown.summary} />
+          <View style={styles.proControlsCard}>
+            <TouchableOpacity
+              style={[styles.proControlChip, showDeveloperDinCodes ? styles.proControlChipActive : null]}
+              onPress={() => setShowDeveloperDinCodes((prev) => !prev)}
+              activeOpacity={0.8}
+              testID="toggle-developer-din-codes"
+            >
+              <Text style={[styles.proControlChipText, showDeveloperDinCodes ? styles.proControlChipTextActive : null]}>
+                Show DIN codes
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.proControlChip, showDeveloperDinStructure ? styles.proControlChipActive : null]}
+              onPress={() => setShowDeveloperDinStructure((prev) => !prev)}
+              activeOpacity={0.8}
+              testID="toggle-developer-din-structure"
+            >
+              <Text style={[styles.proControlChipText, showDeveloperDinStructure ? styles.proControlChipTextActive : null]}>
+                Show DIN structure
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      ) : null}
+
+      {breakdownDisplayType === 'private'
+        ? privateBreakdownItems.map((item) => (
+          <PrivateBreakdownCategory key={item.id} item={item} />
+        ))
+        : breakdownDisplayType === 'pro'
+          ? proBreakdownItems.map((item) => (
+            <ProBreakdownCategory
+              key={item.id}
+              item={item}
+              showDinCodes={showProDinCodes}
+              showDinStructure={showProDinStructure}
+            />
+          ))
+          : developerBreakdown.items.map((item) => (
+            <DeveloperBreakdownCategory
+              key={item.id}
+              item={item}
+              showDinCodes={showDeveloperDinCodes}
+              showDinStructure={showDeveloperDinStructure}
+            />
+          ))}
 
       <View style={styles.constructionSubtotalCard}>
         <Text style={styles.constructionSubtotalLabel}>{`Construction Subtotal (KG 300${EN_DASH}600)`}</Text>
@@ -874,6 +1878,75 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     overflow: 'hidden' as const,
   },
+  proControlsCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 8,
+  },
+  proControlChip: {
+    backgroundColor: Colors.inputBg,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  proControlChipActive: {
+    backgroundColor: Colors.accentBg,
+    borderColor: Colors.accent,
+  },
+  proControlChipText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+  },
+  proControlChipTextActive: {
+    color: Colors.accent,
+  },
+  developerSummaryCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  developerSummaryTitle: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: Colors.textTertiary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+    marginBottom: 10,
+  },
+  developerSummaryGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 8,
+  },
+  developerSummaryItem: {
+    minWidth: 132,
+    flexGrow: 1,
+    backgroundColor: Colors.inputBg,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  developerSummaryLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: Colors.textTertiary,
+  },
+  developerSummaryValue: {
+    fontSize: 14,
+    fontWeight: '800' as const,
+    color: Colors.primary,
+    marginTop: 2,
+    fontVariant: ['tabular-nums'] as any,
+  },
   groupContainer: {
     marginHorizontal: 16,
     marginBottom: 10,
@@ -885,6 +1958,124 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
     overflow: 'hidden' as const,
+  },
+  privateCategoryContainer: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+    overflow: 'hidden' as const,
+  },
+  privateCategoryHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  privateCategoryInfo: {
+    flex: 1,
+  },
+  privateCategoryTitleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  privateCategoryChevronPlaceholder: {
+    width: 16,
+  },
+  privateCategoryTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  privateCategoryCost: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  privateCategoryChildren: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  privateCategoryChildRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    justifyContent: 'space-between' as const,
+    gap: 12,
+    paddingVertical: 8,
+  },
+  privateCategoryChildLabel: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 17,
+  },
+  privateCategoryChildCost: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: Colors.primary,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  developerTagsRow: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 6,
+    marginTop: 6,
+  },
+  developerTag: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: Colors.textTertiary,
+    backgroundColor: Colors.inputBg,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    overflow: 'hidden' as const,
+  },
+  proChildRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    justifyContent: 'space-between' as const,
+    gap: 12,
+    paddingVertical: 8,
+  },
+  proChildInfo: {
+    flex: 1,
+  },
+  proChildLabel: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.text,
+    lineHeight: 17,
+    fontWeight: '600' as const,
+  },
+  proDinChildren: {
+    paddingLeft: 24,
+    paddingBottom: 4,
+  },
+  proDinChildRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    justifyContent: 'space-between' as const,
+    gap: 12,
+    paddingVertical: 6,
+  },
+  proDinChildLabel: {
+    flex: 1,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    lineHeight: 16,
   },
   groupHeader: {
     flexDirection: 'row' as const,
@@ -949,6 +2140,29 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     paddingVertical: 9,
   },
+  subgroupRowLevel3: {
+    paddingLeft: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  subgroupLeading: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginRight: 10,
+  },
+  subgroupLeadingLevel3: {
+    marginRight: 8,
+  },
+  subgroupChevronWrap: {
+    width: 18,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: 2,
+  },
+  subgroupChevronPlaceholder: {
+    width: 20,
+    marginRight: 0,
+  },
   subgroupIconWrap: {
     width: 28,
     height: 28,
@@ -956,7 +2170,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.inputBg,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    marginRight: 10,
+  },
+  subgroupIconWrapLevel3: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
   },
   subgroupInfo: {
     flex: 1,
@@ -983,17 +2201,27 @@ const styles = StyleSheet.create({
     color: Colors.text,
     flexShrink: 1,
   },
+  subgroupNameLevel3: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
   subgroupSublabel: {
     fontSize: 11,
     color: Colors.textTertiary,
     marginTop: 2,
     lineHeight: 15,
   },
+  subgroupCodeLevel3: {
+    fontSize: 9,
+  },
   subgroupCost: {
     fontSize: 14,
     fontWeight: '700' as const,
     color: Colors.primary,
     fontVariant: ['tabular-nums'] as any,
+  },
+  subgroupChildren: {
+    paddingLeft: 12,
   },
   constructionSubtotalCard: {
     marginHorizontal: 16,
