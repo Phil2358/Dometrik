@@ -8,6 +8,7 @@ export interface UserModeConfig {
   description: string;
   breakdownDisplayType: BreakdownDisplayType;
   showLandPlotModule: boolean;
+  includeGroup100InDisplayedTotals: boolean;
   supportsDinCodes: boolean;
   supportsDinStructure: boolean;
   supportsDeveloperSummary: boolean;
@@ -20,6 +21,7 @@ export const USER_MODE_CONFIGS: Record<UserMode, UserModeConfig> = {
     description: 'Simple cost breakdown in clear everyday language.',
     breakdownDisplayType: 'private',
     showLandPlotModule: false,
+    includeGroup100InDisplayedTotals: false,
     supportsDinCodes: false,
     supportsDinStructure: false,
     supportsDeveloperSummary: false,
@@ -30,6 +32,7 @@ export const USER_MODE_CONFIGS: Record<UserMode, UserModeConfig> = {
     description: 'Practical execution view with more detail and optional DIN drill-down.',
     breakdownDisplayType: 'pro',
     showLandPlotModule: false,
+    includeGroup100InDisplayedTotals: false,
     supportsDinCodes: true,
     supportsDinStructure: true,
     supportsDeveloperSummary: false,
@@ -40,6 +43,7 @@ export const USER_MODE_CONFIGS: Record<UserMode, UserModeConfig> = {
     description: 'Feasibility-focused view with risk, value, and soft-cost perspective.',
     breakdownDisplayType: 'developer',
     showLandPlotModule: true,
+    includeGroup100InDisplayedTotals: true,
     supportsDinCodes: true,
     supportsDinStructure: true,
     supportsDeveloperSummary: true,

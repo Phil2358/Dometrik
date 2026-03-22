@@ -23,8 +23,10 @@ import {
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useEstimate } from '@/contexts/EstimateContext';
+import { useUserMode } from '@/contexts/UserModeContext';
 import { computeScenarioCosts, formatBasementSummary } from '@/utils/computeScenarioCosts';
 import type { ComputedScenarioCosts } from '@/utils/computeScenarioCosts';
+import { getDin276Group, getDin276Subgroup } from '@/constants/din276Groups';
 import { formatEuro } from '@/constants/construction';
 import { formatNumber, formatPercent } from '@/utils/format';
 
@@ -167,40 +169,125 @@ function getGroupedCostRows(scenarios: ComputedScenarioCosts[]): CostGroupRow[] 
   return rows;
 }
 
-function getLargestCostDriver(
-  scenarios: ComputedScenarioCosts[]
-): { label: string; diff: number } | null {
+interface CompareDriverItem {
+  code: string;
+  label: string;
+  groupCode: string;
+  values: number[];
+  averageCost: number;
+}
 
-  if (scenarios.length < 2) return null;
+function getSpecificCompareDrivers(scenarios: ComputedScenarioCosts[]): CompareDriverItem[] {
+  if (scenarios.length === 0) return [];
 
-  const categories: { label: string; getter: (s: ComputedScenarioCosts) => number }[] = [
-    { label: 'Land & acquisition', getter: (s) => s.group100Total },
-    { label: 'Building construction', getter: (s) => s.kg300Cost },
-    { label: 'Technical systems', getter: (s) => s.kg400Total },
-    { label: 'Built-in equipment', getter: (s) => s.kg600Cost },
-    { label: 'Basement contribution', getter: (s) => s.basementBaseCost },
-    { label: 'Site preparation', getter: (s) => s.kg200Total },
-    { label: 'External works', getter: (s) => s.kg500Total },
-    { label: 'Planning & fees', getter: (s) => s.permitDesignFee },
-    { label: 'Contractor overhead', getter: (s) => s.contractorCost },
-    { label: 'Construction contingency', getter: (s) => s.contingencyCost },
-    { label: 'e-EFKA worker insurance', getter: (s) => s.efkaInsuranceAmount },
-  ];
+  const firstScenario = scenarios[0];
+  const candidates: CompareDriverItem[] = [];
 
-  let maxDiff = 0;
-  let maxLabel = '';
+  for (const group of firstScenario.breakdownGroups) {
+    for (const subgroup of group.subgroups) {
+      const visibleChildren = subgroup.children?.filter((child) => child.visible && child.cost > 0) ?? [];
 
-  for (const cat of categories) {
-    const vals = scenarios.map((s) => cat.getter(s));
-    const diff = Math.max(...vals) - Math.min(...vals);
+      if (visibleChildren.length > 0) {
+        for (const child of visibleChildren) {
+          const values = scenarios.map((scenario) => {
+            const scenarioGroup = scenario.breakdownGroups.find((entry) => entry.code === group.code);
+            const scenarioSubgroup = scenarioGroup?.subgroups.find((entry) => entry.code === subgroup.code);
+            return scenarioSubgroup?.children?.find((entry) => entry.code === child.code)?.cost ?? 0;
+          });
 
-    if (diff > maxDiff) {
-      maxDiff = diff;
-      maxLabel = cat.label;
+          candidates.push({
+            code: child.code,
+            label: getDin276Subgroup(child.code)?.label ?? child.code,
+            groupCode: group.code,
+            values,
+            averageCost: values.reduce((sum, value) => sum + value, 0) / values.length,
+          });
+        }
+      } else if (subgroup.visible && subgroup.cost > 0) {
+        const values = scenarios.map((scenario) => {
+          const scenarioGroup = scenario.breakdownGroups.find((entry) => entry.code === group.code);
+          return scenarioGroup?.subgroups.find((entry) => entry.code === subgroup.code)?.cost ?? 0;
+        });
+
+        candidates.push({
+          code: subgroup.code,
+          label: getDin276Subgroup(subgroup.code)?.label ?? subgroup.code,
+          groupCode: group.code,
+          values,
+          averageCost: values.reduce((sum, value) => sum + value, 0) / values.length,
+        });
+      }
     }
   }
 
-  return maxDiff > 0 ? { label: maxLabel, diff: maxDiff } : null;
+  return candidates.filter((item) => item.averageCost > 0);
+}
+
+function getTopConstructionCostDrivers(scenarios: ComputedScenarioCosts[]): CompareDriverItem[] {
+  return getSpecificCompareDrivers(scenarios)
+    .filter((item) => item.groupCode !== '100' && item.groupCode !== '700')
+    .sort((a, b) => b.averageCost - a.averageCost)
+    .slice(0, 3);
+}
+
+function getLargestBuildCostDriverExcludingLand(scenarios: ComputedScenarioCosts[]): CompareDriverItem | null {
+  return getSpecificCompareDrivers(scenarios)
+    .filter((item) => item.groupCode !== '100' && item.groupCode !== '700')
+    .sort((a, b) => b.averageCost - a.averageCost)[0] ?? null;
+}
+
+function getAverageLandShareOfTotal(scenarios: ComputedScenarioCosts[]): number {
+  if (scenarios.length === 0) return 0;
+
+  const averageLand = scenarios.reduce((sum, scenario) => sum + scenario.group100Total, 0) / scenarios.length;
+  const averageTotal = scenarios.reduce((sum, scenario) => sum + scenario.finalTotal, 0) / scenarios.length;
+
+  return averageTotal > 0 ? (averageLand / averageTotal) * 100 : 0;
+}
+
+function ProCostDriversCard({ items }: { items: CompareDriverItem[] }) {
+  return (
+    <View style={styles.costDriverCard}>
+      <View style={styles.costDriverHeader}>
+        <TrendingUp size={14} color={Colors.white} />
+        <Text style={styles.costDriverTitle}>Top 3 Construction Cost Drivers</Text>
+      </View>
+      <View style={styles.costDriverList}>
+        {items.map((item, index) => (
+          <View key={item.code} style={[styles.costDriverListRow, index > 0 ? styles.costDriverListDivider : null]}>
+            <Text style={styles.costDriverRank}>{index + 1}</Text>
+            <Text style={styles.costDriverListLabel}>{item.label}</Text>
+            <Text style={styles.costDriverListValue}>{formatEuro(item.averageCost)}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function DeveloperCostDriverCard({
+  item,
+  landShare,
+}: {
+  item: CompareDriverItem;
+  landShare: number;
+}) {
+  return (
+    <View style={styles.costDriverCard}>
+      <View style={styles.costDriverHeader}>
+        <TrendingUp size={14} color={Colors.white} />
+        <Text style={styles.costDriverTitle}>Largest Build Cost Driver (Excluding Land)</Text>
+      </View>
+      <View style={styles.costDriverBody}>
+        <Text style={styles.costDriverLabel}>{item.label}</Text>
+        <Text style={styles.costDriverValue}>{formatEuro(item.averageCost)}</Text>
+      </View>
+      <View style={styles.costDriverMetaRow}>
+        <Text style={styles.costDriverMetaLabel}>Land Share of Total</Text>
+        <Text style={styles.costDriverMetaValue}>{formatPercent(landShare, 1)}</Text>
+      </View>
+    </View>
+  );
 }
 
 function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onUseScenario }: {
@@ -212,11 +299,12 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
   onUseScenario: () => void;
 }) {
   const color = COMPARE_COLORS[index];
+  const totalExVat = scenario.preVatTotal;
   const totalWithVat = scenario.finalTotal;
-  const cheapestWithVat = cheapestTotal;
+  const cheapestExVat = cheapestTotal;
 
-  const diffFromCheapest = totalWithVat - cheapestWithVat;
-  const diffPercent = cheapestWithVat > 0 ? Math.round((diffFromCheapest / cheapestWithVat) * 100) : 0;
+  const diffFromCheapest = totalExVat - cheapestExVat;
+  const diffPercent = cheapestExVat > 0 ? Math.round((diffFromCheapest / cheapestExVat) * 100) : 0;
 
   return (
     <View style={summaryStyles.card}>
@@ -239,10 +327,9 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
         </View>
 
         <View style={summaryStyles.priceBlock}>
-          <Text style={summaryStyles.totalCost}>{formatEuro(totalWithVat)}</Text>
-          <Text style={summaryStyles.vatLabel}> incl. VAT</Text>
+          <Text style={summaryStyles.totalCost}>{formatEuro(totalExVat)}</Text>
         </View>
-        <Text style={summaryStyles.subtotalLabel}>{formatEuro(scenario.preVatTotal)} excl. VAT</Text>
+        <Text style={summaryStyles.subtotalLabel}>incl. VAT {formatEuro(totalWithVat)}</Text>
 
         {rank === 'cheapest' && (
           <Text style={summaryStyles.diffText}>baseline</Text>
@@ -273,7 +360,7 @@ function ScenarioSummaryCard({ scenario, index, rank, cheapestTotal, onEdit, onU
 }
 
 function CostBarChart({ scenarios }: { scenarios: ComputedScenarioCosts[] }) {
-const maxCost = Math.max(...scenarios.map(s => s.finalTotal));
+const maxCost = Math.max(...scenarios.map(s => s.preVatTotal));
   const scaleSteps = useMemo(() => {
     const step = Math.ceil(maxCost / 4 / 50000) * 50000;
     const steps: number[] = [];
@@ -292,8 +379,8 @@ const maxCost = Math.max(...scenarios.map(s => s.finalTotal));
         ))}
       </View>
       {scenarios.map((s, i) => {
-        const totalWithVat = s.finalTotal;
-        const pct = (totalWithVat / maxCost) * 100;
+        const totalExVat = s.preVatTotal;
+        const pct = (totalExVat / maxCost) * 100;
         return (
           <View key={i} style={chartStyles.barRow}>
             <View style={chartStyles.barLabelWrap}>
@@ -303,17 +390,18 @@ const maxCost = Math.max(...scenarios.map(s => s.finalTotal));
             <View style={chartStyles.barTrack}>
               <View style={[chartStyles.barFill, { width: `${Math.min(pct, 100)}%`, backgroundColor: COMPARE_COLORS[i] }]} />
             </View>
-            <Text style={chartStyles.barValue}>{formatEuro(totalWithVat)}</Text>
+            <Text style={chartStyles.barValue}>{formatEuro(totalExVat)}</Text>
+            <Text style={chartStyles.barSubvalue}>incl. VAT {formatEuro(s.finalTotal)}</Text>
           </View>
         );
       })}
-      <Text style={chartStyles.vatNote}>Amounts include scenario VAT</Text>
     </View>
   );
 }
 
 export default function CompareScreen() {
   const { scenarios, getAllScenarioConfigs, switchScenario } = useEstimate();
+  const { userMode } = useUserMode();
   const router = useRouter();
   const [showAllParams, setShowAllParams] = useState<boolean>(false);
 
@@ -336,14 +424,10 @@ export default function CompareScreen() {
 
   const paramRows = useMemo(() => computed.length >= 2 ? getParameterRows(computed) : [], [computed]);
   const groupedCostRows = useMemo(() => computed.length >= 2 ? getGroupedCostRows(computed) : [], [computed]);
-  const totalValues = useMemo(() => computed.map((s) => s.finalTotal), [computed]);
+  const totalValues = useMemo(() => computed.map((s) => s.preVatTotal), [computed]);
   const minTotal = useMemo(() => totalValues.length > 0 ? Math.min(...totalValues) : 0, [totalValues]);
-  const maxTotal = useMemo(() => totalValues.length > 0 ? Math.max(...totalValues) : 0, [totalValues]);
-  const totalDiff = maxTotal - minTotal;
-  const totalDiffWithVat = totalDiff;
-
   const sortedByTotal = useMemo(
-    () => [...computed].sort((a, b) => a.finalTotal - b.finalTotal),
+    () => [...computed].sort((a, b) => a.preVatTotal - b.preVatTotal),
     [computed]
   );
   const cheapestName = sortedByTotal.length > 0 ? sortedByTotal[0].name : '';
@@ -352,21 +436,9 @@ export default function CompareScreen() {
   const changedParams = useMemo(() => paramRows.filter((r) => r.isDifferent), [paramRows]);
   const displayedParams = showAllParams ? paramRows : changedParams;
 
-  const costDriver = useMemo(() => getLargestCostDriver(computed), [computed]);
-
-  const incrementalDiffs = useMemo(() => {
-    if (sortedByTotal.length < 2) return [];
-    const diffs: { from: string; to: string; diff: number }[] = [];
-    for (let i = 0; i < sortedByTotal.length - 1; i++) {
-      const diff = sortedByTotal[i + 1].finalTotal - sortedByTotal[i].finalTotal;
-      diffs.push({
-        from: sortedByTotal[i].name,
-        to: sortedByTotal[i + 1].name,
-        diff,
-      });
-    }
-    return diffs;
-  }, [sortedByTotal]);
+  const topConstructionDrivers = useMemo(() => getTopConstructionCostDrivers(computed), [computed]);
+  const largestBuildCostDriver = useMemo(() => getLargestBuildCostDriverExcludingLand(computed), [computed]);
+  const averageLandShare = useMemo(() => getAverageLandShareOfTotal(computed), [computed]);
 
   if (scenarios.length < 2) {
     return (
@@ -412,47 +484,13 @@ export default function CompareScreen() {
         );
       })}
 
-      {totalDiff > 0 && (
-        <View style={styles.diffCard}>
-          <View style={styles.diffHeader}>
-            <TrendingUp size={16} color={Colors.accent} />
-            <Text style={styles.diffHeaderText}>Cost Difference</Text>
-          </View>
-          <View style={styles.diffDivider} />
-          <View style={styles.diffMainRow}>
-            <View style={styles.diffExplanation}>
-              <Text style={styles.diffFromTo}>Cheapest → Most expensive</Text>
-              <Text style={styles.diffNames}>{cheapestName} → {highestName}</Text>
-            </View>
-            <Text style={styles.diffMainValue}>+{formatEuro(totalDiffWithVat)}</Text>
-          </View>
-          {incrementalDiffs.length > 1 && (
-            <>
-              <View style={styles.diffDivider} />
-              {incrementalDiffs.map((d, i) => (
-                <View key={i} style={styles.diffIncrementalRow}>
-                  <Text style={styles.diffIncrementalLabel}>{d.from} → {d.to}</Text>
-                  <Text style={styles.diffIncrementalValue}>+{formatEuro(d.diff)}</Text>
-                </View>
-              ))}
-            </>
-          )}
-          <Text style={styles.diffVatNote}>All amounts include scenario VAT</Text>
-        </View>
-      )}
+      {userMode === 'pro' && topConstructionDrivers.length > 0 ? (
+        <ProCostDriversCard items={topConstructionDrivers} />
+      ) : null}
 
-      {costDriver && (
-        <View style={styles.costDriverCard}>
-          <View style={styles.costDriverHeader}>
-            <TrendingUp size={14} color={Colors.white} />
-            <Text style={styles.costDriverTitle}>Largest Cost Driver</Text>
-          </View>
-          <View style={styles.costDriverBody}>
-            <Text style={styles.costDriverLabel}>{costDriver.label}</Text>
-            <Text style={styles.costDriverValue}>+{formatEuro(costDriver.diff)}</Text>
-          </View>
-        </View>
-      )}
+      {userMode === 'developer' && largestBuildCostDriver ? (
+        <DeveloperCostDriverCard item={largestBuildCostDriver} landShare={averageLandShare} />
+      ) : null}
 
       <CostBarChart scenarios={computed} />
 
@@ -586,7 +624,7 @@ export default function CompareScreen() {
 
           <View style={[styles.tableRow, styles.tableSubtotalRow]}>
             <View style={styles.tableLabelCellWide}>
-              <Text style={styles.tableSubtotalLabel}>Project Subtotal (excl. VAT)</Text>
+              <Text style={styles.tableSubtotalLabel}>Total Project Cost (excl. VAT)</Text>
             </View>
             {computed.map((s, i) => (
               <View key={i} style={styles.tableValueCell}>
@@ -620,14 +658,6 @@ export default function CompareScreen() {
           </View>
         </View>
       </ScrollView>
-
-      <View style={styles.vatInfoCard}>
-        <Info size={14} color={Colors.primary} />
-        <Text style={styles.vatInfoText}>
-          VAT is applied to each scenario's pre-VAT project subtotal and shown separately from the base cost categories.
-        </Text>
-      </View>
-
       <View style={styles.bottomSpacer} />
     </ScrollView>
   );
@@ -819,11 +849,11 @@ const chartStyles = StyleSheet.create({
     marginTop: 2,
     ...tabularFont,
   },
-  vatNote: {
-    fontSize: 10,
-    color: Colors.textTertiary,
-    textAlign: 'right' as const,
-    marginTop: 2,
+  barSubvalue: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 1,
+    ...tabularFont,
   },
 });
 
@@ -881,86 +911,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 3,
   },
-  diffCard: {
-    marginHorizontal: 16,
-    marginTop: 14,
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  diffHeader: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-  },
-  diffHeaderText: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.text,
-  },
-  diffDivider: {
-    height: 1,
-    backgroundColor: Colors.borderLight,
-    marginVertical: 10,
-  },
-  diffMainRow: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-  },
-  diffExplanation: {
-    flex: 1,
-    marginRight: 12,
-  },
-  diffFromTo: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.textTertiary,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.3,
-  },
-  diffNames: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  diffMainValue: {
-    fontSize: 22,
-    fontWeight: '800' as const,
-    color: Colors.accent,
-    ...tabularFont,
-  },
-  diffIncrementalRow: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    paddingVertical: 4,
-  },
-  diffIncrementalLabel: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  diffIncrementalValue: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.accent,
-    ...tabularFont,
-  },
-  diffVatNote: {
-    fontSize: 10,
-    color: Colors.textTertiary,
-    marginTop: 8,
-    textAlign: 'right' as const,
-  },
   costDriverCard: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -999,6 +949,62 @@ const styles = StyleSheet.create({
   },
   costDriverValue: {
     fontSize: 18,
+    fontWeight: '800' as const,
+    color: '#FFD699',
+    ...tabularFont,
+  },
+  costDriverList: {
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+  },
+  costDriverListRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    paddingVertical: 10,
+  },
+  costDriverListDivider: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  costDriverRank: {
+    width: 18,
+    fontSize: 12,
+    fontWeight: '800' as const,
+    color: 'rgba(255,255,255,0.72)',
+    textAlign: 'center' as const,
+    ...tabularFont,
+  },
+  costDriverListLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.heroText,
+    lineHeight: 20,
+  },
+  costDriverListValue: {
+    fontSize: 15,
+    fontWeight: '800' as const,
+    color: '#FFD699',
+    ...tabularFont,
+  },
+  costDriverMetaRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  costDriverMetaLabel: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: 'rgba(255,255,255,0.74)',
+  },
+  costDriverMetaValue: {
+    fontSize: 13,
     fontWeight: '800' as const,
     color: '#FFD699',
     ...tabularFont,
@@ -1225,22 +1231,6 @@ const styles = StyleSheet.create({
     fontWeight: '800' as const,
     color: Colors.heroText,
     ...tabularFont,
-  },
-  vatInfoCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    flexDirection: 'row' as const,
-    gap: 8,
-    backgroundColor: Colors.card,
-    borderRadius: 10,
-    padding: 12,
-    alignItems: 'flex-start' as const,
-  },
-  vatInfoText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    lineHeight: 16,
-    flex: 1,
   },
   bottomSpacer: {
     height: 20,

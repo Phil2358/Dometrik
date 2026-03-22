@@ -701,13 +701,13 @@ export default function EstimateScreen() {
   const [showUtilityInfo, setShowUtilityInfo] = React.useState<boolean>(false);
   const [showGroundwaterInfo, setShowGroundwaterInfo] = React.useState<boolean>(false);
   const [showAccessibilityInfo, setShowAccessibilityInfo] = React.useState<boolean>(false);
-  const [showLandPlotGroup, setShowLandPlotGroup] = React.useState<boolean>(true);
-  const [showBuildingInteriorGroup, setShowBuildingInteriorGroup] = React.useState<boolean>(true);
-  const [showPlotExternalGroup, setShowPlotExternalGroup] = React.useState<boolean>(true);
-  const [showBenchmarkGroup, setShowBenchmarkGroup] = React.useState<boolean>(true);
-  const [showOutdoorAdditionsGroup, setShowOutdoorAdditionsGroup] = React.useState<boolean>(true);
-  const [showSystemsUpgradesGroup, setShowSystemsUpgradesGroup] = React.useState<boolean>(true);
-  const [showFeesMarginsGroup, setShowFeesMarginsGroup] = React.useState<boolean>(true);
+  const [showLandPlotGroup, setShowLandPlotGroup] = React.useState<boolean>(false);
+  const [showBuildingInteriorGroup, setShowBuildingInteriorGroup] = React.useState<boolean>(false);
+  const [showPlotExternalGroup, setShowPlotExternalGroup] = React.useState<boolean>(false);
+  const [showBenchmarkGroup, setShowBenchmarkGroup] = React.useState<boolean>(false);
+  const [showOutdoorAdditionsGroup, setShowOutdoorAdditionsGroup] = React.useState<boolean>(false);
+  const [showSystemsUpgradesGroup, setShowSystemsUpgradesGroup] = React.useState<boolean>(false);
+  const [showFeesMarginsGroup, setShowFeesMarginsGroup] = React.useState<boolean>(false);
   const showLandPlotModule =
     userMode === null ? true : USER_MODE_CONFIGS[userMode].showLandPlotModule;
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useCallback, useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -26,8 +26,11 @@ function AppContent() {
   const [splashDone, setSplashDone] = useState(false);
   const [introDone, setIntroDone] = useState(false);
   const [dataDone, setDataDone] = useState(false);
+  const [hasForcedInitialEstimateRoute, setHasForcedInitialEstimateRoute] = useState(false);
   const { userMode, isLoading, selectMode } = useUserMode();
   const prevUserModeRef = React.useRef<string | null | undefined>(undefined);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const handleSplashFinish = useCallback(() => {
     console.log('[App] Splash animation finished');
@@ -36,8 +39,9 @@ function AppContent() {
 
   const handleIntroStart = useCallback(() => {
     console.log('[App] Intro screen dismissed');
+    router.replace('/(tabs)/(estimate)');
     setIntroDone(true);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -49,18 +53,41 @@ function AppContent() {
   useEffect(() => {
     if (prevUserModeRef.current !== undefined && prevUserModeRef.current !== null && userMode === null && dataDone) {
       console.log('[App] Reset detected, restarting onboarding flow');
+      router.replace('/(tabs)/(estimate)');
       setSplashDone(false);
       setIntroDone(false);
+      setHasForcedInitialEstimateRoute(false);
     }
     prevUserModeRef.current = userMode;
-  }, [userMode, dataDone]);
+  }, [userMode, dataDone, router]);
 
   const handleModeSelect = useCallback(async (mode: UserMode) => {
     await selectMode(mode);
-  }, [selectMode]);
+    router.replace('/(tabs)/(estimate)');
+  }, [selectMode, router]);
 
   const showSplashIntro = !introDone;
   const showModeSelection = splashDone && introDone && dataDone && !userMode;
+
+  useEffect(() => {
+    if (!dataDone || !userMode || showSplashIntro || showModeSelection || hasForcedInitialEstimateRoute) {
+      return;
+    }
+
+    if (pathname !== '/(tabs)/(estimate)') {
+      router.replace('/(tabs)/(estimate)');
+    }
+
+    setHasForcedInitialEstimateRoute(true);
+  }, [
+    dataDone,
+    hasForcedInitialEstimateRoute,
+    pathname,
+    router,
+    showModeSelection,
+    showSplashIntro,
+    userMode,
+  ]);
 
   return (
     <>

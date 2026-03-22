@@ -6,6 +6,7 @@ import Colors from '@/constants/colors';
 export default function TabLayout() {
   return (
     <Tabs
+      initialRouteName="(estimate)"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.accent,

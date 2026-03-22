@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Home, HardHat, LineChart, ChevronRight, RotateCcw } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useUserMode, UserMode } from '@/contexts/UserModeContext';
@@ -33,6 +34,7 @@ const MODE_LABELS: Record<UserMode, { title: string; icon: React.ReactNode }> = 
 };
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { userMode, selectMode, clearMode } = useUserMode();
   const { resetAllData } = useEstimate();
 
@@ -52,12 +54,13 @@ export default function SettingsScreen() {
           onPress: async () => {
             await resetAllData();
             await clearMode();
+            router.replace('/(tabs)/(estimate)');
             console.log('[Settings] Full app reset completed');
           },
         },
       ]
     );
-  }, [resetAllData, clearMode]);
+  }, [resetAllData, clearMode, router]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

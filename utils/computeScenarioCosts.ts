@@ -1,4 +1,5 @@
 import { calculateProjectCost, type ProjectCalculationInput } from "../calculator-engine/calculateProjectCost"
+import type { ProjectBreakdownGroup } from "../calculator-engine/buildProjectCostBreakdown"
 import {
   BASEMENT_TYPE_NAMES,
   DEFAULT_QUALITY_ID,
@@ -72,6 +73,7 @@ export interface ComputedScenarioCosts {
   contingencyCost: number
   efkaInsuranceAmount: number
   vatPercent: number
+  breakdownGroups: ProjectBreakdownGroup[]
 }
 
 export function formatBasementSummary(
@@ -188,5 +190,6 @@ export function computeScenarioCosts(config: CompareScenarioInput): ComputedScen
     contingencyCost: result.contingencyCost,
     efkaInsuranceAmount: result.efkaInsuranceAmount,
     vatPercent: result.vatPercent,
+    breakdownGroups: result.breakdownGroups,
   }
 }

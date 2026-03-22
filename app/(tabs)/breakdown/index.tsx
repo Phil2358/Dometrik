@@ -64,6 +64,7 @@ import type { ProjectBreakdownGroup, ProjectBreakdownSubgroup } from '@/calculat
 import { generateClientReportHtml } from '@/utils/generateClientReportHtml';
 import type { ClientReportData } from '@/utils/generateClientReportHtml';
 import { formatBasementSummary } from '@/utils/computeScenarioCosts';
+import { getDisplayedTotalsForMode } from '@/utils/displayTotals';
 import { formatCurrency, formatDecimal, formatNumber, formatPercent } from '@/utils/format';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -90,7 +91,6 @@ interface DinGroup {
   subtotal: number;
   percentOfTotal: number;
   subgroups: SubgroupItem[];
-  accentColor: string;
 }
 
 interface PrivateBreakdownChildItem {
@@ -104,8 +104,6 @@ interface PrivateBreakdownItem {
   label: string;
   totalCost: number;
   sourceCodes: string[];
-  children: PrivateBreakdownChildItem[];
-  isExpandable: boolean;
 }
 
 interface ProBreakdownDinChildItem {
@@ -156,16 +154,6 @@ const MULTIPLY_SYMBOL = '\u00D7';
 const MIDDLE_DOT = '\u00B7';
 const EN_DASH = '\u2013';
 const SQUARE_METER_UNIT = 'm\u00B2';
-
-const GROUP_ACCENT_COLORS: Record<string, string> = {
-  '100': '#7A5C3E',
-  '200': '#8B6914',
-  '300': '#1B3A4B',
-  '400': '#2D8B55',
-  '500': '#6B8E23',
-  '600': '#8B5CF6',
-  '700': '#D4782F',
-};
 
 const SUBGROUP_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
   '110': LandPlot,
@@ -335,8 +323,8 @@ function getSubgroupSublabel(
   }
 }
 
-function CollapsibleGroup({ group }: { group: DinGroup }) {
-  const [expanded, setExpanded] = useState<boolean>(true);
+function CollapsibleGroup({ group, defaultClosed = false }: { group: DinGroup; defaultClosed?: boolean }) {
+  const [expanded, setExpanded] = useState<boolean>(!defaultClosed);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const toggle = useCallback(() => {
@@ -359,7 +347,6 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
         activeOpacity={0.7}
         testID={`group-header-${group.code}`}
       >
-        <View style={[styles.groupAccentBar, { backgroundColor: group.accentColor }]} />
         <View style={styles.groupHeaderContent}>
           <View style={styles.groupHeaderLeft}>
             <Text style={styles.groupCode}>{group.code}</Text>
@@ -385,7 +372,6 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
             <BreakdownTreeRow
               key={item.code}
               item={item}
-              accentColor={group.accentColor}
               expandedRows={expandedRows}
               onToggle={toggleRow}
             />
@@ -398,12 +384,10 @@ function CollapsibleGroup({ group }: { group: DinGroup }) {
 
 function BreakdownTreeRow({
   item,
-  accentColor,
   expandedRows,
   onToggle,
 }: {
   item: SubgroupItem;
-  accentColor: string;
   expandedRows: Record<string, boolean>;
   onToggle: (code: string) => void;
 }) {
@@ -445,7 +429,7 @@ function BreakdownTreeRow({
               item.level === 3 ? styles.subgroupIconWrapLevel3 : null,
             ]}
           >
-            <item.icon size={item.level === 3 ? 14 : 15} color={accentColor} />
+            <item.icon size={item.level === 3 ? 14 : 15} color={Colors.textTertiary} />
           </View>
         </View>
         <View style={styles.subgroupInfo}>
@@ -468,7 +452,6 @@ function BreakdownTreeRow({
             <BreakdownTreeRow
               key={child.code}
               item={child}
-              accentColor={accentColor}
               expandedRows={expandedRows}
               onToggle={onToggle}
             />
@@ -484,50 +467,17 @@ function PrivateBreakdownCategory({
 }: {
   item: PrivateBreakdownItem;
 }) {
-  const [expanded, setExpanded] = useState<boolean>(false);
-
-  const toggle = useCallback(() => {
-    if (!item.isExpandable) return;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded((prev) => !prev);
-  }, [item.isExpandable]);
-
   return (
     <View style={styles.privateCategoryContainer}>
-      <TouchableOpacity
+      <View
         style={styles.privateCategoryHeader}
-        onPress={toggle}
-        activeOpacity={item.isExpandable ? 0.7 : 1}
-        disabled={!item.isExpandable}
         testID={`private-category-${item.id}`}
       >
         <View style={styles.privateCategoryInfo}>
-          <View style={styles.privateCategoryTitleRow}>
-            {item.isExpandable ? (
-              expanded ? (
-                <ChevronDown size={16} color={Colors.textTertiary} />
-              ) : (
-                <ChevronRight size={16} color={Colors.textTertiary} />
-              )
-            ) : (
-              <View style={styles.privateCategoryChevronPlaceholder} />
-            )}
-            <Text style={styles.privateCategoryTitle}>{item.label}</Text>
-          </View>
+          <Text style={styles.privateCategoryTitle}>{item.label}</Text>
         </View>
         <Text style={styles.privateCategoryCost}>{formatCurrency(item.totalCost)}</Text>
-      </TouchableOpacity>
-
-      {item.isExpandable && expanded ? (
-        <View style={styles.privateCategoryChildren}>
-          {item.children.map((child) => (
-            <View key={child.id} style={styles.privateCategoryChildRow}>
-              <Text style={styles.privateCategoryChildLabel}>{child.label}</Text>
-              <Text style={styles.privateCategoryChildCost}>{formatCurrency(child.cost)}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+      </View>
     </View>
   );
 }
@@ -603,69 +553,185 @@ function getBreakdownMaps(breakdownGroups: ProjectBreakdownGroup[]) {
   const groupMap = new Map(breakdownGroups.map((group) => [group.code, group]));
   const subgroupMap = new Map<string, ProjectBreakdownSubgroup>();
 
+  const registerSubgroup = (subgroup: ProjectBreakdownSubgroup) => {
+    subgroupMap.set(subgroup.code, subgroup);
+    subgroup.children?.forEach(registerSubgroup);
+  };
+
   for (const group of breakdownGroups) {
     for (const subgroup of group.subgroups) {
-      subgroupMap.set(subgroup.code, subgroup);
+      registerSubgroup(subgroup);
     }
   }
 
   return { groupMap, subgroupMap };
 }
 
-const PRIVATE_BREAKDOWN_CATEGORY_DEFINITIONS: Array<{ id: string; label: string; sourceCodes: string[] }> = [
-  { id: 'site-preparation', label: 'Site & Preparation', sourceCodes: ['100', '200'] },
-  { id: 'earthworks-ground', label: 'Earthworks & Ground Preparation', sourceCodes: ['310', '510'] },
-  { id: 'structure-shell', label: 'Building Structure & Shell', sourceCodes: ['320', '330', '360', '548'] },
-  { id: 'interior-finishes', label: 'Interior Build & Finishes', sourceCodes: ['340', '350'] },
-  { id: 'bath-kitchen-equipment', label: 'Bathrooms, Kitchen & Home Equipment', sourceCodes: ['410', '470'] },
-  { id: 'heating-cooling-electrical', label: 'Heating, Cooling & Electrical', sourceCodes: ['420', '430', '440'] },
-  { id: 'smart-security-connectivity', label: 'Smart Home, Security & Connectivity', sourceCodes: ['450', '480'] },
-  { id: 'outdoor-landscaping', label: 'Outdoor Works & Landscaping', sourceCodes: ['520', '530', '540', '560', '570'] },
-  { id: 'pool-equipment-extras', label: 'Pool Equipment & Outdoor Extras', sourceCodes: ['550'] },
-  { id: 'fees-permits', label: 'Fees & Permits', sourceCodes: ['700'] },
-];
-
 function mapBreakdownForPrivateUser(breakdownGroups: ProjectBreakdownGroup[]): PrivateBreakdownItem[] {
   const { groupMap, subgroupMap } = getBreakdownMaps(breakdownGroups);
 
-  const getSourceItem = (code: string): PrivateBreakdownChildItem | null => {
+  const getCostByCode = (code: string): number => {
     const group = groupMap.get(code);
-    if (group) {
-      if (group.subtotal <= 0) return null;
-      return {
-        id: code,
-        label: getDin276Group(code)?.label ?? `KG ${code}`,
-        cost: group.subtotal,
-      };
-    }
-
-    const subgroup = subgroupMap.get(code);
-    if (!subgroup || subgroup.cost <= 0) return null;
-
-    return {
-      id: code,
-      label: getDin276Subgroup(code)?.label ?? code,
-      cost: subgroup.cost,
-    };
+    if (group) return group.subtotal;
+    return subgroupMap.get(code)?.cost ?? 0;
   };
 
-  return PRIVATE_BREAKDOWN_CATEGORY_DEFINITIONS
-    .map((category) => {
-      const children = category.sourceCodes
-        .map((code) => getSourceItem(code))
-        .filter((item): item is PrivateBreakdownChildItem => item !== null);
-      const totalCost = children.reduce((sum, child) => sum + child.cost, 0);
+  const allocateByShare = (code: string, share: number): number => Math.round(getCostByCode(code) * share);
 
-      return {
-        id: category.id,
-        label: category.label,
-        totalCost,
-        sourceCodes: category.sourceCodes,
-        children,
-        isExpandable: children.length > 0,
-      };
-    })
-    .filter((category) => category.totalCost > 0);
+  const privateItems: Array<PrivateBreakdownChildItem & { sourceCodes: string[] }> = [
+    {
+      id: 'site-preparation-utility-connections',
+      label: 'Site Preparation & Utility Connections',
+      cost: getCostByCode('200'),
+      sourceCodes: ['200'],
+    },
+    {
+      id: 'groundworks-excavation',
+      label: 'Groundworks & Excavation',
+      cost: getCostByCode('310') + getCostByCode('510'),
+      sourceCodes: ['310', '510'],
+    },
+    {
+      id: 'concrete-structure',
+      label: 'Concrete Structure',
+      cost:
+        getCostByCode('320')
+        + getCostByCode('331')
+        + getCostByCode('333')
+        + getCostByCode('341')
+        + getCostByCode('343')
+        + getCostByCode('351')
+        + getCostByCode('361')
+        + getCostByCode('548'),
+      sourceCodes: ['320', '331', '333', '341', '343', '351', '361', '548'],
+    },
+    {
+      id: 'masonry-walls',
+      label: 'Masonry Walls',
+      cost: getCostByCode('332') + getCostByCode('342'),
+      sourceCodes: ['332', '342'],
+    },
+    {
+      id: 'windows-glazing',
+      label: 'Windows, Exterior Doors & Glazing',
+      cost: allocateByShare('334', 0.95),
+      sourceCodes: ['334'],
+    },
+    {
+      id: 'marble-sills',
+      label: 'Marble Sills',
+      cost: getCostByCode('334') - allocateByShare('334', 0.95),
+      sourceCodes: ['334'],
+    },
+    {
+      id: 'roof-covering',
+      label: 'Roof Covering',
+      cost: getCostByCode('363'),
+      sourceCodes: ['363'],
+    },
+    {
+      id: 'wall-thermal-insulation',
+      label: 'Thermal Insulation',
+      cost: allocateByShare('335', 0.55),
+      sourceCodes: ['335'],
+    },
+    {
+      id: 'wall-ceiling-finishes',
+      label: 'Wall & Ceiling Finishes',
+      cost:
+        allocateByShare('335', 0.30)
+        + allocateByShare('336', 0.70)
+        + allocateByShare('345', 0.65)
+        + allocateByShare('354', 0.75),
+      sourceCodes: ['335', '336', '345', '354'],
+    },
+    {
+      id: 'paintwork',
+      label: 'Paintwork',
+      cost:
+        getCostByCode('335') - allocateByShare('335', 0.55) - allocateByShare('335', 0.30)
+        + (getCostByCode('336') - allocateByShare('336', 0.70))
+        + (getCostByCode('345') - allocateByShare('345', 0.65))
+        + (getCostByCode('354') - allocateByShare('354', 0.75)),
+      sourceCodes: ['335', '336', '345', '354'],
+    },
+    {
+      id: 'interior-doors',
+      label: 'Interior Doors',
+      cost: getCostByCode('344'),
+      sourceCodes: ['344'],
+    },
+    {
+      id: 'floor-finishes',
+      label: 'Floor Finishes',
+      cost: getCostByCode('353'),
+      sourceCodes: ['353'],
+    },
+    {
+      id: 'plumbing-sanitary',
+      label: 'Plumbing & Sanitary Systems',
+      cost: getCostByCode('411') + getCostByCode('412'),
+      sourceCodes: ['411', '412'],
+    },
+    {
+      id: 'heating-cooling',
+      label: 'Heating & Cooling Systems',
+      cost: getCostByCode('421') + getCostByCode('422') + getCostByCode('423') + getCostByCode('433'),
+      sourceCodes: ['421', '422', '423', '433'],
+    },
+    {
+      id: 'electrical-installations',
+      label: 'Electrical Installations',
+      cost: getCostByCode('442') + getCostByCode('444'),
+      sourceCodes: ['442', '444'],
+    },
+    {
+      id: 'security-automation',
+      label: 'Security and Automation (Smart Home)',
+      cost:
+        getCostByCode('451')
+        + getCostByCode('455')
+        + getCostByCode('456')
+        + getCostByCode('457')
+        + getCostByCode('481')
+        + getCostByCode('482')
+        + getCostByCode('483')
+        + getCostByCode('484')
+        + getCostByCode('485'),
+      sourceCodes: ['451', '455', '456', '457', '481', '482', '483', '484', '485'],
+    },
+    {
+      id: 'built-in-furniture-kitchen',
+      label: 'Built-in Furniture & Kitchen',
+      cost: getCostByCode('610') + getCostByCode('620'),
+      sourceCodes: ['610', '620'],
+    },
+    {
+      id: 'outdoor-landscaping',
+      label: 'Outdoor Areas & Landscaping',
+      cost: getCostByCode('520') + getCostByCode('530') + getCostByCode('540') + getCostByCode('560') + getCostByCode('570'),
+      sourceCodes: ['520', '530', '540', '560', '570'],
+    },
+    {
+      id: 'pool-equipment',
+      label: 'Pool Equipment',
+      cost: getCostByCode('550'),
+      sourceCodes: ['550'],
+    },
+    {
+      id: 'fees-permits',
+      label: 'Fees & Permits',
+      cost: getCostByCode('700'),
+      sourceCodes: ['700'],
+    },
+  ].filter((item) => item.cost > 0);
+
+  return privateItems.map((item) => ({
+    id: item.id,
+    label: item.label,
+    totalCost: item.cost,
+    sourceCodes: item.sourceCodes,
+  }));
 }
 
 function mapBreakdownForProUser(breakdownGroups: ProjectBreakdownGroup[]): ProBreakdownItem[] {
@@ -818,32 +884,54 @@ function mapBreakdownForDeveloperUser(breakdownGroups: ProjectBreakdownGroup[]) 
   const { groupMap, subgroupMap } = getBreakdownMaps(breakdownGroups);
 
   const practicalLabelsByCode: Record<string, string> = {
-    '100': 'Land / acquisition-related cost',
-    '200': 'Preparatory measures / setup / utility preparation',
-    '310': 'Building excavation and ground works',
-    '320': 'Foundations & substructure',
+    '200': 'Site preparation & entry costs',
+    '310': 'Groundworks & excavation',
+    '320': 'Substructure / structural base',
     '510': 'Outdoor earthworks',
     '520': 'Outdoor foundations / substructure',
     '548': 'Pool shell / structural pool works',
-    '330': 'External walls & facade',
-    '360': 'Roof structure & roof build-up',
-    '390': 'Other shell-related works',
-    '340': 'Internal walls & partitions',
-    '350': 'Floors, slabs & ceilings',
-    '410': 'Plumbing & sanitary systems',
-    '420': 'Heat generation, distribution & emitters',
-    '430': 'Ventilation / air-conditioning',
-    '440': 'Electrical installation',
-    '450': 'Communication / security systems',
+    '331': 'Load-bearing external walls',
+    '332': 'Masonry external walls',
+    '333': 'External columns',
+    '334': 'Windows, exterior doors & glazing',
+    '335': 'External-side facade build-up',
+    '336': 'Internal-side facade build-up',
+    '361': 'Roof structures',
+    '363': 'Roof covering',
+    '341': 'Load-bearing internal walls',
+    '342': 'Non-load-bearing internal walls',
+    '343': 'Internal columns',
+    '344': 'Interior doors',
+    '345': 'Internal wall finishes',
+    '351': 'Floor structures',
+    '353': 'Floor finishes',
+    '354': 'Ceiling finishes',
+    '411': 'Wastewater systems',
+    '412': 'Water systems',
+    '421': 'Heat generation',
+    '422': 'Heat distribution',
+    '423': 'Room heating surfaces',
+    '433': 'Air-conditioning systems',
+    '442': 'Self-generated power supply',
+    '444': 'Electrical installation systems',
+    '451': 'Telecommunications',
+    '455': 'Audiovisual / antenna systems',
+    '456': 'Hazard detection & alarm',
+    '457': 'Data transmission networks',
     '470': 'Kitchen installation',
-    '480': 'Automation / smart systems',
-    '550': 'Pool technical systems',
+    '481': 'Automation devices',
+    '482': 'Automation cabinets / centers',
+    '483': 'Automation management',
+    '484': 'Automation cabling / installations',
+    '485': 'Automation data networks',
+    '610': 'Built-in furniture allowance',
+    '620': 'Kitchen & fixed furniture',
+    '550': 'Pool equipment',
     '530': 'Paving / terraces / parking',
-    '540': 'Fences / walls / stairs / canopies',
+    '540': 'Walls / fences / stairs / canopies',
     '560': 'Outdoor fixtures',
     '570': 'Planting / lawn',
-    '580': 'Water features / outdoor extras',
-    '700': 'Soft costs, fees & approvals',
+    '700': 'Fees & permits',
   };
 
   const categoryDefinitions: Array<{
@@ -855,12 +943,20 @@ function mapBreakdownForDeveloperUser(breakdownGroups: ProjectBreakdownGroup[]) 
     items: string[];
   }> = [
     {
-      id: 'land-acquisition-setup',
-      label: 'Land, Acquisition & Setup',
+      id: 'land-cost',
+      label: 'Land Cost',
       investmentTag: 'entry-cost',
       visibilityTag: 'hidden',
       riskTag: 'medium',
-      items: ['100', '200'],
+      items: ['100'],
+    },
+    {
+      id: 'site-preparation-entry-costs',
+      label: 'Site Preparation & Entry Costs',
+      investmentTag: 'entry-cost',
+      visibilityTag: 'hidden',
+      riskTag: 'medium',
+      items: ['200'],
     },
     {
       id: 'ground-structural-base',
@@ -872,35 +968,35 @@ function mapBreakdownForDeveloperUser(breakdownGroups: ProjectBreakdownGroup[]) 
     },
     {
       id: 'envelope-core-shell',
-      label: 'Building Envelope & Core Shell',
+      label: 'Building Shell & Envelope',
       investmentTag: 'core',
       visibilityTag: 'partly-visible',
       riskTag: 'medium',
-      items: ['330', '360'],
+      items: ['331', '332', '333', '334', '335', '336', '361', '363'],
     },
     {
       id: 'interior-base-build',
-      label: 'Interior Base Build',
+      label: 'Interior Build & Finishes',
       investmentTag: 'core',
       visibilityTag: 'visible',
       riskTag: 'medium',
-      items: ['340', '350'],
+      items: ['341', '342', '343', '344', '345', '351', '353', '354'],
     },
     {
       id: 'mep-core-systems',
-      label: 'MEP Core Systems',
+      label: 'Core Building Systems',
       investmentTag: 'core',
       visibilityTag: 'hidden',
       riskTag: 'medium',
-      items: ['410', '420', '430', '440'],
+      items: ['411', '412', '421', '422', '423', '433', '442', '444'],
     },
     {
       id: 'marketable-premium-features',
-      label: 'Marketable Premium Features',
+      label: 'Premium & Buyer-Facing Features',
       investmentTag: 'value-add',
       visibilityTag: 'highly-visible',
       riskTag: 'low',
-      items: ['450', '470', '480', '550'],
+      items: ['451', '455', '456', '457', '470', '481', '482', '483', '484', '485', '610', '620', '550'],
     },
     {
       id: 'external-value-drivers',
@@ -908,7 +1004,7 @@ function mapBreakdownForDeveloperUser(breakdownGroups: ProjectBreakdownGroup[]) 
       investmentTag: 'value-add',
       visibilityTag: 'highly-visible',
       riskTag: 'medium',
-      items: ['530', '540', '560', '570', '580'],
+      items: ['530', '540', '560', '570'],
     },
     {
       id: 'soft-costs-fees-approvals',
@@ -981,7 +1077,7 @@ function mapBreakdownForDeveloperUser(breakdownGroups: ProjectBreakdownGroup[]) 
 
   const totalCostBasis = items.reduce((sum, item) => sum + item.totalCost, 0);
   const hardCostTotal = items
-    .filter((item) => item.id !== 'land-acquisition-setup' && item.id !== 'soft-costs-fees-approvals')
+    .filter((item) => item.id !== 'land-cost' && item.id !== 'soft-costs-fees-approvals')
     .reduce((sum, item) => sum + item.totalCost, 0);
   const softCostTotal = items
     .filter((item) => item.investmentTag === 'soft-cost')
@@ -1121,11 +1217,11 @@ function DeveloperSummaryCard({
   metrics: DeveloperSummaryMetrics;
 }) {
   const summaryItems = [
-    { id: 'hard-cost', label: 'Hard Cost Total', value: formatCurrency(metrics.hardCostTotal) },
-    { id: 'soft-cost', label: 'Soft Cost Total', value: formatCurrency(metrics.softCostTotal) },
+    { id: 'hard-cost', label: 'Hard Cost', value: formatCurrency(metrics.hardCostTotal) },
+    { id: 'soft-cost', label: 'Soft Cost', value: formatCurrency(metrics.softCostTotal) },
     { id: 'risk-share', label: 'Risk-Sensitive Share', value: formatPercent(metrics.riskSensitiveShare, 1) },
     { id: 'visible-share', label: 'Buyer-Visible Share', value: formatPercent(metrics.visibleShare, 1) },
-    { id: 'value-add-share', label: 'Value-Add Share', value: formatPercent(metrics.valueAddShare, 1) },
+    { id: 'value-add-share', label: 'Premium / Value-Add Share', value: formatPercent(metrics.valueAddShare, 1) },
   ];
 
   return (
@@ -1145,49 +1241,17 @@ function DeveloperSummaryCard({
 
 function DeveloperBreakdownCategory({
   item,
-  showDinCodes,
-  showDinStructure,
 }: {
   item: DeveloperBreakdownItem;
-  showDinCodes: boolean;
-  showDinStructure: boolean;
 }) {
-  const [expanded, setExpanded] = useState<boolean>(false);
-  const [expandedChildren, setExpandedChildren] = useState<Record<string, boolean>>({});
-
-  const toggle = useCallback(() => {
-    if (!item.isExpandable) return;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded((prev) => !prev);
-  }, [item.isExpandable]);
-
-  const toggleChild = useCallback((code: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedChildren((prev) => ({ ...prev, [code]: !prev[code] }));
-  }, []);
-
   return (
     <View style={styles.privateCategoryContainer}>
-      <TouchableOpacity
+      <View
         style={styles.privateCategoryHeader}
-        onPress={toggle}
-        activeOpacity={item.isExpandable ? 0.7 : 1}
-        disabled={!item.isExpandable}
         testID={`developer-category-${item.id}`}
       >
         <View style={styles.privateCategoryInfo}>
-          <View style={styles.privateCategoryTitleRow}>
-            {item.isExpandable ? (
-              expanded ? (
-                <ChevronDown size={16} color={Colors.textTertiary} />
-              ) : (
-                <ChevronRight size={16} color={Colors.textTertiary} />
-              )
-            ) : (
-              <View style={styles.privateCategoryChevronPlaceholder} />
-            )}
-            <Text style={styles.privateCategoryTitle}>{item.label}</Text>
-          </View>
+          <Text style={styles.privateCategoryTitle}>{item.label}</Text>
           <View style={styles.developerTagsRow}>
             <Text style={styles.developerTag}>{item.investmentTag}</Text>
             <Text style={styles.developerTag}>{item.visibilityTag}</Text>
@@ -1195,63 +1259,7 @@ function DeveloperBreakdownCategory({
           </View>
         </View>
         <Text style={styles.privateCategoryCost}>{formatCurrency(item.totalCost)}</Text>
-      </TouchableOpacity>
-
-      {item.isExpandable && expanded ? (
-        <View style={styles.privateCategoryChildren}>
-          {item.children.map((child) => {
-            const canExpandDin = showDinStructure && child.isExpandable;
-            const childExpanded = expandedChildren[child.id] ?? false;
-
-            return (
-              <View key={child.id}>
-                <TouchableOpacity
-                  style={styles.proChildRow}
-                  onPress={() => {
-                    if (canExpandDin) toggleChild(child.id);
-                  }}
-                  activeOpacity={canExpandDin ? 0.7 : 1}
-                  disabled={!canExpandDin}
-                  testID={`developer-child-${child.id}`}
-                >
-                  <View style={styles.proChildInfo}>
-                    <View style={styles.privateCategoryTitleRow}>
-                      {canExpandDin ? (
-                        childExpanded ? (
-                          <ChevronDown size={15} color={Colors.textTertiary} />
-                        ) : (
-                          <ChevronRight size={15} color={Colors.textTertiary} />
-                        )
-                      ) : (
-                        <View style={styles.privateCategoryChevronPlaceholder} />
-                      )}
-                      <Text style={styles.proChildLabel}>
-                        {showDinCodes && child.code ? `${child.code} ` : ''}
-                        {child.label}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.privateCategoryChildCost}>{formatCurrency(child.cost)}</Text>
-                </TouchableOpacity>
-
-                {canExpandDin && childExpanded ? (
-                  <View style={styles.proDinChildren}>
-                    {child.dinChildren.map((dinChild) => (
-                      <View key={dinChild.id} style={styles.proDinChildRow}>
-                        <Text style={styles.proDinChildLabel}>
-                          {showDinCodes ? `${dinChild.code} ` : ''}
-                          {dinChild.label}
-                        </Text>
-                        <Text style={styles.privateCategoryChildCost}>{formatCurrency(dinChild.cost)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            );
-          })}
-        </View>
-      ) : null}
+      </View>
     </View>
   );
 }
@@ -1436,10 +1444,8 @@ function GenerateReportButton() {
 
 export default function BreakdownScreen() {
   const { userMode } = useUserMode();
-  const [showProDinCodes, setShowProDinCodes] = useState<boolean>(false);
-  const [showProDinStructure, setShowProDinStructure] = useState<boolean>(false);
-  const [showDeveloperDinCodes, setShowDeveloperDinCodes] = useState<boolean>(false);
-  const [showDeveloperDinStructure, setShowDeveloperDinStructure] = useState<boolean>(false);
+  const [professionalBreakdownView, setProfessionalBreakdownView] = useState<'execution' | 'din276'>('execution');
+  const [developerBreakdownView, setDeveloperBreakdownView] = useState<'feasibility' | 'din276'>('feasibility');
   const {
     location,
     quality,
@@ -1493,9 +1499,19 @@ export default function BreakdownScreen() {
     parkingBasementArea,
     habitableBasementArea,
   );
-  const investmentTotal = projectTotalBeforeVat;
   const modeConfig = userMode ? USER_MODE_CONFIGS[userMode] : null;
   const breakdownDisplayType = modeConfig?.breakdownDisplayType ?? 'private';
+  const displayedTotals = useMemo(
+    () => getDisplayedTotalsForMode({
+      userMode,
+      projectTotalBeforeVat,
+      totalCostInclVat,
+      vatAmount,
+      vatPercent,
+      group100Total,
+    }),
+    [group100Total, projectTotalBeforeVat, totalCostInclVat, userMode, vatAmount, vatPercent],
+  );
 
   const dinGroups = useMemo<DinGroup[]>(() => {
     const enabledHvacIds = new Set(enabledHvac.map((item) => item.option.id));
@@ -1505,7 +1521,6 @@ export default function BreakdownScreen() {
       name: getDin276Group(group.code)?.label ?? `KG ${group.code}`,
       subtotal: group.subtotal,
       percentOfTotal: group.percentOfTotal,
-      accentColor: GROUP_ACCENT_COLORS[group.code] ?? Colors.accent,
       subgroups: buildGroupSubgroupTree(group.code, group.subgroups, {
         siteConditionName: siteCondition.name,
         landscapingArea,
@@ -1525,13 +1540,13 @@ export default function BreakdownScreen() {
     siteCondition,
   ]);
 
-  const privateBreakdownItems = useMemo<PrivateBreakdownItem[]>(
-    () => mapBreakdownForPrivateUser(breakdownGroups),
-    [breakdownGroups],
+  const professionalDinGroups = useMemo<DinGroup[]>(
+    () => dinGroups.filter((group) => group.code !== '100'),
+    [dinGroups],
   );
 
-  const proBreakdownItems = useMemo<ProBreakdownItem[]>(
-    () => mapBreakdownForProUser(breakdownGroups),
+  const privateBreakdownItems = useMemo<PrivateBreakdownItem[]>(
+    () => mapBreakdownForPrivateUser(breakdownGroups),
     [breakdownGroups],
   );
 
@@ -1539,6 +1554,17 @@ export default function BreakdownScreen() {
     () => mapBreakdownForDeveloperUser(breakdownGroups),
     [breakdownGroups],
   );
+
+  const displayedTotalBreakdownParts = [
+    displayedTotals.includeGroup100 ? `KG 100 ${formatCurrency(group100Total)}` : null,
+    `KG 200 ${formatCurrency(kg200Total)}`,
+    `KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)}`,
+    `KG 500 ${formatCurrency(kg500Total)}`,
+    `KG 700 ${formatCurrency(permitDesignFee)}`,
+    `e-EFKA ${formatCurrency(efkaInsuranceAmount)}`,
+    `Contingency ${formatCurrency(contingencyCost)}`,
+    `Overhead ${formatCurrency(contractorCost)}`,
+  ].filter(Boolean).join(' + ');
 
   return (
     <View style={styles.outerContainer}>
@@ -1644,58 +1670,57 @@ export default function BreakdownScreen() {
         </Text>
         <Text style={styles.dinBadge}>
           {breakdownDisplayType === 'private'
-            ? 'Overview'
+          ? 'Overview'
             : breakdownDisplayType === 'pro'
               ? 'Pro'
               : 'Investor'}
         </Text>
       </View>
 
-      {modeConfig?.supportsDinCodes && breakdownDisplayType === 'pro' ? (
+      {breakdownDisplayType === 'pro' ? (
         <View style={styles.proControlsCard}>
           <TouchableOpacity
-            style={[styles.proControlChip, showProDinCodes ? styles.proControlChipActive : null]}
-            onPress={() => setShowProDinCodes((prev) => !prev)}
+            style={[styles.proControlChip, professionalBreakdownView === 'execution' ? styles.proControlChipActive : null]}
+            onPress={() => setProfessionalBreakdownView('execution')}
             activeOpacity={0.8}
-            testID="toggle-pro-din-codes"
+            testID="toggle-pro-execution-view"
           >
-            <Text style={[styles.proControlChipText, showProDinCodes ? styles.proControlChipTextActive : null]}>
-              Show DIN codes
+            <Text style={[styles.proControlChipText, professionalBreakdownView === 'execution' ? styles.proControlChipTextActive : null]}>
+              Execution
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.proControlChip, showProDinStructure ? styles.proControlChipActive : null]}
-            onPress={() => setShowProDinStructure((prev) => !prev)}
+            style={[styles.proControlChip, professionalBreakdownView === 'din276' ? styles.proControlChipActive : null]}
+            onPress={() => setProfessionalBreakdownView('din276')}
             activeOpacity={0.8}
-            testID="toggle-pro-din-structure"
+            testID="toggle-pro-din276-view"
           >
-            <Text style={[styles.proControlChipText, showProDinStructure ? styles.proControlChipTextActive : null]}>
-              Show DIN structure
+            <Text style={[styles.proControlChipText, professionalBreakdownView === 'din276' ? styles.proControlChipTextActive : null]}>
+              DIN 276
             </Text>
           </TouchableOpacity>
         </View>
       ) : modeConfig?.supportsDeveloperSummary && breakdownDisplayType === 'developer' ? (
         <>
-          <DeveloperSummaryCard metrics={developerBreakdown.summary} />
           <View style={styles.proControlsCard}>
             <TouchableOpacity
-              style={[styles.proControlChip, showDeveloperDinCodes ? styles.proControlChipActive : null]}
-              onPress={() => setShowDeveloperDinCodes((prev) => !prev)}
+              style={[styles.proControlChip, developerBreakdownView === 'feasibility' ? styles.proControlChipActive : null]}
+              onPress={() => setDeveloperBreakdownView('feasibility')}
               activeOpacity={0.8}
-              testID="toggle-developer-din-codes"
+              testID="toggle-developer-feasibility-view"
             >
-              <Text style={[styles.proControlChipText, showDeveloperDinCodes ? styles.proControlChipTextActive : null]}>
-                Show DIN codes
+              <Text style={[styles.proControlChipText, developerBreakdownView === 'feasibility' ? styles.proControlChipTextActive : null]}>
+                Feasibility
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.proControlChip, showDeveloperDinStructure ? styles.proControlChipActive : null]}
-              onPress={() => setShowDeveloperDinStructure((prev) => !prev)}
+              style={[styles.proControlChip, developerBreakdownView === 'din276' ? styles.proControlChipActive : null]}
+              onPress={() => setDeveloperBreakdownView('din276')}
               activeOpacity={0.8}
-              testID="toggle-developer-din-structure"
+              testID="toggle-developer-din276-view"
             >
-              <Text style={[styles.proControlChipText, showDeveloperDinStructure ? styles.proControlChipTextActive : null]}>
-                Show DIN structure
+              <Text style={[styles.proControlChipText, developerBreakdownView === 'din276' ? styles.proControlChipTextActive : null]}>
+                DIN 276
               </Text>
             </TouchableOpacity>
           </View>
@@ -1707,22 +1732,28 @@ export default function BreakdownScreen() {
           <PrivateBreakdownCategory key={item.id} item={item} />
         ))
         : breakdownDisplayType === 'pro'
-          ? proBreakdownItems.map((item) => (
-            <ProBreakdownCategory
-              key={item.id}
-              item={item}
-              showDinCodes={showProDinCodes}
-              showDinStructure={showProDinStructure}
-            />
-          ))
-          : developerBreakdown.items.map((item) => (
-            <DeveloperBreakdownCategory
-              key={item.id}
-              item={item}
-              showDinCodes={showDeveloperDinCodes}
-              showDinStructure={showDeveloperDinStructure}
-            />
-          ))}
+          ? professionalBreakdownView === 'execution'
+            ? privateBreakdownItems.map((item) => (
+              <PrivateBreakdownCategory key={item.id} item={item} />
+            ))
+            : professionalDinGroups.map((group) => (
+              <CollapsibleGroup key={group.code} group={group} defaultClosed />
+            ))
+          : developerBreakdownView === 'feasibility'
+            ? (
+              <>
+                <DeveloperSummaryCard metrics={developerBreakdown.summary} />
+                {developerBreakdown.items.map((item) => (
+                  <DeveloperBreakdownCategory
+                    key={item.id}
+                    item={item}
+                  />
+                ))}
+              </>
+            )
+            : dinGroups.map((group) => (
+              <CollapsibleGroup key={group.code} group={group} defaultClosed />
+            ))}
 
       <View style={styles.constructionSubtotalCard}>
         <Text style={styles.constructionSubtotalLabel}>{`Construction Subtotal (KG 300${EN_DASH}600)`}</Text>
@@ -1765,11 +1796,11 @@ export default function BreakdownScreen() {
       <View style={styles.grandTotalCard}>
         <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>Total Project Cost</Text>
-          <Text style={styles.grandTotalValue}>{formatCurrency(investmentTotal)}</Text>
+          <Text style={styles.grandTotalValue}>{formatCurrency(displayedTotals.displayedProjectTotalBeforeVat)}</Text>
         </View>
         <View style={styles.grandTotalBreakdown}>
           <Text style={styles.grandTotalBreakdownText}>
-            {`KG 100 ${formatCurrency(group100Total)} + KG 200 ${formatCurrency(kg200Total)} + KG 300${EN_DASH}600 ${formatCurrency(constructionSubtotal)} + KG 500 ${formatCurrency(kg500Total)} + KG 700 ${formatCurrency(permitDesignFee)} + e-EFKA ${formatCurrency(efkaInsuranceAmount)} + Contingency ${formatCurrency(contingencyCost)} + Overhead ${formatCurrency(contractorCost)}`}
+            {displayedTotalBreakdownParts}
           </Text>
         </View>
       </View>
@@ -1777,12 +1808,12 @@ export default function BreakdownScreen() {
       <View style={styles.vatCard}>
         <View style={styles.vatRow}>
           <Text style={styles.vatLabel}>{`+ VAT (${formatPercent(vatPercent, vatPercent % 1 === 0 ? 0 : 1)})`}</Text>
-          <Text style={styles.vatValue}>{formatCurrency(vatAmount)}</Text>
+          <Text style={styles.vatValue}>{formatCurrency(displayedTotals.displayedVatAmount)}</Text>
         </View>
         <View style={styles.vatDivider} />
         <View style={styles.vatRow}>
           <Text style={styles.vatTotalLabel}>Total incl. VAT</Text>
-          <Text style={styles.vatTotalValue}>{formatCurrency(totalCostInclVat)}</Text>
+          <Text style={styles.vatTotalValue}>{formatCurrency(displayedTotals.displayedTotalInclVat)}</Text>
         </View>
         <Text style={styles.vatNote}>{`VAT calculated from the current pre-VAT project total using the selected ${formatPercent(vatPercent, vatPercent % 1 === 0 ? 0 : 1)} rate.`}</Text>
       </View>
@@ -2008,19 +2039,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  privateCategoryChildRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    justifyContent: 'space-between' as const,
-    gap: 12,
-    paddingVertical: 8,
-  },
-  privateCategoryChildLabel: {
-    flex: 1,
-    fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 17,
-  },
   privateCategoryChildCost: {
     fontSize: 13,
     fontWeight: '700' as const,
@@ -2080,9 +2098,6 @@ const styles = StyleSheet.create({
   groupHeader: {
     flexDirection: 'row' as const,
     alignItems: 'stretch' as const,
-  },
-  groupAccentBar: {
-    width: 4,
   },
   groupHeaderContent: {
     flex: 1,
